@@ -1,3 +1,31 @@
+public class Element {
+    private int id;
+    private boolean lider;
+
+    public Element(int id, boolean lider) {
+        this.id = id;
+        this.lider = lider;
+    }
+
+    public boolean isLider() {
+        return lider;
+    }
+    
+    public void setLider(boolean lider) {
+        this.lider = lider;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+}
+
+
+/*
 import java.util.HashMap;
 
  class Element {
@@ -41,4 +69,4 @@ import java.util.HashMap;
     public static HashMap<Integer, String> getMessagesLists() {
         return messagesLists;
     }
-}
+} */

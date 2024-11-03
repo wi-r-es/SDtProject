@@ -1,4 +1,58 @@
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
+
+public class ReceiveListener extends Thread {
+    private static final String MULTICAST_ADDRESS = "230.0.0.1";
+    private static final int PORT = 4446;
+    private Element element;
+
+    public ReceiveListener(Element element) {
+        this.element = element;
+    }
+
+    private void replyToHeartbeat() {
+        try (MulticastSocket socket = new MulticastSocket()) {
+            String ackMessage = "I’m Alive " + element.getId();
+            byte[] buffer = ackMessage.getBytes();
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, PORT);
+            socket.send(packet);
+            System.out.println("Node " + element.getId() + " sent heartbeat acknowledgment.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void run() {
+        try (MulticastSocket socket = new MulticastSocket(PORT)) {
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
+            socket.joinGroup(group);
+            System.out.println("Receiver listening on multicast address " + MULTICAST_ADDRESS + " and port " + PORT);
+
+            while (true) {
+                byte[] buffer = new byte[256];
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+                System.out.println("Node " + element.getId() + " received message: " + message);
+                // Process heartbeat messages and send acknowledgment
+                if (message.equals("heartbeat")) {
+                    replyToHeartbeat();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
+
+/*import java.io.IOException;
 import java.net.*;
 import java.util.Date;
 
@@ -69,7 +123,7 @@ public class ReceiveListener extends Thread {
     }
 
 
-    /** Process received message **/
+    /** Process received message
     private void processMessage(String message) {
         System.out.println("[Node " + Thread.currentThread().getName() + "] Received: " + message);
         System.out.println("Received at: " + new Date());
@@ -81,3 +135,5 @@ public class ReceiveListener extends Thread {
         running = false;
     }
 }
+
+*/

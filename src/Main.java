@@ -16,6 +16,40 @@ public class Main {
     private static void runNode(int nodeType) {
         if (nodeType == 1) {
             // Leader node
+            Element leader = new Element(1, true);
+            SendTransmitter transmitter = new SendTransmitter(leader);
+            transmitter.start();
+            System.out.println("Leader node started with message transmitter.");
+        } else {
+            // Regular node
+            Element node = new Element(2, false);
+            ReceiveListener listener = new ReceiveListener(node);
+            listener.start();
+            System.out.println("Regular node started with message receiver.");
+        }
+    }
+}
+
+
+
+/*public class Main {
+    public static void main(String[] args) {
+        try {
+            // Create test scenario based on command line argument
+            if (args.length > 0) {
+                int nodeType = Integer.parseInt(args[0]);
+                runNode(nodeType);
+            } else {
+                System.out.println("Please specify node type: 1 for leader, 2 for regular element");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid argument. Please use: 1 for leader, 2 for regular element");
+        }
+    }
+
+    private static void runNode(int nodeType) {
+        if (nodeType == 1) {
+            // Leader node
             Element leader = new Element(1);
             leader.start();
 
@@ -43,3 +77,5 @@ public class Main {
         }
     }
 }
+
+ */

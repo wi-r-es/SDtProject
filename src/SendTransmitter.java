@@ -1,4 +1,51 @@
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
+
+public class SendTransmitter extends Thread {
+    private static final String MULTICAST_ADDRESS = "230.0.0.1";
+    private static final int PORT = 4446;
+    private Element element;
+
+    public SendTransmitter(Element element) {
+        this.element = element;
+    }
+
+    private void sendHeartbeat() {
+        try (MulticastSocket socket = new MulticastSocket()) {
+            String message = "heartbeat";
+            byte[] buffer = message.getBytes();
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, PORT);
+            socket.send(packet);
+            System.out.println("Sent heartbeat from leader node: " + element.getId());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void run() {
+        if (element.isLider()) {
+            while (true) {
+                sendHeartbeat();
+                try {
+                    Thread.sleep(5000); // Send heartbeat every 5 seconds
+                } catch (InterruptedException e) {
+                    System.out.println("Heartbeat transmission interrupted.");
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+
+/*
+import java.io.IOException;
+
 import java.net.*;
 import java.util.HashMap;
 
@@ -51,3 +98,4 @@ public class SendTransmitter extends Thread{
     }
 
 }
+*/
