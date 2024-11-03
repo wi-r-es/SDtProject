@@ -6,13 +6,13 @@ import static java.lang.Thread.sleep;
 
 public class SendTransmitter extends Thread{
     //static private HashMap<Integer, String> messagesList = new HashMap<>();
-    private static final String MULTICAST_ADDRESS = "230.23.23.23";
+    private static final String MULTICAST_ADDRESS = "230.23.23.24";
 
     //private DatagramSocket socket;
     private MulticastSocket socket;
     private InetAddress group;
     private byte[] buf;
-    protected int port = 2323;
+    protected int port = 6666;
 
     @Override
     public void run() {
@@ -21,6 +21,7 @@ public class SendTransmitter extends Thread{
             // socket = new DatagramSocket();
             socket = new MulticastSocket();
             group = InetAddress.getByName(MULTICAST_ADDRESS);
+            socket.setReuseAddress(true);
             System.out.println("Sender initialized...");
             while (true) {
                 sendMessages(Element.getMessagesLists());

@@ -3,8 +3,8 @@ import java.net.*;
 import java.util.Date;
 
 public class ReceiveListener extends Thread {
-    private static final String MULTICAST_ADDRESS = "230.23.23.23";
-    final int PORT = 2323;
+    private static final String MULTICAST_ADDRESS = "230.23.23.24";
+    final int PORT = 6666;
     protected MulticastSocket socket = null;
     private InetAddress group;
 
@@ -16,11 +16,11 @@ public class ReceiveListener extends Thread {
             socket = new MulticastSocket(PORT);
             group = InetAddress.getByName(MULTICAST_ADDRESS);
 
-            // Important: Set these options
+
             socket.setReuseAddress(true);
             socket.setBroadcast(true);
             NetworkInterface networkInterface = NetworkInterface.getByName("ens33");
-            //socket.joinGroup(group);
+            socket.joinGroup(group);
 
             System.out.println("Receiver started on port " + PORT);
 
@@ -33,8 +33,8 @@ public class ReceiveListener extends Thread {
 
 
             while (running) {
-                System.out.println("im here receive message");
 
+                System.out.println("Waiting for messages...");
                 receiveMessage();
 
             }
