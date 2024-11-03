@@ -22,7 +22,7 @@ public class TestCases {
                 Thread.sleep(1000);
             }
 
-            System.out.println("\nTests completed. Press Ctrl+C to stop.");
+            System.out.println("\nTests completed. Please stop the run.");
             while(true) {
                 Thread.sleep(1000);
             }

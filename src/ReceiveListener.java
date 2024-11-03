@@ -6,29 +6,39 @@ import java.util.Date;
 
 public class ReceiveListener extends Thread {
     private static final String MULTICAST_ADDRESS = "230.23.23.23";
-    private static final int PORT = 2323;
-    private MulticastSocket socket;
-    private InetAddress group;
+    protected MulticastSocket socket = null;
+    byte[] buf = new byte[1024];
 
     @Override
     public void run() {
         try {
+            final int PORT = 2323;
             socket = new MulticastSocket(PORT);
-            group = InetAddress.getByName(MULTICAST_ADDRESS);
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
             socket.joinGroup(group);
 
             while (true) {
-                receiveMessage();
+                System.out.println("im here receive message");
+                //receiveMessage();
+                DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                socket.receive(packet);
+                System.out.println("im here now");
+                String received = new String(packet.getData(), 0, packet.getLength());
+                processMessage(received);
+                if ("end".equals(received)) {
+                    break;
+                }
             }
+            System.out.println("going to leave" );
             socket.leaveGroup(group);
             socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
+/*
     private void receiveMessage() throws IOException, IOException {
-        System.out.println("im here recieve message");
+        System.out.println("im here receive message");
         byte[] buf = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         socket.receive(packet);
@@ -39,6 +49,8 @@ public class ReceiveListener extends Thread {
             break;
         }
     }
+    */
+
     /** Process received message **/
     private void processMessage(String message) {
         System.out.println("[Node " + Thread.currentThread().getName() + "] Received: " + message);

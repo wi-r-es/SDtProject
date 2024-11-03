@@ -20,7 +20,7 @@ public class SendTransmitter extends Thread{
             while (true) {
                 sendMessages(Element.getMessagesLists());
                 Thread.sleep(5000);
-            }
+           }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -35,7 +35,7 @@ public class SendTransmitter extends Thread{
             buf = message.getBytes();
 
             DatagramPacket packet = new DatagramPacket(buf, buf.length, group, port);
-            System.out.println(new String (packet.getData()) );
+            System.out.println(new String (packet.getData()) + '\n');
             socket.send(packet);
         }
         socket.close();
