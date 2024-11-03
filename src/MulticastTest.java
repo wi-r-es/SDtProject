@@ -4,36 +4,36 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 public class MulticastTest {
-    public static void main(String[] args) throws Exception {
-        if (args.length < 1) {
-            System.out.println("Usage: java MulticastTest [sender|receiver]");
-            return;
-        }
+    public static void main(String[] args) {
+        try {
+            // Start leader
+            Element leader = new Element(1);
+            leader.start();
+            System.out.println("Leader started");
 
-        if (args[0].equals("sender")) {
-            DatagramSocket socket = new DatagramSocket();
-            InetAddress group = InetAddress.getByName("230.23.23.23");
-            String msg = "Test message";
+            // Start regular node
+            Element regular = new Element(0);
+            regular.start();
+            System.out.println("Regular node started");
 
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(
-                        msg.getBytes(), msg.length(), group, 2323);
-                socket.send(packet);
-                System.out.println("Sent: " + msg);
+            // Wait a bit
+            Thread.sleep(2000);
+
+            // Send some test messages
+            for (int i = 1; i <= 3; i++) {
+                leader.addMessage(i, "Test message " + i);
                 Thread.sleep(1000);
             }
-        } else {
-            MulticastSocket socket = new MulticastSocket(2323);
-            InetAddress group = InetAddress.getByName("230.23.23.23");
-            socket.joinGroup(group);
 
-            while (true) {
-                byte[] buf = new byte[1024];
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                System.out.println("Received: " +
-                        new String(packet.getData(), 0, packet.getLength()));
-            }
+            // Keep running for a while
+            Thread.sleep(20000);
+
+            // Clean shutdown
+            leader.stop();
+            regular.stop();
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }

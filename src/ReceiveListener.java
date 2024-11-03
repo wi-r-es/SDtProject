@@ -1,33 +1,42 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 import java.util.Date;
 
 public class ReceiveListener extends Thread {
     private static final String MULTICAST_ADDRESS = "230.23.23.23";
+    final int PORT = 2323;
     protected MulticastSocket socket = null;
-    byte[] buf = new byte[1024];
+    private InetAddress group;
 
+    private boolean running = true;
     @Override
     public void run() {
         try {
-            final int PORT = 2323;
-            socket = new MulticastSocket(PORT);
-            InetAddress group = InetAddress.getByName(MULTICAST_ADDRESS);
-            socket.joinGroup(group);
 
-            while (true) {
+            socket = new MulticastSocket(PORT);
+            group = InetAddress.getByName(MULTICAST_ADDRESS);
+
+            // Important: Set these options
+            socket.setReuseAddress(true);
+            socket.setBroadcast(true);
+            NetworkInterface networkInterface = NetworkInterface.getByName("ens33");
+            //socket.joinGroup(group);
+
+            System.out.println("Receiver started on port " + PORT);
+
+            socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
+
+            // Set Time-To-Live and disable loopback mode
+            socket.setTimeToLive(4);
+            socket.setLoopbackMode(false);
+            System.out.println("Joined multicast group, waiting for messages...");
+
+
+            while (running) {
                 System.out.println("im here receive message");
-                //receiveMessage();
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                System.out.println("im here now");
-                String received = new String(packet.getData(), 0, packet.getLength());
-                processMessage(received);
-                if ("end".equals(received)) {
-                    break;
-                }
+
+                receiveMessage();
+
             }
             System.out.println("going to leave" );
             socket.leaveGroup(group);
@@ -35,21 +44,30 @@ public class ReceiveListener extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        finally {
+            if (socket != null) {
+                try {
+                    socket.leaveGroup(group);
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
-/*
+
     private void receiveMessage() throws IOException, IOException {
         System.out.println("im here receive message");
         byte[] buf = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         socket.receive(packet);
+        System.out.println("Message receiveed");
 
         String received = new String(packet.getData(), 0, packet.getLength());
         processMessage(received);
-        if ("end".equals(received)) {
-            break;
-        }
+
     }
-    */
+
 
     /** Process received message **/
     private void processMessage(String message) {
@@ -57,5 +75,9 @@ public class ReceiveListener extends Thread {
         System.out.println("Received at: " + new Date());
         System.out.println("Received message: " + message);
 
+    }
+
+    public void stopListener() {
+        running = false;
     }
 }

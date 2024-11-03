@@ -15,15 +15,25 @@ import java.util.HashMap;
     public void start() {
         // Start sender only if this is the leader
         if (lider == 1) {
-            new Thread(sender).start();
+            //new Thread(sender).start();
+            sender.start();
+            System.out.println("Leader sender started");
         }
         // All elements receive messages
-        new Thread(receiver).start();
+        //new Thread(receiver).start();
+        receiver.start();
+        System.out.println("Receiver started for node with lider=" + lider);
     }
+
+     public void stop() {
+         if (sender != null) sender.interrupt();
+         if (receiver != null) receiver.stopListener();
+     }
 
     public void addMessage(Integer key, String message) {
         if (lider == 1) {  // Only leader can add messages
             messagesLists.put(key, message);
+            System.out.println("Added message: " + message);
         }
     }
 
