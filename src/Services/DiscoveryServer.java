@@ -46,6 +46,7 @@ public class DiscoveryServer {
                 for (Map.Entry<String, String> entry : activeNodes.entrySet()) {
                     out.println(entry.getKey() + " " + entry.getValue());
                 }
+                System.out.println("Updating Nodes");
                 out.println("END");  // end of request
             }
 

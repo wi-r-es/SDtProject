@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Node{
+public class Node extends Thread{
     private final String nodeId;
     private final GossipNode gossipNode;  // Handles gossip protocol aspects of this node
     private final Set<String> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
@@ -24,9 +24,29 @@ public class Node{
     private static final String DISCOVERY_SERVER_HOST = "localhost";
     private static final int DISCOVERY_SERVER_PORT = 9090;
 
+    private volatile boolean running = true;
 
     private Map<String, Document> documents;
-    // Other components, e.g., DocumentManager, CRDT handler, etc.
+
+
+
+    @Override
+    public void run() {
+        registerWithDiscoveryServer();
+
+        while(running){
+            try {
+                
+                Thread.sleep(1000);
+        
+            }catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // Preserve interrupt status
+                    System.out.println("Worker thread interrupted.");
+                    break;
+                }
+        }
+
+    }
 
     public Node(String nodeId) {
         this.nodeId = nodeId;
@@ -44,9 +64,21 @@ public class Node{
                 updateKnownNodes();
             }
         }, 0, 5000);  // Update every 5 seconds
-
+        // Register the shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            cleanupOnShutdown();
+        }));
         // Start the gossip protocol
         gossipNode.start();
+    }
+
+    public void stopRunning() {
+        running = false; 
+    }
+
+    private void cleanupOnShutdown() {
+        this.unregisterFromDiscoveryServer();
+        System.out.println("Node " + this.nodeId + " shutting down.");
     }
 
     public String getNodeId() {
@@ -81,6 +113,7 @@ public class Node{
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             out.println("GET_NODES");
             String line;
+            System.out.println("Node: " + nodeId + " updating known nodes");
             while (!(line = in.readLine()).equals("END")) {
                 String[] parts = line.split(" ");
                 String peerNodeId = parts[0];
