@@ -33,9 +33,11 @@ public class HeartbeatService extends Thread {
         this.scheduler = Executors.newScheduledThreadPool(2); //one for heartbeat one for fail detection
 
         try {
-            // Initialize socket for sending and receiving UDP packets
+
             //this.socket = new DatagramSocket();
             // this.socket.setSoTimeout(GOSSIP_INTERVAL);
+            
+            //GOSSIP PROTO
             this.socket = new DatagramSocket(NODE_PORT_BASE + Math.abs(gossipNode.getNodeId().hashCode()) % 1000);  // Unique port per node
            
         } catch (SocketException e) {
@@ -50,21 +52,23 @@ public class HeartbeatService extends Thread {
         
         // gossip protocol way
         scheduler.scheduleAtFixedRate(this::incrementAndGossipHeartbeat, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
+        
+        
         // broadcast way
         //scheduler.scheduleAtFixedRate(this::incrementAndBroadcastHeartbeat, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
 
+
+        // Detection failure
         // scheduler.scheduleAtFixedRate(this::detectFailures, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
 
         // Start a separate thread for continuously receiving heartbeats
         new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 receiveHeartbeats();
+                //receiveHeartbeatsBroadcast();
             }
         }).start();
-         // Start receiving heartbeats in the same thread
-        // while (!Thread.currentThread().isInterrupted()) {
-        //     receiveHeartbeatsBroadcast();
-        // }
+
     }
     
     //Broadcast implementation
@@ -86,6 +90,8 @@ public class HeartbeatService extends Thread {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, PORT);
             socket.send(packet);
+            // Log sending heartbeat
+            System.out.println("Sending heartbeat from " + gossipNode.getNodeId() + " to " + MULTICAST_GROUP + " with counter " + getHeartbeatCounter());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -104,7 +110,12 @@ public class HeartbeatService extends Thread {
             int heartbeatCounter = Integer.parseInt(parts[1]);
 
             // Update the heartbeat information for the sender node
-            //receiveHeartbeat();
+            heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
+                    .updateAndGet(current -> Math.max(current, heartbeatCounter));
+            lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
+
+            // Log receiving heartbeat
+            System.out.println("Received heartbeat from " + senderNodeId + " with counter " + heartbeatCounter);
         } catch (IOException e) {
             if (!(e instanceof SocketTimeoutException)) {
                 e.printStackTrace();  // Ignore timeout exceptions (normal in receive loop)
@@ -146,7 +157,7 @@ public class HeartbeatService extends Thread {
     }
 
     private int getHeartbeatCounter() {
-        return heartbeatCounters.get(gossipNode.getNodeId()).incrementAndGet();
+        return heartbeatCounters.get(gossipNode.getNodeId()).get();
     }
 
     // Placeholder method to get the IP address of a target node by ID

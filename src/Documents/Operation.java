@@ -2,11 +2,11 @@ package Documents;
 
 public class Operation {
     private final String documentId;
-    private final String content;
+    private final String operation;
 
-    public Operation(String documentId, String content) {
+    public Operation(String documentId, String op) {
         this.documentId = documentId;
-        this.content = content;
+        this.operation = op;
     }
 
     public String getDocumentId() {
@@ -14,6 +14,6 @@ public class Operation {
     }
 
     public String getContent() {
-        return content;
+        return operation;
     }
 }
