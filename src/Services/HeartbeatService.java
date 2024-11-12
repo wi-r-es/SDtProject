@@ -76,6 +76,10 @@ public class HeartbeatService extends Thread {
         incrementHeartbeat();
         broadcastHeartbeat();
     }
+
+    private int getHeartbeatCounter() {
+        return heartbeatCounters.get(gossipNode.getNodeId()).get();
+    }
     private void incrementHeartbeat() {
         heartbeatCounters.get(gossipNode.getNodeId()).incrementAndGet();
     }
@@ -138,7 +142,7 @@ public class HeartbeatService extends Thread {
         for (String targetNodeId : targetNodeIds) {
             try {
                 // Prepare heartbeat message
-                String message = gossipNode.getNodeId() + ":" + getHeartbeatCounter();
+                String message = gossipNode.getNodeId() + ":" + getHeartbeatCounter() + ":" + System.currentTimeMillis();
                 byte[] buffer = message.getBytes();
 
                 InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
@@ -156,11 +160,9 @@ public class HeartbeatService extends Thread {
         }
     }
 
-    private int getHeartbeatCounter() {
-        return heartbeatCounters.get(gossipNode.getNodeId()).get();
-    }
+    
 
-    // Placeholder method to get the IP address of a target node by ID
+    // get the IP of a node
     private String getNodeIPAddress(String nodeId) {
         //static beacuse running on local machine
         return "localhost";
@@ -178,6 +180,7 @@ public class HeartbeatService extends Thread {
             String[] parts = receivedMessage.split(":");
             String senderNodeId = parts[0];
             int heartbeatCounter = Integer.parseInt(parts[1]);
+            long timestamp = Long.parseLong(parts[2]); //what in the hell will i use this for idk but we'll see
 
             // Update local heartbeat data
 
