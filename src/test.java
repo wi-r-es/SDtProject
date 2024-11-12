@@ -1,7 +1,9 @@
+import java.rmi.RemoteException;
+
 import Nodes.Node;
 
 public class test {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws RemoteException {
         if (args.length == 0) {
             System.err.println("Please provide a node ID as an argument.");
             return;

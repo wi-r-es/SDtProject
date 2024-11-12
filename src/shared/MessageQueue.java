@@ -1,7 +1,7 @@
 package shared;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ConcurrentMessageQueue {
+public class MessageQueue {
     // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue
     private final ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
 

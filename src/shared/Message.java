@@ -1,8 +1,9 @@
 package shared;
 
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Message {
+public class Message implements Serializable{
     private final int node_id;
     private final AtomicInteger message_id = new AtomicInteger(0);
     private final String message;

@@ -1,7 +1,9 @@
+import java.rmi.RemoteException;
+
 import Nodes.Node;
 
 public class testWithThreads {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws RemoteException {
 
         for (int i= 0; i<5; i++){
             String nodeId = "Node-" + i;
