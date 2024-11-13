@@ -30,5 +30,8 @@ public class GossipNode extends Thread {
     public boolean isLeader(){
         return node.isLeader();
     }
+    public void addKnownNode(String nodeId){
+        node.addKnownNode(nodeId);
+    }
 
 }

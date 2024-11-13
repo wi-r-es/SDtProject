@@ -69,6 +69,11 @@ public class HeartbeatService extends Thread {
                 receiveHeartbeatsBroadcast();
             }
         }).start();
+        new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                receiveACK();
+            }
+        }).start();
 
     }
     
@@ -123,7 +128,8 @@ public class HeartbeatService extends Thread {
             String[] parts = receivedMessage.split(":");
             String senderNodeId = parts[0];
             int heartbeatCounter = Integer.parseInt(parts[1]);
-
+            if(gossipNode.getNodeId().equals(senderNodeId)) { return;}
+            respondeToHeartbeat(senderNodeId);
             // update the heartbeat information for the sender node
             heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
@@ -136,6 +142,55 @@ public class HeartbeatService extends Thread {
             }
         }
     }
+
+    private void respondeToHeartbeat(String targetNodeId) {
+        try {
+                String message = "ACK Heartbeat from:" +gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis();
+                byte[] buffer = message.getBytes();
+
+                InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+                int targetPort = NODE_PORT_BASE; 
+
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, targetPort);
+                socket.send(packet);
+
+                System.out.println("ACK FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
+    private void receiveACK() {
+        byte[] buffer = new byte[256];
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+        try {
+            socket.receive(packet); 
+            String receivedMessage = new String(packet.getData(), 0, packet.getLength());
+
+            // Parse sender ID and heartbeat counter from message
+            String[] parts = receivedMessage.split(":");
+            System.out.println(receivedMessage);
+            String senderNodeId = parts[1];
+            int heartbeatCounter = Integer.parseInt(parts[2]);
+            long timestamp = Long.parseLong(parts[3]); //what in the hell will i use this for idk but we'll see
+
+            // Update local heartbeat data
+
+            //computeIfAbsente looks for an entry in "heartbeatCounters" with the key senderNodeId.
+            // if key not present, creates a nwe entry with amoticInteger initialization with initialValue = 0
+            // updateandGet will atomically updated the value retrieved from before 
+            heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
+                    .updateAndGet(current -> Math.max(current, heartbeatCounter));
+            lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
+
+        } catch (IOException e) {
+            if (!(e instanceof SocketTimeoutException)) {
+                e.printStackTrace();  // Ignore timeout exceptions (normal in receive loop)
+            }
+        }
+    }
+    
 
     
 
@@ -290,18 +345,15 @@ public class HeartbeatService extends Thread {
 
         for (String targetNodeId : targetNodeIds) {
             try {
-                // Prepare heartbeat message
                 String message = gossipNode.getNodeId() + ":" + getHeartbeatCounter() + ":" + System.currentTimeMillis();
                 byte[] buffer = message.getBytes();
 
                 InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
-                int targetPort = NODE_PORT_BASE + Math.abs(targetNodeId.hashCode()) % 1000;  // Unique port per target node
+                int targetPort = NODE_PORT_BASE;  
 
-                // Send heartbeat packet
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length, targetAddress, targetPort);
                 socket.send(packet);
 
-                // Log sending heartbeat
                 System.out.println("Sending heartbeat from " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
             } catch (IOException e) {
                 e.printStackTrace();

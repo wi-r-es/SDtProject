@@ -90,6 +90,9 @@ public class Node extends Thread {
     public GossipNode getGossipNode() {
         return gossipNode;
     }
+    public void addKnownNode(String nodeId){
+        knownNodes.add(nodeId);
+    }
 /*
     public void startRMIService() throws RemoteException {
         try {
