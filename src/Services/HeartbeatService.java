@@ -184,6 +184,10 @@ public class HeartbeatService extends Thread {
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
             lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
 
+
+            //Add node to the list
+            gossipNode.addKnownNode(senderNodeId);
+
         } catch (IOException e) {
             if (!(e instanceof SocketTimeoutException)) {
                 e.printStackTrace();  // Ignore timeout exceptions (normal in receive loop)

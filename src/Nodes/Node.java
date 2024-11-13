@@ -26,7 +26,9 @@ public class Node extends Thread {
     private final UUID UID;
     private final GossipNode gossipNode;  
     private final Set<String> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
-    private final MessageQueue messageQueue = new MessageQueue();
+
+    //private final MessageQueue messageQueue = new MessageQueue() ;
+    private final ArrayList<String> documetnsList = new ArrayList<>();
     private boolean isLeader;
     
     private volatile boolean running = true;
@@ -37,7 +39,7 @@ public class Node extends Thread {
         while(running){
             try {
                 if (isLeader) {
-                    // computate logic to check wether there are documetns to commit to the rest of the nodes 
+                    // things only leader will be abvle to do like commits TBD
                 }
 
                 Thread.sleep(1000);
@@ -51,23 +53,23 @@ public class Node extends Thread {
         }
     }
 
-    public Node(String nodeId) throws RemoteException {
+    public Node(String nodeId) {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  // Initialize gossip component by passing 'this' node to 'gossipnode'
-
+       // this.messageQueue =  new MessageQueue(); 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
 
         gossipNode.start();
     }
-    public Node(String nodeId, boolean L) {
+    public Node(String nodeId, boolean L)  {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  
         this.isLeader = L;
-
+        //this.messageQueue =  new MessageQueue(); 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));

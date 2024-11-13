@@ -1,7 +1,15 @@
 package shared;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class MessageQueue {
+import remote.messageRemote;
+
+public class MessageQueue extends UnicastRemoteObject implements messageRemote{
+    public MessageQueue() throws RemoteException {
+        super();
+    }
+
     // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue
     private final ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
 
