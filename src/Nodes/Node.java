@@ -24,7 +24,7 @@ import java.rmi.RemoteException;
 public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
-    private final GossipNode gossipNode;  // Handles gossip protocol aspects of this node
+    private final GossipNode gossipNode;  
     private final Set<String> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
     private final MessageQueue messageQueue = new MessageQueue();
     private boolean isLeader;

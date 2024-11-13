@@ -24,7 +24,6 @@ public class HeartbeatService extends Thread {
 
     private static final int PORT = 9876;  // UDP communication multicast
     private static final String MULTICAST_GROUP = "230.0.0.0";  
-   
 
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
@@ -75,8 +74,13 @@ public class HeartbeatService extends Thread {
     
     //Broadcast implementation
     private void incrementAndBroadcastHeartbeat() {
-        incrementHeartbeat();
-        broadcastHeartbeat();
+        //incrementHeartbeat();
+        if(gossipNode.isLeader())
+        {
+           // System.out.println(gossipNode.getNodeId());
+            //System.out.println(gossipNode.isLeader());
+            this.broadcastHeartbeat();}
+
     }
 
     private int getHeartbeatCounter() {
@@ -90,13 +94,15 @@ public class HeartbeatService extends Thread {
     //BROADCAST
     private void broadcastHeartbeat() {
         try {
-            String message = gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).get();
+            String message = gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement();
             byte[] buffer = message.getBytes();
 
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, PORT);
-            socket.send(packet);
-            // Log sending heartbeat
+            DatagramPacket pckt = new DatagramPacket(buffer, buffer.length, group, PORT);
+            socket.send(pckt);
+            
+
+            
             System.out.println("Sending heartbeat from " + gossipNode.getNodeId() + " to " + MULTICAST_GROUP + " with counter " + getHeartbeatCounter());
         } catch (IOException e) {
             e.printStackTrace();
@@ -106,21 +112,23 @@ public class HeartbeatService extends Thread {
 
     private void receiveHeartbeatsBroadcast() {
         try {
+            MulticastSocket mSocket = new MulticastSocket(PORT);
+            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+            mSocket.joinGroup(group);
             byte[] buffer = new byte[256];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
+            mSocket.receive(packet);
 
             String receivedMessage = new String(packet.getData(), 0, packet.getLength());
             String[] parts = receivedMessage.split(":");
             String senderNodeId = parts[0];
             int heartbeatCounter = Integer.parseInt(parts[1]);
 
-            // Update the heartbeat information for the sender node
+            // update the heartbeat information for the sender node
             heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
             lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
 
-            // Log receiving heartbeat
             System.out.println("Received heartbeat from " + senderNodeId + " with counter " + heartbeatCounter);
         } catch (IOException e) {
             if (!(e instanceof SocketTimeoutException)) {

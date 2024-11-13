@@ -27,5 +27,8 @@ public class GossipNode extends Thread {
     public List<String> getRandomNodes() {
         return node.getRandomNodes();
     }
+    public boolean isLeader(){
+        return node.isLeader();
+    }
 
 }

@@ -4,10 +4,11 @@ import Nodes.Node;
 
 public class testWithThreads {
     public static void main(String[] args) throws RemoteException {
-
-        for (int i= 0; i<5; i++){
+        Node node = new Node("Node-0", true);
+                node.start();
+        for (int i= 1; i<5; i++){
             String nodeId = "Node-" + i;
-            Node node = new Node(nodeId);
+            node = new Node(nodeId);
             node.start();
         }
         
