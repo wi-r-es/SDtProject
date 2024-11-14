@@ -3,14 +3,15 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import remote.messageRemote;
+import remote.messageRemoteInterface;
 
 public class Client {
     public static void main(String[] args) {
         try {
-            messageRemote queue = (messageRemote) Naming.lookup("rmi://localhost:9999/MessageQueue");
+            messageRemoteInterface queue = (messageRemoteInterface) Naming.lookup("rmi://localhost:2323/queue");
             System.out.println("Connected to MessageQueue");
-            // Now you can invoke remote methods on messageQueue
+            // Perform remote operations
+            queue.enqueue("Hello, RMI!");
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
             e.printStackTrace();
         }

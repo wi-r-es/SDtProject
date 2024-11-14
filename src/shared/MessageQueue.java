@@ -3,24 +3,28 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import remote.messageRemote;
+import remote.messageRemoteInterface;
 
-public class MessageQueue extends UnicastRemoteObject implements messageRemote{
+
+public class MessageQueue extends UnicastRemoteObject implements messageRemoteInterface{
+
+
     public MessageQueue() throws RemoteException {
         super();
+    
     }
 
     // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue
-    private final ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
 
     // method to add message to queue
-    public void enqueue(Message message) {
+    public void enqueue(String message) throws RemoteException {
         queue.add(message);
         System.out.println("Enqueued: " + message);
     }
     // method to remove message from queue
-    public Message dequeue() {
-        Message message = queue.poll();
+    public String dequeue() throws RemoteException {
+        String message = queue.poll();
         if (message != null) {
             System.out.println("Dequeued: " + message);
         }
@@ -31,4 +35,5 @@ public class MessageQueue extends UnicastRemoteObject implements messageRemote{
     public boolean isEmpty() {
         return queue.isEmpty();
     }
+    
 }

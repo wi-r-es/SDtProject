@@ -18,6 +18,8 @@ import java.util.Set;
 
 import java.util.UUID;
 
+import remote.messageQueueServer;
+
 import java.rmi.RemoteException;
 
 
@@ -27,53 +29,61 @@ public class Node extends Thread {
     private final GossipNode gossipNode;  
     private final Set<String> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
 
-    //private final MessageQueue messageQueue = new MessageQueue() ;
+    
     private final ArrayList<String> documetnsList = new ArrayList<>();
     private boolean isLeader;
-    
-    private volatile boolean running = true;
+    private messageQueueServer messageQueue; 
 
+    private volatile boolean running = true;
+    
     @Override
     public void run() {
+        try {
+            if(isLeader)
+            {messageQueue.start();}
 
-        while(running){
-            try {
-                if (isLeader) {
-                    // things only leader will be abvle to do like commits TBD
-                }
-
-                Thread.sleep(1000);
-            
-            } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Preserve interrupt status
-                    System.out.println("Worker thread interrupted.");
-                    System.out.println("Node " + nodeId + " interrupted.");
-                    break;
-            } 
+            while(running){
+                try {
+                    if (isLeader) {
+                        // things only leader will be abvle to do like commits TBD
+                    }
+    
+                    Thread.sleep(1000);
+                
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // Preserve interrupt status
+                        System.out.println("Worker thread interrupted.");
+                        System.out.println("Node " + nodeId + " interrupted.");
+                        break;
+                } 
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        
     }
 
-    public Node(String nodeId) {
+    public Node(String nodeId) throws RemoteException {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  // Initialize gossip component by passing 'this' node to 'gossipnode'
-       // this.messageQueue =  new MessageQueue(); 
+        //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
-
+        messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
-    public Node(String nodeId, boolean L)  {
+    public Node(String nodeId, boolean L) throws RemoteException  {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  
         this.isLeader = L;
-        //this.messageQueue =  new MessageQueue(); 
+        //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
-
+        messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
 
