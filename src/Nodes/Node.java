@@ -27,10 +27,10 @@ public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
     private final GossipNode gossipNode;  
-    private final Set<String> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
+    private final Set<UUID> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
 
     
-    private final ArrayList<String> documetnsList = new ArrayList<>();
+    private final ArrayList<String> documentsList = new ArrayList<>();
     private boolean isLeader;
     private messageQueueServer messageQueue; 
 
@@ -46,6 +46,13 @@ public class Node extends Thread {
                 try {
                     if (isLeader) {
                         // things only leader will be abvle to do like commits TBD
+                        if(checkQueue()){
+                            System.out.println("there are messages in queue");
+                            MessageQueue mq = messageQueue.getQueue();
+                            String s = mq.dequeue();
+                            System.out.println("priting the message");
+                            System.out.println(s);
+                        }
                     }
     
                     Thread.sleep(1000);
@@ -87,6 +94,10 @@ public class Node extends Thread {
         gossipNode.start();
     }
 
+    public boolean checkQueue(){
+        return messageQueue.checkQueue();
+    }
+
     public void stopRunning() {
         running = false; 
     }
@@ -95,14 +106,14 @@ public class Node extends Thread {
         System.out.println("Node " + this.nodeId + " shutting down.");
     }
 
-    public String getNodeId() {
-        return nodeId;
+    public UUID getNodeId() {
+        return UID;
     }
 
     public GossipNode getGossipNode() {
         return gossipNode;
     }
-    public void addKnownNode(String nodeId){
+    public void addKnownNode(UUID nodeId){
         knownNodes.add(nodeId);
     }
 /*
@@ -128,8 +139,8 @@ public class Node extends Thread {
         */
     
     // Provides a list of known nodes for gossiping
-    public List<String> getRandomNodes() {
-        List<String> nodesList = new ArrayList<>(knownNodes);
+    public List<UUID> getRandomNodes() {
+        List<UUID> nodesList = new ArrayList<>(knownNodes);
         Collections.shuffle(nodesList);
         return nodesList.subList(0, Math.min(3, nodesList.size())); 
     }

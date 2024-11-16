@@ -3,31 +3,39 @@ package shared;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import Resources.Document;
+
 public class Message implements Serializable{
-    private final int node_id;
     private final AtomicInteger message_id = new AtomicInteger(0);
-    private final String message;
+    private final Document doc;
+    private final String operation;
     private final long timestamp;
 
-    public Message(int node_id, String message, long time){
-        this.node_id = node_id;
-        this.message=message;
-        this.timestamp = time;
+    public Message(Document document, String op){
+        this.doc = document;
+        this.operation=op;
+        this.timestamp = System.currentTimeMillis();
         message_id.getAndIncrement();
     }
 
-    public String getMessage(){
-        return message;
+    public String getOperation(){
+        return operation;
     }
 
-    public int getNodeId(){
-        return node_id;
+    public Document getDocument(){
+        return doc;
     }
 
     public int getMessageId(){
         return message_id.get();
     }
+    
     public long getTimestamp(){
         return this.timestamp;
+    }
+
+    @Override
+    public String toString(){
+        return "MessageID:" + message_id.get() + ";" + doc.toString() + ";" + operation + ";" + timestamp + "END";
     }
 }

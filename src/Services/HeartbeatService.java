@@ -12,12 +12,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class HeartbeatService extends Thread {
     private final GossipNode gossipNode;
-    private final Map<String, AtomicInteger> heartbeatCounters;  // heartbeat counter for each node
+    private final Map<UUID, AtomicInteger> heartbeatCounters;  // heartbeat counter for each node
     private final Map<String, Long> lastReceivedHeartbeats;  // last received heartbeat timestamps
-    private final ScheduledExecutorService scheduler; // for running heartbeats and fail detection regularly
+    private final ScheduledExecutorService scheduler; // for running heartbeats regularly [and fail detection in the future]
     private DatagramSocket socket;
 
-    private static final int GOSSIP_INTERVAL = 1000;  // Interval in milliseconds for sending heartbeats
+    private static final int HEARTBEAT_INTERVAL = 1000;  // Interval in milliseconds for sending heartbeats
     private static final int FAILURE_TIMEOUT = 10000;  // Timeout to detect failure (ms)
 
     private static final int NODE_PORT_BASE = 5000;  // base port for UDP communication
@@ -34,7 +34,7 @@ public class HeartbeatService extends Thread {
         try {
 
             this.socket = new DatagramSocket();
-            // this.socket.setSoTimeout(GOSSIP_INTERVAL);
+            // this.socket.setSoTimeout(HEARTBEAT_INTERVAL);
             
             //GOSSIP PROTO
             //this.socket = new DatagramSocket(NODE_PORT_BASE + Math.abs(gossipNode.getNodeId().hashCode()) % 1000);  // Unique port 
@@ -52,15 +52,15 @@ public class HeartbeatService extends Thread {
     public void run() {
         
         // gossip protocol way
-        //scheduler.scheduleAtFixedRate(this::incrementAndGossipHeartbeat, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
+        //scheduler.scheduleAtFixedRate(this::incrementAndGossipHeartbeat, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
         
         
         // broadcast way
-        scheduler.scheduleAtFixedRate(this::incrementAndBroadcastHeartbeat, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::incrementAndBroadcastHeartbeat, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
 
         // Detection failure
-        //scheduler.scheduleAtFixedRate(this::detectFailures, 0, GOSSIP_INTERVAL, TimeUnit.MILLISECONDS);
+        //scheduler.scheduleAtFixedRate(this::detectFailures, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
         // Start a separate thread for continuously receiving heartbeats
         new Thread(() -> {
@@ -129,9 +129,9 @@ public class HeartbeatService extends Thread {
             String senderNodeId = parts[0];
             int heartbeatCounter = Integer.parseInt(parts[1]);
             if(gossipNode.getNodeId().equals(senderNodeId)) { return;}
-            respondeToHeartbeat(senderNodeId);
+            respondeToHeartbeat(UUID.fromString(senderNodeId));
             // update the heartbeat information for the sender node
-            heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
+            heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
             lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
 
@@ -143,7 +143,7 @@ public class HeartbeatService extends Thread {
         }
     }
 
-    private void respondeToHeartbeat(String targetNodeId) {
+    private void respondeToHeartbeat(UUID targetNodeId) {
         try {
                 String message = "ACK Heartbeat from:" +gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis();
                 byte[] buffer = message.getBytes();
@@ -180,13 +180,13 @@ public class HeartbeatService extends Thread {
             //computeIfAbsente looks for an entry in "heartbeatCounters" with the key senderNodeId.
             // if key not present, creates a nwe entry with amoticInteger initialization with initialValue = 0
             // updateandGet will atomically updated the value retrieved from before 
-            heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
+            heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
             lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
 
 
             //Add node to the list
-            gossipNode.addKnownNode(senderNodeId);
+            gossipNode.addKnownNode(UUID.fromString(senderNodeId));
 
         } catch (IOException e) {
             if (!(e instanceof SocketTimeoutException)) {
@@ -223,7 +223,7 @@ public class HeartbeatService extends Thread {
         socket.close();
     }
 
-    public Map<String, AtomicInteger> getHeartbeatCounters() {
+    public Map<UUID, AtomicInteger> getHeartbeatCounters() {
         return heartbeatCounters;
     }
 
@@ -345,9 +345,9 @@ public class HeartbeatService extends Thread {
     }
     // heartbeat
     private void gossipHeartbeat() {
-        List<String> targetNodeIds = gossipNode.getRandomNodes();  // Get target node IDs from Node
+        List<UUID> targetNodeIds = gossipNode.getRandomNodes();  // Get target node IDs from Node
 
-        for (String targetNodeId : targetNodeIds) {
+        for (UUID targetNodeId : targetNodeIds) {
             try {
                 String message = gossipNode.getNodeId() + ":" + getHeartbeatCounter() + ":" + System.currentTimeMillis();
                 byte[] buffer = message.getBytes();
@@ -368,7 +368,7 @@ public class HeartbeatService extends Thread {
     
 
     // get the IP of a node
-    private String getNodeIPAddress(String nodeId) {
+    private String getNodeIPAddress(UUID nodeId) {
         //static beacuse running on local machine
         return "localhost";
     }
@@ -392,7 +392,7 @@ public class HeartbeatService extends Thread {
             //computeIfAbsente looks for an entry in "heartbeatCounters" with the key senderNodeId.
             // if key not present, creates a nwe entry with amoticInteger initialization with initialValue = 0
             // updateandGet will atomically updated the value retrieved from before 
-            heartbeatCounters.computeIfAbsent(senderNodeId, k -> new AtomicInteger(0))
+            heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
             lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
 

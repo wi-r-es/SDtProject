@@ -39,6 +39,8 @@ public class messageQueueServer extends Thread {
             reg.rebind(regName+"/queue", mq);
             System.out.println("MessageQueue bound to registry as 'queue'");
 
+            
+
 
 
         } catch (RemoteException e) {
@@ -62,6 +64,13 @@ public class messageQueueServer extends Thread {
             e.printStackTrace();
             throw new RuntimeException("Failed to stop RMI server", e);
         }
+    }
+    public boolean checkQueue(){
+        return !mq.isEmpty();
+    }
+
+    public MessageQueue getQueue (){
+        return mq;
     }
 
 }

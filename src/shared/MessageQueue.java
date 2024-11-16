@@ -14,7 +14,7 @@ public class MessageQueue extends UnicastRemoteObject implements messageRemoteIn
     
     }
 
-    // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue
+    // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue //
     private final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
 
     // method to add message to queue
