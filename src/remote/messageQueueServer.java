@@ -1,14 +1,14 @@
 package remote;
 
-import java.rmi.Naming;
+
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-import shared.Message;
+
 import shared.MessageQueue;
-import remote.messageRemoteInterface;
+
 
 public class messageQueueServer extends Thread {       
 
@@ -16,12 +16,12 @@ public class messageQueueServer extends Thread {
     private MessageQueue mq;
     private int registryPort;
     private String regName;
-    private volatile boolean running;
+    //private volatile boolean running;
     
     public messageQueueServer(String NodeID, int port) throws RemoteException{
         regName = NodeID;
         registryPort = port;
-        running = true;
+        //running = true;
         mq = new MessageQueue();
     }
 

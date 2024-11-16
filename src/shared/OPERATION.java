@@ -5,7 +5,9 @@ public enum OPERATION {
     UPDATE,
     DELETE,
     SYNC,
+    FULL_SYNC,
     ACK,
     COMMIT,
-    HEARTBEAT
+    HEARTBEAT,
+    
 }

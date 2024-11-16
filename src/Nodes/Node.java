@@ -4,17 +4,13 @@ package Nodes;
 import shared.Message;
 import shared.MessageQueue;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+
 import java.util.Set;
 
 import java.util.UUID;
@@ -61,6 +57,8 @@ public class Node extends Thread {
                             Message s = mq.dequeue();
                             System.out.println("priting the message");
                             System.out.println(s);
+
+                            //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
                            
                       
