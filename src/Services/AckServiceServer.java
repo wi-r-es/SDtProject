@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import shared.Message;
+import shared.OPERATION;
 
 /**
  * Server for receiving acks from other nodes TCP implemented
@@ -89,12 +90,13 @@ public class AckServiceServer {
                 if (!AckList.isEmpty()) {
                     Message message = AckList.remove(0); // Remove the first message for processing
                     System.out.println("Processing message: " + message);
-                    if(message.getOperation() == "ACK"){
-                        UUID id = message.getDocument().getId();
-                        ACK_counts.putIfAbsent(id, 0);
-                        int currentCount = ACK_counts.get(id);
-                        currentCount++;
-                        ACK_counts.put(id, currentCount);
+                    if(message.getOperation() == OPERATION.ACK){
+
+                        // UUID id = message.getPayload().getId();
+                        // ACK_counts.putIfAbsent(id, 0);
+                        // int currentCount = ACK_counts.get(id);
+                        // currentCount++;
+                        // ACK_counts.put(id, currentCount);
                     }
                 }
             } catch (Exception e) {
@@ -122,16 +124,16 @@ public class AckServiceServer {
      * Method to increment the number of active nodes
      *  */
     public void incrementActiveNodes() {
-        numOfActiveNodes.incrementAndGet();
-        System.out.println("Active nodes incremented. Total: " + numOfActiveNodes.get());
+        int i = numOfActiveNodes.incrementAndGet();
+        System.out.println("Active nodes incremented. Total: " + i);
     }
 
     /**  
      * Method to decrement the number of active nodes
      * */
     public void decrementActiveNodes() {
-        numOfActiveNodes.decrementAndGet();
-        System.out.println("Active nodes decremented. Total: " + numOfActiveNodes.get());
+        int i = numOfActiveNodes.decrementAndGet();
+        System.out.println("Active nodes decremented. Total: " + i);
     }
     /**
      * Method to get the number of active nodes

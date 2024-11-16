@@ -1,7 +1,15 @@
 package Services;
 import Nodes.*;
+import Resources.Document;
+import shared.CompressionUtils;
+import shared.Message;
+import shared.OPERATION;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HeartbeatService extends Thread {
+
     private final GossipNode gossipNode;
     private final Map<UUID, AtomicInteger> heartbeatCounters;  // heartbeat counter for each node
     private final Map<String, Long> lastReceivedHeartbeats;  // last received heartbeat timestamps
@@ -24,6 +33,9 @@ public class HeartbeatService extends Thread {
 
     private static final int PORT = 9876;  // UDP communication multicast
     private static final String MULTICAST_GROUP = "230.0.0.0";  
+
+    //for ack syncs
+    private final int TCP_PORT = 9090;
 
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
@@ -65,8 +77,9 @@ public class HeartbeatService extends Thread {
         // Start a separate thread for continuously receiving heartbeats
         new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
+                //receiveHeartbeatsGossip();
                 //receiveHeartbeats();
-                receiveHeartbeatsBroadcast();
+                receiveMessage();
             }
         }).start();
         new Thread(() -> {
@@ -84,27 +97,161 @@ public class HeartbeatService extends Thread {
         {
            // System.out.println(gossipNode.getNodeId());
             //System.out.println(gossipNode.isLeader());
-            this.broadcastHeartbeat();}
+            Message hb_message = Message.heartbeatMessage("Sending heartbeat from " + gossipNode.getNodeId() + " to " + MULTICAST_GROUP + " with counter " + incrementHeartbeat());
+            this.broadcast(hb_message, false);
+            //this.broadcastHeartbeat();
+        }
 
     }
 
     private int getHeartbeatCounter() {
         return heartbeatCounters.get(gossipNode.getNodeId()).get();
     }
-    private void incrementHeartbeat() {
-        heartbeatCounters.get(gossipNode.getNodeId()).incrementAndGet();
+    private int incrementHeartbeat() {
+        return heartbeatCounters.get(gossipNode.getNodeId()).incrementAndGet();
     }
 
+
+    //NETWORKING
+    /** FOR IMPROVE READABILITY IN THE FUNCTIONS ABOVE */
+    private byte[] serialize(Object object) throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        try (ObjectOutputStream objectStream = new ObjectOutputStream(byteStream)) {
+            objectStream.writeObject(object);
+            objectStream.flush();
+        }
+        return byteStream.toByteArray();
+    }
+
+    private Object deserialize(byte[] data) throws IOException, ClassNotFoundException {
+    try (ObjectInputStream objectStream = new ObjectInputStream(new ByteArrayInputStream(data))) {
+        return objectStream.readObject();
+    }
+}
     
+
+    private byte[] addHeader(String header, byte[] payload) throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        byteStream.write(header.getBytes()); 
+        byteStream.write(payload);           
+        return byteStream.toByteArray();
+    }
+
     //BROADCAST
-    private void broadcastHeartbeat() {
-        try {
-            String message = gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement();
-            byte[] buffer = message.getBytes();
+    private void broadcast(Message message, boolean compress) {
+        try (MulticastSocket multicastSocket = new MulticastSocket()) {
+
+            byte[] serializedData = serialize(message);
+    
+
+            byte[] finalData;
+            if (compress) {
+                byte[] compressedData = CompressionUtils.compress(serializedData);
+                finalData = addHeader("COMP", compressedData);
+            } else {
+                finalData = addHeader("UNCO", serializedData);
+            }
+    
 
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
-            DatagramPacket pckt = new DatagramPacket(buffer, buffer.length, group, PORT);
-            socket.send(pckt);
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, group, PORT);
+            multicastSocket.send(packet);
+    
+            System.out.println("Broadcasting message: " + message.getOperation() + " with compression=" + compress + " content=[" +  "]");
+        } catch (IOException e) {
+            System.err.println("Error broadcasting message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+/*
+ * try {
+            MulticastSocket mSocket = new MulticastSocket(PORT);
+            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+            mSocket.joinGroup(group);
+            byte[] buffer = new byte[256];
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            mSocket.receive(packet);
+
+            //Process the heartbeat content
+            String receivedMessage = new String(packet.getData(), 0, packet.getLength());
+            String[] parts = receivedMessage.split(":");
+            String senderNodeId = parts[1];
+            int heartbeatCounter = Integer.parseInt(parts[2]);
+            if(gossipNode.getNodeId().equals(UUID.fromString(senderNodeId))) { return;}
+
+
+            //check types of messages
+            if(parts[0] == "HB") {respondeToHeartbeat(UUID.fromString(senderNodeId));}
+            if(parts[0] == "SYNC") {
+
+                // eisdluhfgiosdlghfiodslufg
+                // Message msg = new Message(null, null);
+                // sendSyncAck(msg);
+            }
+            if(parts[0] == "COMMIT") {respondeToHeartbeat(UUID.fromString(senderNodeId));}
+            
+
+            // update the heartbeat information for the sender node
+            heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
+                    .updateAndGet(current -> Math.max(current, heartbeatCounter));
+            lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
+
+            System.out.println("Received heartbeat from " + senderNodeId + " with counter " + heartbeatCounter);
+ */
+    private void receiveMessage() {
+        try (MulticastSocket multicastSocket = new MulticastSocket(PORT)) {
+            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+            multicastSocket.joinGroup(group);
+            System.out.println("Listening on multicast group: " + MULTICAST_GROUP);
+    
+            byte[] buffer = new byte[2048]; 
+    
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                multicastSocket.receive(packet);
+    
+                // Extract the header (first 4 bytes) and payload
+                String header = new String(packet.getData(), 0, 4);
+                byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
+    
+                if ("COMP".equals(header)) {
+                    // Decompress and deserialize
+                    byte[] decompressedData = CompressionUtils.decompress(payload);
+                    Message message = (Message) deserialize(decompressedData);
+                    System.out.println("Received compressed message: " + message);
+                } else if ("UNCO".equals(header)) {
+                    System.out.println("Received uncompressed message");
+
+                    
+                    // Directly deserialize
+                    Message message = (Message) deserialize(payload);
+
+
+                    
+                } else {
+                    System.out.println("Unknown message type: " + header);
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error receiving message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+// old version just in case new one doesnt work
+    private void broadcastHeartbeat() {
+        try(MulticastSocket multicastSocket = new MulticastSocket()) {
+            //Message hb_message = Message.heartbeatMessage(gossipNode.getNodeId(), heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement());
+             String PAYLOAD = gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement();
+             Message hb_message = new Message(OPERATION.HEARTBEAT, PAYLOAD);
+            
+            // Serialize the message object to a byte array
+            byte[] serializedData = serialize(hb_message);
+
+
+            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+            DatagramPacket pckt = new DatagramPacket(serializedData, serializedData.length, group, PORT);
+            multicastSocket.send(pckt);
             
 
             
@@ -113,9 +260,32 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+    private void broadcastHeartbeatSYNC(Document doc) {
+        try (MulticastSocket multicastSocket = new MulticastSocket()) {
+
+            Message hb_message = new Message(OPERATION.SYNC, doc);
+
+            // Serialize the message object to a byte array
+            byte[] serializedData = serialize(hb_message);
+            //Compressing the data for better speed throught the internet in case of large document
+            byte[] compressedData = CompressionUtils.compress(serializedData);
+            
+            InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
+            DatagramPacket pckt = new DatagramPacket(compressedData, compressedData.length, group, PORT);
+            multicastSocket.send(pckt);
+            
+            System.out.println("Sending heartbeat sync from " + gossipNode.getNodeId() + " to " + MULTICAST_GROUP + " with counter " + getHeartbeatCounter());
+            System.out.println("Content of SYNC \t"+ doc.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
-    private void receiveHeartbeatsBroadcast() {
+    
+
+
+    private void receiveHeartbeats() {
         try {
             MulticastSocket mSocket = new MulticastSocket(PORT);
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
@@ -124,12 +294,25 @@ public class HeartbeatService extends Thread {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             mSocket.receive(packet);
 
+            //Process the heartbeat content
             String receivedMessage = new String(packet.getData(), 0, packet.getLength());
             String[] parts = receivedMessage.split(":");
-            String senderNodeId = parts[0];
-            int heartbeatCounter = Integer.parseInt(parts[1]);
-            if(gossipNode.getNodeId().equals(senderNodeId)) { return;}
-            respondeToHeartbeat(UUID.fromString(senderNodeId));
+            String senderNodeId = parts[1];
+            int heartbeatCounter = Integer.parseInt(parts[2]);
+            if(gossipNode.getNodeId().equals(UUID.fromString(senderNodeId))) { return;}
+
+
+            //check types of messages
+            if(parts[0] == "HB") {respondeToHeartbeat(UUID.fromString(senderNodeId));}
+            if(parts[0] == "SYNC") {
+
+                // eisdluhfgiosdlghfiodslufg
+                // Message msg = new Message(null, null);
+                // sendSyncAck(msg);
+            }
+            if(parts[0] == "COMMIT") {respondeToHeartbeat(UUID.fromString(senderNodeId));}
+            
+
             // update the heartbeat information for the sender node
             heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
                     .updateAndGet(current -> Math.max(current, heartbeatCounter));
@@ -158,6 +341,23 @@ public class HeartbeatService extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+    }
+
+    private void sendSyncAck(Message msg) {
+        try (
+            Socket tcpS = new Socket("localhost", TCP_PORT);
+            ObjectOutputStream out = new ObjectOutputStream(tcpS.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(tcpS.getInputStream())
+        ) {
+            // Send the custom Message object
+            out.writeObject(msg);
+            // Receive the response from the server
+            Message response = (Message) in.readObject();
+            System.out.println("Server Response: " + response);
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     private void receiveACK() {
@@ -373,7 +573,7 @@ public class HeartbeatService extends Thread {
         return "localhost";
     }
 
-    private void receiveHeartbeats() {
+    private void receiveHeartbeatsGossip() {
         byte[] buffer = new byte[256];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 

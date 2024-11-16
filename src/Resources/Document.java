@@ -45,7 +45,7 @@ public class Document implements Serializable {
         return new Document(doc.getContent(), doc.getId(), doc.getVersion());
     }
     @Override
-    public String toString(){
-        return "<"+"DocumentID:"+id+";"+content+";"+version +">";
+    public String toString() {
+        return "Document{id='" + id + "', content='" + content  +  "', version='" + version + "'}";
     }
 }
