@@ -15,6 +15,7 @@ import java.util.Set;
 
 import java.util.UUID;
 
+import Services.AckServiceServer;
 import remote.messageQueueServer;
 
 import java.rmi.RemoteException;
@@ -30,6 +31,7 @@ public class Node extends Thread {
     private final ArrayList<String> documentsList = new ArrayList<>();
     private boolean isLeader;
     private messageQueueServer messageQueue; 
+    private AckServiceServer ackS;
 
     private volatile boolean running = true;
     
@@ -40,6 +42,7 @@ public class Node extends Thread {
             {
                 System.out.println("Leader thread started for node: " + nodeId);
                 startRMIService();
+                
                 
             }
 
@@ -132,6 +135,8 @@ public class Node extends Thread {
         try {
             messageQueue = new messageQueueServer(nodeId, 2323);
             messageQueue.start();
+            ackS = new AckServiceServer();
+            ackS.startServer();
         } catch (Exception e) {
             e.printStackTrace();
         }
