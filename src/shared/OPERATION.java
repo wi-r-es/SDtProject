@@ -6,5 +6,6 @@ public enum OPERATION {
     DELETE,
     SYNC,
     ACK,
+    COMMIT,
     HEARTBEAT
-  }
+}

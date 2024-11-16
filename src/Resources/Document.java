@@ -40,8 +40,11 @@ public class Document implements Serializable {
     public void setVersion(int v) {
         this.version = v;
     }
+    public void incVersion() {
+        this.version +=1;
+    }
 
-    public Document clone(Document doc)throws CloneNotSupportedException {
+    public static Document clone(Document doc)throws CloneNotSupportedException {
         return new Document(doc.getContent(), doc.getId(), doc.getVersion());
     }
     @Override

@@ -5,7 +5,10 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 
+import Resources.Document;
 import remote.messageRemoteInterface;
+import shared.Message;
+import shared.OPERATION;
 
 public class Client {
     
@@ -19,8 +22,17 @@ public class Client {
             System.out.println(Naming.list("rmi://localhost:2323").toString());
             messageRemoteInterface rq = (messageRemoteInterface) Naming.lookup("rmi://localhost:2323/Node-0/queue");
             System.out.println("Connected to MessageQueue");
+
+
+            Document doc1 = new Document("This is a new document");
+            Message msg = new Message(OPERATION.CREATE, doc1);
             // Perform remote operations
-            rq.enqueue("Hello, RMI!");
+            //rq.enqueue(msg);
+
+
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
+            rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
+            rq.enqueue(rq.performOperation(OPERATION.DELETE, doc1));
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
             e.printStackTrace();
         }

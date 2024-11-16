@@ -216,19 +216,34 @@ public class HeartbeatService extends Thread {
                 byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
     
                 if ("COMP".equals(header)) {
+                    System.out.println("Received compressed message");
                     // Decompress and deserialize
                     byte[] decompressedData = CompressionUtils.decompress(payload);
                     Message message = (Message) deserialize(decompressedData);
-                    System.out.println("Received compressed message: " + message);
-                } else if ("UNCO".equals(header)) {
-                    System.out.println("Received uncompressed message");
 
                     
-                    // Directly deserialize
+                    OPERATION op = message.getOperation();
+                    Object obj = message.getPayload();
+                    Document doc = (Document) obj;
+                        
+                    switch (op) {
+                        case SYNC: //for syncing purposes
+                                
+                            break;
+                        
+                        case COMMIT: // for commit purposes
+                            break;
+                        default:
+                            System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
+                        }
+
+
+                    System.out.println("Received compressed message");
+                } else if ("UNCO".equals(header)) {
+
                     Message message = (Message) deserialize(payload);
 
-
-                    
+                    System.out.println("Received uncompressed message: " + message);
                 } else {
                     System.out.println("Unknown message type: " + header);
                 }

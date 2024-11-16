@@ -1,6 +1,7 @@
 package Nodes;
 
 
+import shared.Message;
 import shared.MessageQueue;
 
 import java.io.BufferedReader;
@@ -49,7 +50,7 @@ public class Node extends Thread {
                         if(checkQueue()){
                             System.out.println("there are messages in queue");
                             MessageQueue mq = messageQueue.getQueue();
-                            String s = mq.dequeue();
+                            Message s = mq.dequeue();
                             System.out.println("priting the message");
                             System.out.println(s);
                         }
