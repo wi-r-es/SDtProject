@@ -9,5 +9,7 @@ public enum OPERATION {
     ACK,
     COMMIT,
     HEARTBEAT,
+    HEARTBEAT_ACK,
+    DISCOVERY,
     
 }

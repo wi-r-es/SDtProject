@@ -20,6 +20,9 @@ public class GossipNode extends Thread {
     public UUID getNodeId() {
         return node.getNodeId();
     }
+    public String getNodeName(){
+        return node.getNodeName();
+    }
 
     public HeartbeatService getHeartbeatService() {
         return heartbeatService;

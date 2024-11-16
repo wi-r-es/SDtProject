@@ -33,6 +33,9 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
             rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc1));
+
+            
+
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
             e.printStackTrace();
         }

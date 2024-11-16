@@ -55,7 +55,11 @@ public class AckServiceServer {
                  executorService.submit(() -> handleClient(clientSocket));
              }
 
+        } catch (BindException e) {
+            System.err.println("Port " + PORT + " is already in use. Choose another port.");
+            e.printStackTrace();
         } catch (IOException e) {
+            System.err.println("Failed to start ACK server on port " + PORT);
             e.printStackTrace();
         }
     }

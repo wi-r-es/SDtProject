@@ -18,8 +18,7 @@ public class Message implements Serializable{
     public Message(OPERATION op, Object pl){
         this.payload = pl;
         this.header =op;
-        this.timestamp = System.currentTimeMillis();
-        
+        this.timestamp = System.currentTimeMillis(); 
     }
 
     public OPERATION getOperation(){
@@ -47,6 +46,11 @@ public class Message implements Serializable{
     public static Message heartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT, PAYLOAD);
+
+    }
+    public static Message replyHeartbeatMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.HEARTBEAT_ACK, PAYLOAD);
 
     }
     

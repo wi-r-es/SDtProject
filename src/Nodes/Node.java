@@ -3,7 +3,7 @@ package Nodes;
 
 import shared.Message;
 import shared.MessageQueue;
-
+import shared.OPERATION;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,10 +28,10 @@ public class Node extends Thread {
     private final Set<UUID> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
 
     
-    private final ArrayList<String> documentsList = new ArrayList<>();
+    private final ArrayList<String> documentsList = new ArrayList<>(); 
     private boolean isLeader;
     private messageQueueServer messageQueue; 
-    private AckServiceServer ackS;
+    private AckServiceServer ackS = null;
 
     private volatile boolean running = true;
     
@@ -41,7 +41,9 @@ public class Node extends Thread {
             if(isLeader)
             {
                 System.out.println("Leader thread started for node: " + nodeId);
-                startRMIService();
+                // startRMIService();
+                // startACKService();
+                startLeaderServices();
                 
                 
             }
@@ -51,6 +53,9 @@ public class Node extends Thread {
                     System.out.println("Leader thread is running: " + isLeader);
 
                     if (isLeader ) {
+                        System.out.println("\n\tKNOWN NODESS:\n");
+                        System.out.println(knownNodes);
+
                         System.out.println("Checking if this keeps printing or not");
                         System.out.println("Checking queue status: " + checkQueue());
                         // things only leader will be abvle to do like commits TBD
@@ -58,7 +63,7 @@ public class Node extends Thread {
                             System.out.println("there are messages in queue");
                             MessageQueue mq = messageQueue.getQueue();
                             Message s = mq.dequeue();
-                            System.out.println("priting the message");
+                            System.out.println("PROCESSING the message");
                             System.out.println(s);
 
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
@@ -123,35 +128,56 @@ public class Node extends Thread {
     public UUID getNodeId() {
         return UID;
     }
+    public String getNodeName(){
+        return nodeId;
+    }
 
     public GossipNode getGossipNode() {
         return gossipNode;
     }
+
+
     public void addKnownNode(UUID nodeId){
         knownNodes.add(nodeId);
     }
 
+    public void startLeaderServices() throws RemoteException {
+        startRMIService();       
+        startACKService();    
+    }
     public void startRMIService() throws RemoteException {
         try {
             messageQueue = new messageQueueServer(nodeId, 2323);
             messageQueue.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void startACKService() {
+        new Thread(() -> {
+            try {
+            if (ackS == null){
             ackS = new AckServiceServer();
             ackS.startServer();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        }).start();
     }
-/*
-    public void stopRMIService() {
-        try {
-            Naming.unbind("rmi://localhost/" + nodeId);
-            UnicastRemoteObject.unexportObject(this, true);  // Unexport the remote object
-            System.out.println("Node " + nodeId + " unregistered from RMI.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-        */
+
+    // public void stopRMIService() {
+    //     try {
+    //         Naming.unbind("rmi://localhost/" + nodeId);
+    //         UnicastRemoteObject.unexportObject(this, true);  // Unexport the remote object
+    //         System.out.println("Node " + nodeId + " unregistered from RMI.");
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    // }
+        
     
     // Provides a list of known nodes for gossiping
     public List<UUID> getRandomNodes() {
@@ -165,5 +191,9 @@ public class Node extends Thread {
     }
 
 
+
+    public void processMessage(Message msg){
+        OPERATION op = msg.getOperation();
+    }
 
 }
