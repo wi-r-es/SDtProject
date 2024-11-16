@@ -41,19 +41,29 @@ public class Node extends Thread {
     public void run() {
         try {
             if(isLeader)
-            {messageQueue.start();}
+            {
+                System.out.println("Leader thread started for node: " + nodeId);
+                startRMIService();
+                
+            }
 
             while(running){
                 try {
-                    if (isLeader) {
+                    System.out.println("Leader thread is running: " + isLeader);
+
+                    if (isLeader ) {
+                        System.out.println("Checking if this keeps printing or not");
+                        System.out.println("Checking queue status: " + checkQueue());
                         // things only leader will be abvle to do like commits TBD
-                        if(checkQueue()){
+                        if (checkQueue()) {
                             System.out.println("there are messages in queue");
                             MessageQueue mq = messageQueue.getQueue();
                             Message s = mq.dequeue();
                             System.out.println("priting the message");
                             System.out.println(s);
                         }
+                           
+                      
                     }
     
                     Thread.sleep(1000);
@@ -75,11 +85,12 @@ public class Node extends Thread {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  // Initialize gossip component by passing 'this' node to 'gossipnode'
+        this.isLeader = false;
         //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
-        messageQueue = new messageQueueServer(nodeId, 2323);
+        //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
     public Node(String nodeId, boolean L) throws RemoteException  {
@@ -91,12 +102,13 @@ public class Node extends Thread {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
-        messageQueue = new messageQueueServer(nodeId, 2323);
+        //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
 
-    public boolean checkQueue(){
-        return messageQueue.checkQueue();
+    public synchronized  boolean checkQueue() throws RemoteException{
+        if (messageQueue != null){return  messageQueue.checkQueue();}
+        else return false;
     }
 
     public void stopRunning() {
@@ -117,17 +129,16 @@ public class Node extends Thread {
     public void addKnownNode(UUID nodeId){
         knownNodes.add(nodeId);
     }
-/*
+
     public void startRMIService() throws RemoteException {
         try {
-            UnicastRemoteObject.exportObject(this, 0);  // Export with any available port
-            Naming.rebind("rmi://localhost/" + nodeId, this);
-            System.out.println("Node " + nodeId + " registered with RMI as leader.");
+            messageQueue = new messageQueueServer(nodeId, 2323);
+            messageQueue.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
+/*
     public void stopRMIService() {
         try {
             Naming.unbind("rmi://localhost/" + nodeId);

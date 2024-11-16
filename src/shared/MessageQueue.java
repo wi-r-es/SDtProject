@@ -40,7 +40,7 @@ public class MessageQueue extends UnicastRemoteObject implements messageRemoteIn
      * Method to check if the queue is empty
      * @return
      */
-    public boolean isEmpty() {
+    public boolean isEmpty() throws RemoteException{
         return queue.isEmpty();
     }
 

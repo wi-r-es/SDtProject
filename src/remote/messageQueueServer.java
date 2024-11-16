@@ -16,17 +16,21 @@ public class messageQueueServer extends Thread {
     private MessageQueue mq;
     private int registryPort;
     private String regName;
+    private volatile boolean running;
     
-    public messageQueueServer(String NodeID, int port){
+    public messageQueueServer(String NodeID, int port) throws RemoteException{
         regName = NodeID;
         registryPort = port;
+        running = true;
+        mq = new MessageQueue();
     }
 
     @Override
     public void run() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::unreg));
         try {
-            mq = new MessageQueue();
+
+            
             Registry reg = LocateRegistry.createRegistry(registryPort);
             System.out.println("RMI registry created on port " + registryPort);
             
@@ -39,13 +43,20 @@ public class messageQueueServer extends Thread {
             reg.rebind(regName+"/queue", mq);
             System.out.println("MessageQueue bound to registry as 'queue'");
 
-            
+            // while(running){
+            //     System.out.println("RMI IS ALIVE");
+            //     Thread.sleep(1000);
+            // }
 
 
 
-        } catch (RemoteException e) {
+        } 
+        catch (RemoteException e) {
             e.printStackTrace();
         }
+        // } catch (RemoteException | InterruptedException e) {
+        //     e.printStackTrace();
+        // }
     }
 
    
@@ -65,7 +76,7 @@ public class messageQueueServer extends Thread {
             throw new RuntimeException("Failed to stop RMI server", e);
         }
     }
-    public boolean checkQueue(){
+    public boolean checkQueue() throws RemoteException{
         return !mq.isEmpty();
     }
 
