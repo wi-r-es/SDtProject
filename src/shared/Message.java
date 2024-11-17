@@ -46,12 +46,26 @@ public class Message implements Serializable{
     public static Message heartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT, PAYLOAD);
-
     }
     public static Message replyHeartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT_ACK, PAYLOAD);
-
+    }
+    public static Message SyncMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.SYNC, PAYLOAD);
+    }
+    public static Message replySyncMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.ACK, PAYLOAD);
+    }
+    public static Message discoveryMessage(UUID nodeId, int port){
+        String PAYLOAD = "WHOS_THE_LEADER:" + nodeId + ":" + port + ":" + System.currentTimeMillis();
+        return new Message(OPERATION.DISCOVERY, PAYLOAD);
+    }
+    public static Message replyDiscoveryMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.DISCOVERY_ACK, PAYLOAD);
     }
     
 }

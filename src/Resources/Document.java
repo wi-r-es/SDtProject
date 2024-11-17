@@ -1,6 +1,7 @@
 package Resources;
 
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Document implements Serializable {
@@ -52,5 +53,18 @@ public class Document implements Serializable {
     @Override
     public String toString() {
         return "Document{id='" + id + "', content='" + content  +  "', version='" + version + "'}";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Document document = (Document) o;
+        return Objects.equals(id, document.id) && Objects.equals(content, document.content) && Objects.equals(version, document.version);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

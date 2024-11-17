@@ -25,14 +25,19 @@ public class Client {
 
 
             Document doc1 = new Document("This is a new document");
-            Message msg = new Message(OPERATION.CREATE, doc1);
+            Document doc2 = new Document("This is a new document2");
+            Document doc3 = new Document("This is a new document3");
+            //Message msg = new Message(OPERATION.CREATE, doc1);
             // Perform remote operations
             //rq.enqueue(msg);
 
 
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
             rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
-            rq.enqueue(rq.performOperation(OPERATION.DELETE, doc1));
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
+            rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
 
             
 

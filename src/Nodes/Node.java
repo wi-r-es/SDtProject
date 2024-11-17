@@ -4,6 +4,7 @@ package Nodes;
 import shared.Message;
 import shared.MessageQueue;
 import shared.OPERATION;
+import utils.UniqueIdGenerator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +16,10 @@ import java.util.Set;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import Resources.Document;
 import Services.AckServiceServer;
 import remote.messageQueueServer;
 
@@ -27,13 +31,15 @@ public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
     private final GossipNode gossipNode;  
-    ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
-
-    
-    private final ArrayList<String> documentsList = new ArrayList<>(); 
+    private ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
+    private ArrayList<Document> documentsList = new ArrayList<>(); 
+    private ArrayList<String> operationsBatch = new ArrayList<>();
     private boolean isLeader;
     private messageQueueServer messageQueue; 
     private AckServiceServer ackS = null;
+    private ConcurrentHashMap<UUID, String> documentChangesACKS = new ConcurrentHashMap<>();  // to save acks for operations of syncing before commmit
+    private ConcurrentHashMap<String, String> distributedOperations = new ConcurrentHashMap<>();  // to save BIG SCALE operationsID WITH ITS STATUS
+    private int quorum;
 
     private volatile boolean running = true;
     
@@ -65,11 +71,16 @@ public class Node extends Thread {
                         // things only leader will be abvle to do like commits TBD
                         if (checkQueue()) {
                             System.out.println("there are messages in queue");
+                            //process everything in queue
                             MessageQueue mq = messageQueue.getQueue();
-                            Message s = mq.dequeue();
-                            System.out.println("PROCESSING the message");
-                            System.out.println(s);
-
+                            while (!mq.isEmpty()){
+                                Message s = mq.dequeue();
+                                System.out.println("PROCESSING the message");
+                                System.out.println(s);
+                                processMessage(s);
+                            }
+                            startSyncProcess();
+                            
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
                            
@@ -108,12 +119,20 @@ public class Node extends Thread {
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  
         this.isLeader = L;
+        this.quorum=0;
         //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
         }));
         //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
+    }
+    private synchronized void updateQuorum(){
+        long N = knownNodes.mappingCount();
+        this.quorum= ((int)N / 2) + 1;
+    }
+    private int getQuorum(){
+       return this.quorum;
     }
 
     public synchronized  boolean checkQueue() throws RemoteException{
@@ -143,6 +162,10 @@ public class Node extends Thread {
 
     public void addKnownNode(UUID nodeId, int port){
         knownNodes.put(nodeId,  port);
+    }
+
+    public void addACK(UUID nodeId, String syncOP){
+        documentChangesACKS.putIfAbsent(nodeId, syncOP);
     }
 
     public void startLeaderServices() throws RemoteException {
@@ -195,9 +218,165 @@ public class Node extends Thread {
     }
 
 
-
-    public void processMessage(Message msg){
-        OPERATION op = msg.getOperation();
+    public synchronized void addDocument(Document doc){
+        documentsList.add(doc);
+    }
+    public synchronized void updateDocument(int index, Document doc){
+        documentsList.set(index, doc);
+    }
+    public synchronized boolean removeDocument(Document document){
+        return documentsList.removeIf(doc -> doc.getId().equals(document.getId()));
+    }
+    public synchronized void addOperation(String op){
+        operationsBatch.add(op);
     }
 
+    public synchronized void processMessage(Message msg){
+        OPERATION op = msg.getOperation();
+        Object payload = msg.getPayload();
+        System.out.println("\n\t" + op);
+        System.out.println("\n\t" + payload);
+
+        try{
+            Document document = Document.clone((Document)payload);
+            switch (op) {
+                case CREATE:
+                    if (!documentsList.contains(document)) {
+                        addDocument(document);
+                        addOperation("CREATE" + ";" + document.toString());
+                        System.out.println("Document created: " + document);
+                    } else {
+                        System.out.println("Document already exists: " + document);
+                    }
+                    break;
+    
+                case UPDATE:
+                    boolean updated = false;
+                    for (int i = 0; i < documentsList.size(); i++) {
+                        Document existingDoc = documentsList.get(i);
+                        if (existingDoc.getId().equals(document.getId())) {
+                            if (existingDoc.getVersion() < document.getVersion()) {
+                                updateDocument(i, document);
+                                addOperation("UPDATE" + ";" + document.toString());
+                                System.out.println("Document updated to latest version: " + document);
+                            } else {
+                                System.out.println("Document already up-to-date: " + existingDoc);
+                            }
+                            updated = true;
+                            break;
+                        }
+                    }
+                    if (!updated) {
+                        System.out.println("Document not found for update, adding it: " + document);
+                        addDocument(document);
+                        addOperation("CREATE" + ";" + document.toString());
+                    }
+                    break;
+    
+                case DELETE:
+                    boolean removed = removeDocument(document);
+                    if (removed) {
+                        addOperation("DELETE" + ";" + document.toString());
+                        System.out.println("Document deleted: " + document);
+                    } else {
+                        System.out.println("Document not found for deletion: " + document);
+                    }
+                    break;
+    
+                default:
+                    System.err.println("Unsupported operation: " + op);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public ArrayList<Document> getDocumentsList() {
+        return documentsList;
+    }
+
+     
+
+    /*
+   _____                  
+  / ____|                 
+ | (___  _   _ _ __   ___ 
+  \___ \| | | | '_ \ / __|
+  ____) | |_| | | | | (__ 
+ |_____/ \__, |_| |_|\___|
+          __/ |           
+         |___/            
+     */
+    private synchronized void addDistributedOperation(String op){
+        distributedOperations.putIfAbsent(op, "WAITING");
+        //distributedOperations.put(op, "WAITING");
+    }
+    private synchronized void commitDistributedOperation(String op){
+        distributedOperations.replace(op, "FINISHED");
+        //distributedOperations.put(op, "WAITING");
+    }
+    public void startSyncProcess(){
+        updateQuorum();
+        try{
+        
+            String operationId = UniqueIdGenerator.generateOperationId((Integer.toString(operationsBatch.hashCode())));
+            addDistributedOperation(operationId);
+        
+            Message syncMessage = new Message(
+                OPERATION.SYNC, 
+                operationId + ";" + String.join(",", operationsBatch) // WILL JOIN ALL OPERATIONS IN ARRAT TO THE MESSAGE
+            );
+            gossipNode.getHeartbeatService().broadcast(syncMessage, true);
+            System.out.println("SYNC message sent with operation ID: " + operationId);
+            waitForQuorum(operationId);
+        
+            /*  OPERATION BY OPERATION INSTEAD OF BATCH OF THEM
+
+            for (String operation : operationsBatch) {
+            String operationId = UniqueIdGenerator.generateOperationId(Integer.toString(operation.hashCode()));
+            addDistributedOperation(operationId);
+            Message syncMessage = new Message(
+                OPERATION.SYNC,
+                operationId + ";" + operation 
+            );
+            gossipNode.getHeartbeatService().broadcast(syncMessage, true);
+            System.out.println("SYNC message sent for operation: " + operation + " with operation ID: " + operationId);
+            waitForQuorum(operationId);
+        }
+    //*/
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void waitForQuorum(String operationId) {
+        new Thread(() -> {
+            int attempts = 10; // Max attempts to wait for quorum
+            int delay = 1000; // 1 second between checks
+    
+            try {
+                while (attempts > 0) {
+                    long ackCount = documentChangesACKS.values().stream()
+                        .filter(op -> op.equals(operationId))
+                        .count();
+    
+                    if (ackCount >= getQuorum()) {
+                        System.out.println("Quorum achieved for operation ID: " + operationId);
+                        // sendCommitMessage(operationId);
+                        // clearOperationsBatch();
+                        break;
+                    }
+    
+                    Thread.sleep(delay);
+                    attempts--;
+                }
+    
+                if (attempts == 0) {
+                    System.err.println("Failed to achieve quorum for operation ID: " + operationId);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+        }).start();
+    }
 }

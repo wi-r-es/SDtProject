@@ -1,9 +1,9 @@
 package Services;
 import Nodes.*;
 import Resources.Document;
-import shared.CompressionUtils;
 import shared.Message;
 import shared.OPERATION;
+import utils.CompressionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -109,7 +109,7 @@ public class HeartbeatService extends Thread {
 
 
     //BROADCAST
-    private void broadcast(Message message, boolean compress) {
+    public void broadcast(Message message, boolean compress) {
         try (MulticastSocket multicastSocket = new MulticastSocket()) {
 
             byte[] serializedData = serialize(message);
@@ -183,6 +183,17 @@ public class HeartbeatService extends Thread {
 
         gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
     }
+
+    /*
+  _____               _             __  __                                       __  __       _ _   _     ___    _       _ 
+ |  __ \             (_)           |  \/  |                                     |  \/  |     | | | (_)   / / |  | |     (_)
+ | |__) |___  ___ ___ ___   _____  | \  / | ___  ___ ___  __ _  __ _  ___  ___  | \  / |_   _| | |_ _   / /| |  | |_ __  _ 
+ |  _  // _ \/ __/ _ \ \ \ / / _ \ | |\/| |/ _ \/ __/ __|/ _` |/ _` |/ _ \/ __| | |\/| | | | | | __| | / / | |  | | '_ \| |
+ | | \ \  __/ (_|  __/ |\ V /  __/ | |  | |  __/\__ \__ \ (_| | (_| |  __/\__ \ | |  | | |_| | | |_| |/ /  | |__| | | | | |
+ |_|  \_\___|\___\___|_| \_/ \___| |_|  |_|\___||___/___/\__,_|\__, |\___||___/ |_|  |_|\__,_|_|\__|_/_/    \____/|_| |_|_|
+                                                                __/ |                                                      
+                                                               |___/                                                       
+     */
     
 
     private void receiveMulticast() { 
@@ -210,11 +221,14 @@ public class HeartbeatService extends Thread {
                     
                     OPERATION op = message.getOperation();
                     Object obj = message.getPayload();
-                    Document doc = (Document) obj;
+                    //Document doc = (Document) obj;
                         
                     switch (op) {
                         case SYNC: //for syncing purposes
-                                
+                            System.out.println("IN SYNC BROADCAST RECEIVE");
+                            System.out.print("\t");
+                            System.out.println(obj);
+                            //sendSyncAck(UUID targetNodeId, int target_port)
                             break;
                         
                         case COMMIT: // for commit purposes
@@ -237,6 +251,7 @@ public class HeartbeatService extends Thread {
                             break;
                         case DISCOVERY: // for NEW NODE 
                             if (this.gossipNode.isLeader()){
+                                processDiscoveryRequest(message);
                                 // logic to reply
                             }
                             break;
@@ -260,7 +275,7 @@ public class HeartbeatService extends Thread {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         
         try{
-            //socket.setSoTimeout(5000);
+            socket.setSoTimeout(5000);
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     socket.receive(packet); 
@@ -299,15 +314,16 @@ public class HeartbeatService extends Thread {
                         OPERATION op = message.getOperation();
                         switch (op) {
                             case HEARTBEAT_ACK: // reply to hearbeats 
-                            System.out.println("\n\tIM HERE IN CASE HEARTBEAT_ACK\n");
-                            if(this.gossipNode.isLeader()){
-                                addKnownNode(message);
-                            }
+                                System.out.println("\n\tIM HERE IN CASE HEARTBEAT_ACK\n");
+                                if(this.gossipNode.isLeader()){
+                                    addKnownNode(message);
+                                }
                                 break;
                             
                             case ACK: // for NEW NODE 
                                 if (this.gossipNode.isLeader()){
-                                    // logic to reply
+                                    
+                                    
                                 }
                                 break;
                             default:
@@ -330,10 +346,20 @@ public class HeartbeatService extends Thread {
         }
     }
 
+    
 
+/*
+   _____                        _____ _  __
+  / ____|                 /\   / ____| |/ /
+ | (___  _   _ _ __      /  \ | |    | ' / 
+  \___ \| | | | '_ \    / /\ \| |    |  <  
+  ____) | |_| | | | |  / ____ \ |____| . \ 
+ |_____/ \__, |_| |_| /_/    \_\_____|_|\_\
+          __/ |                            
+         |___/                             
+ */
 
-
-    private void sendSyncAck(Message msg) {
+    private void sendSyncAckTCPServer(Message msg) {
         try (
             Socket tcpS = new Socket("localhost", TCP_PORT);
             ObjectOutputStream out = new ObjectOutputStream(tcpS.getOutputStream());
@@ -349,18 +375,195 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+    private void sendSyncAck(UUID targetNodeId, int target_port) {
+        try {
+            Message msg = Message.replySyncMessage("SYNC_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("UNCO", serializedData);
+                
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+            socket.send(packet);
+
+            System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
+    
 
+    /*
+    
+                _____ _____  _____  _____ ______      ________ _______     __
+                |  __ \_   _|/ ____|/ ____/ __ \ \    / /  ____|  __ \ \   / /
+                | |  | || | | (___ | |   | |  | \ \  / /| |__  | |__) \ \_/ / 
+                | |  | || |  \___ \| |   | |  | |\ \/ / |  __| |  _  / \   /  
+                | |__| || |_ ____) | |___| |__| | \  /  | |____| | \ \  | |   
+                |_____/_____|_____/ \_____\____/   \/   |______|_|  \_\ |_|   
+                                                                            
+                                                               
+    */
+    private void processDiscoveryRequest(Message message){
+        Object obj = message.getPayload();
+        String content = (String) obj;
+        System.out.println("\tCotent inside add to knownNodes->  " + content+"\n\n");
+        String[] parts = content.split(":"); //String PAYLOAD = "WHOS_THE_LEADER:" + nodeId + ":" + port + ":" + System.currentTimeMillis();
+        String senderNodeId = parts[1];
+        int port = Integer.parseInt(parts[2]);
+
+        sendACKDiscovery(UUID.fromString(senderNodeId),port );
+
+        gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
+    }
+    private void sendACKDiscovery(UUID targetNodeId, int target_port) {
+        try {
+            Message msg = Message.replyHeartbeatMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("UNCO", serializedData);
+                
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+            socket.send(packet);
+
+            System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private String broadcastDiscovery(int port, Message msg){
+        try(DatagramSocket syncSocket = new DatagramSocket(port)){
+            syncSocket.setSoTimeout(5000);
+            //2nd sent the multicast
+            broadcast(msg, false);
+            System.out.println("Waiting for response to discovery message...");
+
+            byte[] buffer = new byte[2048]; 
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            try {
+                // Wait for a response
+                syncSocket.receive(packet);
+    
+                // Deserialize the response
+                byte[] data = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
+                Message responseMessage = (Message) deserialize(data);
+    
+                // Process the response
+                if (responseMessage.getOperation() == OPERATION.DISCOVERY_ACK) {
+                    System.out.println("Received sync response: " + responseMessage);
+                    // Process sync response (e.g., synchronize documents or state)
+                    String res=  handleSyncResponse(responseMessage);
+                    return res;
+                } else {
+                    System.err.println("Unexpected operation: " + responseMessage.getOperation());
+                }
+            } catch (SocketTimeoutException e) {
+                System.err.println("Timeout waiting for sync response.");
+            } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+            }
+            
+        }catch(IOException e ){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /*
+        _______ _    _ _      _         _______     ___   _  _____
+        |  ____| |  | | |    | |       / ____\ \   / / \ | |/ ____|
+        | |__  | |  | | |    | |      | (___  \ \_/ /|  \| | |     
+        |  __| | |  | | |    | |       \___ \  \   / | . ` | |     
+        | |    | |__| | |____| |____   ____) |  | |  | |\  | |____ 
+        |_|     \____/|______|______| |_____/   |_|  |_| \_|\_____|
+
+     */
+
+    private void fullSyncRequest(UUID leaderNodeId, int leader_port) {
+        try {
+            Message msg = Message.replyHeartbeatMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + System.currentTimeMillis());
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("UNCO", serializedData);
+                
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, leader_port);
+            socket.send(packet);
+
+            System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private String handleSyncResponse(Message response){
+        Object obj = response.getPayload();
+        String content = (String) obj;
+        System.out.println("\tContent inside add to knownNodes->  " + content+"\n\n");
+        String[] parts = content.split(":"); //("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
+        String LeaderNodeId = parts[1];
+        String Leader_UDP_port = parts[2];
+        int port = Integer.parseInt(Leader_UDP_port);
+        gossipNode.addKnownNode(UUID.fromString(LeaderNodeId),port );
+
+        return LeaderNodeId + ":" + Leader_UDP_port;        
+    }
+
+
+    private void fullSyncInnit(UUID leaderID, int leader_port, int sync_port ){
+        try(DatagramSocket syncSocket = new DatagramSocket(sync_port)){
+            syncSocket.setSoTimeout(5000);
+            //2nd sent the request
+            
+            // use RMI and dont forget to send the UUID in the message so the leader then selects the UUID and port from its list to initiate the process of SYNC
+
+            
+        }catch(IOException e ){
+            e.printStackTrace();
+        }
+    }
 
     // SPRINT 3 IMP
     private void syncNewElement(){
-        /*
+        // 1st prepare the message for multicast discovery
+        int port_for_syncing = 9999;
+        Message discoveryMessage = Message.discoveryMessage(this.gossipNode.getNodeId(), port_for_syncing);
+        //Function to send multicast asking who is the leader
+        String LeaderACK = broadcastDiscovery(port_for_syncing, discoveryMessage);
+
+        String[] parts = LeaderACK.split(":");
+        String leaderID = parts[0];
+        String leader_port = parts[1];
+        
+        fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
+
+
+        /* pontos 1 e 2  feito falta o resto
           Funções a criar: 
 
-          1- Entrar em grupo
           2- New element manda multicast averiguar lider ---> broadcast()  LINHA 111 FUNCAO E 95 EXEMPLO CHAMADA
-          3- Unicast lider resposta --> Message performOperation(OPERATION operation, Object data) throws RemoteException; RMI
+          3- Unicast lider resposta --> Message performOperation(OPERATION operation, Object data) throws RemoteException; RMI -> messageQueue
           4- Sync request
           5- Sync()
           6- Comparar local bd do node com lider
@@ -411,7 +614,17 @@ public class HeartbeatService extends Thread {
 
 
     
-    //NETWORKING
+    /*
+  _   _ ______ _________          ______  _____  _  _______ _   _  _____ 
+ | \ | |  ____|__   __\ \        / / __ \|  __ \| |/ /_   _| \ | |/ ____|
+ |  \| | |__     | |   \ \  /\  / / |  | | |__) | ' /  | | |  \| | |  __ 
+ | . ` |  __|    | |    \ \/  \/ /| |  | |  _  /|  <   | | | . ` | | |_ |
+ | |\  | |____   | |     \  /\  / | |__| | | \ \| . \ _| |_| |\  | |__| |
+ |_| \_|______|  |_|      \/  \/   \____/|_|  \_\_|\_\_____|_| \_|\_____|
+                                                                         
+                                                                         
+
+    */
     /** FOR IMPROVE READABILITY IN THE BROADCAST AND UNICAST ABOVE */
     private byte[] serialize(Object object) throws IOException {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
