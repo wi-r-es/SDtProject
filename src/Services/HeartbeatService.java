@@ -326,7 +326,7 @@ public class HeartbeatService extends Thread {
                                 }
                                 break;
                             
-                            case ACK: // for NEW NODE 
+                            case ACK: 
                                 if (this.gossipNode.isLeader()){
                                     System.out.println("\n\n\t ACK RECEIVED FOR OPERATION: " + message);
                                     Object obj = message.getPayload();
@@ -584,7 +584,7 @@ public class HeartbeatService extends Thread {
                 if (responseMessage.getOperation() == OPERATION.DISCOVERY_ACK) {
                     System.out.println("Received sync response: " + responseMessage);
                     // Process sync response (e.g., synchronize documents or state)
-                    String res=  handleSyncResponse(responseMessage);
+                    String res=  handleFullSyncResponse(responseMessage);
                     return res;
                 } else {
                     System.err.println("Unexpected operation: " + responseMessage.getOperation());
@@ -627,7 +627,7 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
-    private String handleSyncResponse(Message response){
+    private String handleFullSyncResponse(Message response){
         Object obj = response.getPayload();
         String content = (String) obj;
         System.out.println("\tContent inside add to knownNodes->  " + content+"\n\n");
