@@ -83,6 +83,10 @@ public class Node extends Thread {
                             
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
+                        if(!distributedOperations.isEmpty()){
+                            System.out.println("Distributed Operations Status:");
+                            System.out.println("\n\t\t" + distributedOperations);
+                        }
                            
                       
                     }
@@ -170,7 +174,7 @@ public class Node extends Thread {
 
     public void startLeaderServices() throws RemoteException {
         startRMIService();       
-        startACKService();    
+        //startACKService();    
     }
     public void startRMIService() throws RemoteException {
         try {
@@ -409,6 +413,7 @@ public class Node extends Thread {
             sendCommitMessage(operationId);
             System.out.println("COMMIT message sent FOR operation ID: " + operationId);
             clearOperationsBatch();
+            commitDistributedOperation(operationId);
         }catch (Exception e) {
             e.printStackTrace();
         }

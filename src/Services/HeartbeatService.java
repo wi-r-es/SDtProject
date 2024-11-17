@@ -611,22 +611,7 @@ public class HeartbeatService extends Thread {
 
      */
 
-    private void fullSyncRequest(UUID leaderNodeId, int leader_port) {
-        try {
-            Message msg = Message.replyHeartbeatMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + System.currentTimeMillis());
-            byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
-
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, leader_port);
-            socket.send(packet);
-
-            System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    
     private String handleFullSyncResponse(Message response){
         Object obj = response.getPayload();
         String content = (String) obj;
@@ -640,13 +625,30 @@ public class HeartbeatService extends Thread {
         return LeaderNodeId + ":" + Leader_UDP_port;        
     }
 
+    private void fullSyncRequest(UUID leaderNodeId, int leader_port, int sync_port) {
+        try {
+            Message msg = Message.replyHeartbeatMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("UNCO", serializedData);
+                
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, leader_port);
+            socket.send(packet);
+
+            System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void fullSyncInnit(UUID leaderID, int leader_port, int sync_port ){
         try(DatagramSocket syncSocket = new DatagramSocket(sync_port)){
             syncSocket.setSoTimeout(5000);
             //2nd sent the request
-            
-            // use RMI and dont forget to send the UUID in the message so the leader then selects the UUID and port from its list to initiate the process of SYNC
+            fullSyncRequest(leaderID, leader_port, sync_port);
+            // use UDP in my opinion, and dont forget to send the UUID in the message so the leader then selects the UUID and port from its list to initiate the process of SYNC
+            // see how i implement the sync process for all nodes updates
 
             
         }catch(IOException e ){
@@ -669,11 +671,10 @@ public class HeartbeatService extends Thread {
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
 
 
-        /* pontos 1 e 2  feito falta o resto
+        /* pontos 1 e 2, 3 , e 4  feito falta o resto
           Funções a criar: 
 
           2- New element manda multicast averiguar lider ---> broadcast()  LINHA 111 FUNCAO E 95 EXEMPLO CHAMADA
-          3- Unicast lider resposta --> Message performOperation(OPERATION operation, Object data) throws RemoteException; RMI -> messageQueue
           4- Sync request
           5- Sync()
           6- Comparar local bd do node com lider
@@ -683,7 +684,28 @@ public class HeartbeatService extends Thread {
     }
     
 
+    public void fullsyncData(Message message, boolean compress, UUID newNode, int newNodePort ) {
+        try {
+
+            byte[] serializedData = serialize(message);
     
+
+            byte[] finalData;
+
+            byte[] compressedData = CompressionUtils.compress(serializedData);
+            finalData = addHeader("COMP", compressedData);
+
+    
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(newNode));
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, newNodePort);
+            socket.send(packet);
+
+            System.out.println("FULL_SYNC DATRA SENT FROM " + message.getOperation() + "   "+ gossipNode.getNodeId() + " to " +newNode +":"+newNodePort);
+        } catch (IOException e) {
+            System.err.println("Error broadcasting message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     
 
