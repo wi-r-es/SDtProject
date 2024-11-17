@@ -25,11 +25,11 @@ public class HeartbeatService extends Thread {
     private final Map<String, Long> lastReceivedHeartbeats;  // last received heartbeat timestamps
     private final ScheduledExecutorService scheduler; // for running heartbeats regularly [and fail detection in the future]
     private DatagramSocket socket;
-
+    private int udpPort;
     private static final int HEARTBEAT_INTERVAL = 5000;  // Interval in milliseconds for sending heartbeats
     private static final int FAILURE_TIMEOUT = 10000;  // Timeout to detect failure (ms)
 
-    private static final int NODE_PORT_BASE = 5000;  // base port for UDP communication
+    private static final int NODE_PORT_BASE = 9678;  // base port for UDP communication
 
     private static final int PORT = 9876;  // UDP communication multicast
     private static final String MULTICAST_GROUP = "230.0.0.0";  
@@ -44,12 +44,12 @@ public class HeartbeatService extends Thread {
         this.scheduler = Executors.newScheduledThreadPool(2); //one for heartbeat one for fail detection
 
         try {
-
-            this.socket = new DatagramSocket();
+            //this.socket = new DatagramSocket(NODE_PORT_BASE);
             // this.socket.setSoTimeout(HEARTBEAT_INTERVAL);
             
             //GOSSIP PROTO
-            //this.socket = new DatagramSocket(NODE_PORT_BASE + Math.abs(gossipNode.getNodeId().hashCode()) % 1000);  // Unique port 
+            this.udpPort = NODE_PORT_BASE + Math.abs(gossipNode.getNodeId().hashCode()) % 1000;
+            this.socket = new DatagramSocket(udpPort);  // Unique port 
            
         } catch (SocketException e) {
             e.printStackTrace();
@@ -91,7 +91,7 @@ public class HeartbeatService extends Thread {
         {
            // System.out.println(gossipNode.getNodeId());
             //System.out.println(gossipNode.isLeader());
-            Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
+            Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
             // Equivalent message to Sending heartbeat from UUID to 230.0.0.0 with counter 1
             this.broadcast(hb_message, false);
             //this.broadcastHeartbeat();
@@ -135,16 +135,15 @@ public class HeartbeatService extends Thread {
         }
     }
 
-    private void respondeToHeartbeat(UUID targetNodeId) {
+    private void respondeToHeartbeat(UUID targetNodeId, int target_port) {
         try {
-            Message msg = Message.replyHeartbeatMessage("ACK_Heartbeat:" + gossipNode.getNodeId() + ":" + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+            Message msg = Message.replyHeartbeatMessage("ACK_Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
             byte[] serializedData = serialize(msg);
             byte[] finalData = addHeader("UNCO", serializedData);
                 
             InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
-            int targetPort = NODE_PORT_BASE; 
 
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, targetPort);
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
             socket.send(packet);
 
             System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
@@ -158,8 +157,9 @@ public class HeartbeatService extends Thread {
         System.out.println("\tCotent inside reply to heartbeat->  " + content+"\n\n");
         String[] parts = content.split(":");
         String senderNodeId = parts[1];
+        int target_port = Integer.parseInt(parts[2]);
         if(gossipNode.getNodeId().equals(UUID.fromString(senderNodeId))) { return;}
-        int heartbeatCounter = Integer.parseInt(parts[3]);
+        int heartbeatCounter = Integer.parseInt(parts[4]);
 
         // Update local heartbeat data
 
@@ -170,20 +170,22 @@ public class HeartbeatService extends Thread {
             .updateAndGet(current -> Math.max(current, heartbeatCounter));
         lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
         
-        respondeToHeartbeat(UUID.fromString(senderNodeId));        
+        respondeToHeartbeat(UUID.fromString(senderNodeId), target_port );        
     }
+
     private void addKnownNode(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
         System.out.println("\tCotent inside add to knownNodes->  " + content+"\n\n");
         String[] parts = content.split(":");
         String senderNodeId = parts[1];
+        int port = Integer.parseInt(parts[2]);
 
-        gossipNode.addKnownNode(UUID.fromString(senderNodeId));
+        gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
     }
     
 
-    private void receiveMulticast() { // ADD RESPONT TO HEARTBEATS
+    private void receiveMulticast() { 
         try (MulticastSocket multicastSocket = new MulticastSocket(PORT)) {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
             multicastSocket.joinGroup(group);

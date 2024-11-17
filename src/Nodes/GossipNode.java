@@ -1,6 +1,7 @@
 package Nodes;
 import Services.HeartbeatService;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 public class GossipNode extends Thread {
     private final Node node;
@@ -28,14 +29,14 @@ public class GossipNode extends Thread {
         return heartbeatService;
     }
 
-    public List<UUID> getRandomNodes() {
+    public  List<Map.Entry<UUID, Integer>> getRandomNodes() {
         return node.getRandomNodes();
     }
     public boolean isLeader(){
         return node.isLeader();
     }
-    public void addKnownNode(UUID nodeId){
-        node.addKnownNode(nodeId);
+    public void addKnownNode(UUID nodeId, int port){
+        node.addKnownNode(nodeId, port);
     }
 
 }

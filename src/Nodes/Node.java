@@ -7,25 +7,27 @@ import shared.OPERATION;
 
 import java.util.ArrayList;
 import java.util.Collections;
-
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-
+import java.util.Map;
 import java.util.Set;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import Services.AckServiceServer;
 import remote.messageQueueServer;
 
 import java.rmi.RemoteException;
+import java.security.Key;
 
 
 public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
     private final GossipNode gossipNode;  
-    private final Set<UUID> knownNodes = new HashSet<>();  // Known node IDs (dynamic list)
+    ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
 
     
     private final ArrayList<String> documentsList = new ArrayList<>(); 
@@ -54,7 +56,9 @@ public class Node extends Thread {
 
                     if (isLeader ) {
                         System.out.println("\n\tKNOWN NODESS:\n");
+                        System.out.print("\t");
                         System.out.println(knownNodes);
+                        System.out.print("\n");
 
                         System.out.println("Checking if this keeps printing or not");
                         System.out.println("Checking queue status: " + checkQueue());
@@ -137,8 +141,8 @@ public class Node extends Thread {
     }
 
 
-    public void addKnownNode(UUID nodeId){
-        knownNodes.add(nodeId);
+    public void addKnownNode(UUID nodeId, int port){
+        knownNodes.put(nodeId,  port);
     }
 
     public void startLeaderServices() throws RemoteException {
@@ -180,8 +184,8 @@ public class Node extends Thread {
         
     
     // Provides a list of known nodes for gossiping
-    public List<UUID> getRandomNodes() {
-        List<UUID> nodesList = new ArrayList<>(knownNodes);
+    public List<Map.Entry<UUID, Integer>> getRandomNodes() {
+        List<Map.Entry<UUID, Integer>> nodesList = new ArrayList<>(knownNodes.entrySet());
         Collections.shuffle(nodesList);
         return nodesList.subList(0, Math.min(3, nodesList.size())); 
     }
