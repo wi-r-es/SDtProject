@@ -17,6 +17,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HeartbeatService extends Thread {
 
@@ -58,6 +60,9 @@ public class HeartbeatService extends Thread {
         heartbeatCounters.put(gossipNode.getNodeId(), new AtomicInteger(0));  // Initializes heartbeat counter
     }
 
+    public int getUDPport(){
+        return this.udpPort;
+    }
 
     // Start heartbeat incrementing and failure detection tasks using scheduler
     @Override
@@ -225,13 +230,12 @@ public class HeartbeatService extends Thread {
                         
                     switch (op) {
                         case SYNC: //for syncing purposes
+                            if(this.gossipNode.isLeader()){ break;}
                             System.out.println("IN SYNC BROADCAST RECEIVE");
                             System.out.print("\t");
                             System.out.println(obj);
+                            processSync(obj);
                             //sendSyncAck(UUID targetNodeId, int target_port)
-                            break;
-                        
-                        case COMMIT: // for commit purposes
                             break;
                         default:
                             System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
@@ -249,10 +253,12 @@ public class HeartbeatService extends Thread {
                             replyToHeartbeat(message);
 
                             break;
+                        case COMMIT: // for commit purposes
+                            System.out.println("\n\n\t COMMITED -> " + message + "\n\n");
+                            break;
                         case DISCOVERY: // for NEW NODE 
                             if (this.gossipNode.isLeader()){
                                 processDiscoveryRequest(message);
-                                // logic to reply
                             }
                             break;
                         default:
@@ -322,7 +328,9 @@ public class HeartbeatService extends Thread {
                             
                             case ACK: // for NEW NODE 
                                 if (this.gossipNode.isLeader()){
-                                    
+                                    System.out.println("\n\n\t ACK RECEIVED FOR OPERATION: " + message);
+                                    Object obj = message.getPayload();
+                                    processACK(obj);
                                     
                                 }
                                 break;
@@ -359,25 +367,116 @@ public class HeartbeatService extends Thread {
          |___/                             
  */
 
-    private void sendSyncAckTCPServer(Message msg) {
-        try (
-            Socket tcpS = new Socket("localhost", TCP_PORT);
-            ObjectOutputStream out = new ObjectOutputStream(tcpS.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(tcpS.getInputStream())
-        ) {
-            // Send the custom Message object
-            out.writeObject(msg);
-            // Receive the response from the server
-            Message response = (Message) in.readObject();
-            System.out.println("Server Response: " + response);
+    public String processBatch(String batch) {
+        System.out.println("\n\n\t\tINSIDE PROCESS BATCH\n\n\n");
+        // Split the batch into operation ID and operations
+        String[] parts = batch.split(";", 3); // split the message into the each section of it
+        String operationId = parts[0];
+        String leaderInfo = parts[1];
+        String operations = parts[2];
+        System.out.println("\t\t" + leaderInfo + "\n\t" + operations );
+        System.out.println("Processing batch with Operation ID: " + operationId);
+        
+        // Split individual operations
+        String[] operationArray = operations.split("$");
+        boolean result = false;
 
-        } catch (IOException | ClassNotFoundException e) {
+        
+        try{
+            for (String operation : operationArray) {
+                System.out.println("\nProcessing operation: " + operation);
+
+                Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
+                Matcher matcher = pattern.matcher(operation);
+
+                if (matcher.find()) {
+                    String id = matcher.group(1);
+                    String content = matcher.group(2);
+                    int version = Integer.parseInt(matcher.group(3));
+
+                    // System.out.println("Document Details:");
+                    // System.out.println("  ID: " + id);
+                    // System.out.println("  Content: " + content);
+                    // System.out.println("  Version: " + version);
+
+                    // Process the operation 
+                    if (operation.startsWith("CREATE")) {
+                        result = handleCreate(new Document(content, UUID.fromString(id), version));
+                    } else if (operation.startsWith("UPDATE")) {
+                        result =  handleUpdate(new Document(content, UUID.fromString(id), version));
+                    } else if (operation.startsWith("DELETE")) {
+                        result =  handleDelete(new Document(content, UUID.fromString(id), version));
+                    }
+                } else {
+                    System.err.println("Invalid document format in operation: " + operation);
+                }
+            }
+            return result ? (operationId +":" +leaderInfo ): null;
+        }catch(Exception e){
             e.printStackTrace();
+            return null;
         }
+        
     }
-    private void sendSyncAck(UUID targetNodeId, int target_port) {
+
+
+    private boolean handleCreate(Document document) {
+        System.out.println("Handling CREATE for: " + document);
+        return gossipNode.addDocument(document);  
+    }
+
+    private boolean handleUpdate(Document document) {
+        System.out.println("Handling UPDATE for: " + document);
+        int res = gossipNode.searchDocument(document);
+        if(res == 1){
+            return gossipNode.updateDocument(document);
+        }
+        else if (res==-1){
+           return gossipNode.addDocument(document);
+        }
+        return false;
+        
+    }
+
+    private boolean handleDelete(Document document) {
+        System.out.println("Handling DELETE for: " + document);
+        return gossipNode.removeDocument(document);
+    }
+
+
+    private boolean processSync(Object obj){
+        String infoLeader = processBatch((String)obj);
+        System.out.println(infoLeader);
+        if(infoLeader != null){
+            String[] parts = infoLeader.split(":");
+            String opID = parts[0]; //OP id
+            String LID = parts[1]; //Leader id
+            String port = parts[2]; //Leader port
+            sendSyncAck(UUID.fromString(LID), Integer.parseInt(port), opID);
+        }
+        return false;
+    }
+
+    // private void sendSyncAckTCPServer(Message msg) {
+    //     try (
+    //         Socket tcpS = new Socket("localhost", TCP_PORT);
+    //         ObjectOutputStream out = new ObjectOutputStream(tcpS.getOutputStream());
+    //         ObjectInputStream in = new ObjectInputStream(tcpS.getInputStream())
+    //     ) {
+    //         // Send the custom Message object
+    //         out.writeObject(msg);
+    //         // Receive the response from the server
+    //         Message response = (Message) in.readObject();
+    //         System.out.println("Server Response: " + response);
+
+    //     } catch (IOException | ClassNotFoundException e) {
+    //         e.printStackTrace();
+    //     }
+    // }
+    private void sendSyncAck(UUID targetNodeId, int target_port, String operationID) {
         try {
-            Message msg = Message.replySyncMessage("SYNC_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+            Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() + ":" + operationID + ":" + 
+                                                        heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
             byte[] serializedData = serialize(msg);
             byte[] finalData = addHeader("UNCO", serializedData);
                 
@@ -390,6 +489,17 @@ public class HeartbeatService extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+//
+    private void processACK(Object obj){
+        String content = (String) obj;
+        String[] parts = content.split(":");
+        String senderNodeId = parts[1];
+        String opID = parts[2];
+        
+        this.gossipNode.addACK(UUID.fromString(senderNodeId), opID);
+        
+
     }
 
 

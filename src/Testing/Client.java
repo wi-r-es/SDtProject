@@ -24,7 +24,7 @@ public class Client {
             System.out.println("Connected to MessageQueue");
 
 
-            Document doc1 = new Document("This is a new document");
+            Document doc1 = new Document("This is a new document1");
             Document doc2 = new Document("This is a new document2");
             Document doc3 = new Document("This is a new document3");
             //Message msg = new Message(OPERATION.CREATE, doc1);

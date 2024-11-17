@@ -218,11 +218,36 @@ public class Node extends Thread {
     }
 
 
-    public synchronized void addDocument(Document doc){
-        documentsList.add(doc);
+    public synchronized boolean addDocument(Document doc){
+        return documentsList.add(doc);
     }
-    public synchronized void updateDocument(int index, Document doc){
-        documentsList.set(index, doc);
+    public synchronized boolean updateDocument(int index, Document doc){
+        try{
+            documentsList.set(index, doc);
+            return true;
+        }catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public synchronized boolean updateDocument(Document doc){
+        for (int i = 0; i < documentsList.size(); i++) {
+            if (documentsList.get(i).getId().equals(doc.getId())) {
+                documentsList.set(i, doc);
+                System.out.println("Document updated: " + doc);
+                return true;
+            }
+        }
+        System.out.println("Document not found for update: " + doc);
+        return false;
+    }
+    protected int findDocumentIndex(UUID id) {
+        for (int i = 0; i < documentsList.size(); i++) {
+            if (documentsList.get(i).getId().equals(id)) {
+                return i;
+            }
+        }
+        return -1; // Return -1 if not found
     }
     public synchronized boolean removeDocument(Document document){
         return documentsList.removeIf(doc -> doc.getId().equals(document.getId()));
@@ -323,8 +348,8 @@ public class Node extends Thread {
             addDistributedOperation(operationId);
         
             Message syncMessage = new Message(
-                OPERATION.SYNC, 
-                operationId + ";" + String.join(",", operationsBatch) // WILL JOIN ALL OPERATIONS IN ARRAT TO THE MESSAGE
+                OPERATION.SYNC,      // WILL JOIN ALL OPERATIONS IN ARRAT TO THE MESSAGE
+                operationId + ";" +getNodeId() + ":" +this.gossipNode.getHeartbeatService().getUDPport() +";" + String.join("$", operationsBatch) 
             );
             gossipNode.getHeartbeatService().broadcast(syncMessage, true);
             System.out.println("SYNC message sent with operation ID: " + operationId);
@@ -360,9 +385,9 @@ public class Node extends Thread {
                         .count();
     
                     if (ackCount >= getQuorum()) {
-                        System.out.println("Quorum achieved for operation ID: " + operationId);
-                        // sendCommitMessage(operationId);
-                        // clearOperationsBatch();
+                        System.out.println("\n\n\n Quorum achieved for operation ID: " + operationId+ "n\n\n");
+                        commitSyncProcess(operationId);
+                        
                         break;
                     }
     
@@ -378,5 +403,24 @@ public class Node extends Thread {
                 e.printStackTrace();
             }
         }).start();
+    }
+    public void commitSyncProcess(String operationId){
+        try{
+            sendCommitMessage(operationId);
+            System.out.println("COMMIT message sent FOR operation ID: " + operationId);
+            clearOperationsBatch();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void sendCommitMessage(String operationID){
+        Message syncMessage = new Message(
+                OPERATION.COMMIT,    
+                operationID
+            );
+            gossipNode.getHeartbeatService().broadcast(syncMessage, false);
+    }
+    private void clearOperationsBatch(){
+        operationsBatch.clear();
     }
 }
