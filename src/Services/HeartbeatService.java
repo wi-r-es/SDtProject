@@ -716,7 +716,7 @@ public class HeartbeatService extends Thread {
     }
 
     // SPRINT 3 IMP
-    private void syncNewElement(){
+    public void syncNewElement(){
         // 1st prepare the message for multicast discovery
         int port_for_syncing = 9999;
         Message discoveryMessage = Message.discoveryMessage(this.gossipNode.getNodeId(), port_for_syncing);

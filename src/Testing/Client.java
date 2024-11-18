@@ -5,6 +5,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 
+import Nodes.Node;
 import Resources.Document;
 import remote.messageRemoteInterface;
 import shared.Message;
@@ -38,6 +39,9 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
+            Node node = new Node("Node-NEW");
+            node.start();
+            node.getGossipNode().getHeartbeatService().syncNewElement();
 
             
 
