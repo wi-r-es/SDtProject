@@ -303,10 +303,18 @@ public class HeartbeatService extends Thread {
                             
                         switch (op) {
                             case FULL_SYNC: //for full sync for new node
-                                    
+                            if (this.gossipNode.isLeader()){
+                                // Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
+                                String receivedMsg = (String)obj;
+                                // Split string to get usefull data
+                                String[] parts = receivedMsg.split(":");
+                                String nodeId = parts[1];
+                                String port = parts[2];
+                                // Get the documents list
+                                Message msg = this.gossipNode.startFullSyncProcess(); 
+                                // Send the document list to new node
+                                leaderRespondToFullSync(msg, UUID.fromString(nodeId), Integer.parseInt(port));}
                                 break;
-                            
-                            
 
                             default:
                                 System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
@@ -627,7 +635,7 @@ public class HeartbeatService extends Thread {
 
     private void fullSyncRequest(UUID leaderNodeId, int leader_port, int sync_port) {
         try {
-            Message msg = Message.replyHeartbeatMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
+            Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
             byte[] serializedData = serialize(msg);
             byte[] finalData = addHeader("UNCO", serializedData);
                 
@@ -647,13 +655,64 @@ public class HeartbeatService extends Thread {
             syncSocket.setSoTimeout(5000);
             //2nd sent the request
             fullSyncRequest(leaderID, leader_port, sync_port);
-            // use UDP in my opinion, and dont forget to send the UUID in the message so the leader then selects the UUID and port from its list to initiate the process of SYNC
-            // see how i implement the sync process for all nodes updates
+            // Await for updated DB
+            Message data = waitFullSync(syncSocket);
 
+            Object obj = data.getPayload();
+
+            System.out.println("OBJECT: " + obj);
             
         }catch(IOException e ){
             e.printStackTrace();
         }
+    }
+
+    private Message waitFullSync(DatagramSocket socket){
+        byte[] buf = new byte[2048];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        int attempts = 10;
+        try{
+            while (attempts > 0) {
+                socket.receive(packet);
+                //Extract header's first 4 bytes
+                String header = new String(packet.getData(), 0, 4);
+                // Get compressed list of new docs
+                byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
+                
+                byte[] decompressedData = CompressionUtils.decompress(payload);
+                Message msg = (Message)deserialize(decompressedData);
+                OPERATION op = msg.getOperation();
+
+                if(op == OPERATION.FULL_SYNC_ANS){
+                    return msg;
+                }
+                System.err.println("Operation not premited");
+            }
+        }catch(Exception e){
+            System.out.println("Error: " + e);
+        }
+
+        return null;
+    }
+
+    private void leaderRespondToFullSync(Message msg, UUID targetNodeId, int target_port) {
+        try {            
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("COMP", serializedData);
+                
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+            socket.send(packet);
+
+            System.out.println("FULL_SYNC PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void startFullSyncProcess(){
+        
     }
 
     // SPRINT 3 IMP
@@ -671,6 +730,8 @@ public class HeartbeatService extends Thread {
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
 
 
+
+
         /* pontos 1 e 2, 3 , e 4  feito falta o resto
           Funções a criar: 
 
@@ -682,31 +743,6 @@ public class HeartbeatService extends Thread {
         */ 
 
     }
-    
-
-    public void fullsyncData(Message message, boolean compress, UUID newNode, int newNodePort ) {
-        try {
-
-            byte[] serializedData = serialize(message);
-    
-
-            byte[] finalData;
-
-            byte[] compressedData = CompressionUtils.compress(serializedData);
-            finalData = addHeader("COMP", compressedData);
-
-    
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(newNode));
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, newNodePort);
-            socket.send(packet);
-
-            System.out.println("FULL_SYNC DATRA SENT FROM " + message.getOperation() + "   "+ gossipNode.getNodeId() + " to " +newNode +":"+newNodePort);
-        } catch (IOException e) {
-            System.err.println("Error broadcasting message: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
     
 
     private void detectFailures() {

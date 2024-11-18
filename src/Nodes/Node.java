@@ -353,7 +353,8 @@ public class Node extends Thread {
         
             Message syncMessage = new Message(
                 OPERATION.SYNC,      // WILL JOIN ALL OPERATIONS IN ARRAT TO THE MESSAGE
-                operationId + ";" +getNodeId() + ":" +this.gossipNode.getHeartbeatService().getUDPport() +";" + String.join("$", operationsBatch) 
+                operationId + ";" +getNodeId() + ":" +this.gossipNode.getHeartbeatService().getUDPport() +";" 
+                + String.join("$", operationsBatch) 
             );
             gossipNode.getHeartbeatService().broadcast(syncMessage, true);
             System.out.println("SYNC message sent with operation ID: " + operationId);
@@ -427,5 +428,11 @@ public class Node extends Thread {
     }
     private void clearOperationsBatch(){
         operationsBatch.clear();
+    }
+
+    // Create updated DB in new Node
+    public Message startFullSyncProcess(){
+        Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, documentsList);
+        return fullSyncContent;
     }
 }

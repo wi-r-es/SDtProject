@@ -1,5 +1,8 @@
 package Nodes;
 import Services.HeartbeatService;
+import shared.Message;
+import shared.OPERATION;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -15,7 +18,6 @@ public class GossipNode extends Thread {
     public GossipNode(Node node) {
         this.node = node;
         this.heartbeatService = new HeartbeatService(this);
-
     }
     @Override
     public void run() {
@@ -59,6 +61,11 @@ public class GossipNode extends Thread {
     }
     public void addACK(UUID nodeId, String syncOP){
         node.addACK(nodeId, syncOP);
+    }
+
+    // Create updated DB in new Node
+    public Message startFullSyncProcess(){
+       return node.startFullSyncProcess();
     }
 
 }

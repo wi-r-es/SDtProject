@@ -55,6 +55,10 @@ public class Message implements Serializable{
         String PAYLOAD = content;
         return new Message(OPERATION.SYNC, PAYLOAD);
     }
+    public static Message FullSyncMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.FULL_SYNC, PAYLOAD);
+    }
     public static Message replySyncMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.ACK, PAYLOAD);

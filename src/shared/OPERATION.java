@@ -7,6 +7,7 @@ public enum OPERATION {
     SYNC,
     ACK,
     FULL_SYNC,
+    FULL_SYNC_ANS,
     FULL_SYNC_ACK,
     COMMIT,
     HEARTBEAT,
