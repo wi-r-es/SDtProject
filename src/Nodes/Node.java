@@ -222,6 +222,10 @@ public class Node extends Thread {
         return isLeader;
     }
 
+    public boolean documentListEmpty(){
+        return documentsList.isEmpty();
+    }
+
 
     public synchronized boolean addDocument(Document doc){
         return documentsList.add(doc);
@@ -433,7 +437,14 @@ public class Node extends Thread {
 
     // Create updated DB in new Node
     public Message startFullSyncProcess(){
-        Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, documentsList);
+        String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + Long.toString(System.currentTimeMillis()));; 
+
+        String payload = operationID + ";" + getNodeId() + ":" + this.gossipNode.getHeartbeatService().getUDPport() + ";";
+        for (Document doc: documentsList){
+            payload = payload + String.join("$" , doc.toString());
+        }
+
+        Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payload);
         return fullSyncContent;
     }
 }

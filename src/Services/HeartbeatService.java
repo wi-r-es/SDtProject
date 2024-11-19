@@ -673,7 +673,8 @@ public class HeartbeatService extends Thread {
             System.out.println("\n\n\n\t\t\tFULL SYNC RECEIVED\n\n\n");
 
             System.out.println("OBJECT: " + obj);
-            
+            String list = (String) obj; 
+            processDocumentList(list);
         }catch(SocketException e){
             System.out.println("SOCKET EXCEPTION");
         }catch(IOException e ){
@@ -728,7 +729,49 @@ public class HeartbeatService extends Thread {
         }
     }
 
-    private void startFullSyncProcess(){
+    public String processDocumentList(String batch) {
+        System.out.println("\n\n\t\tINSIDE PROCESS FULL SYNC\n\n\n");
+        // Split the batch into operation ID and operations
+        String[] parts = batch.split(";", 3); // split the message into the each section of it
+        String operationId = parts[0];
+        String leaderInfo = parts[1];
+        String documents = parts[2];
+        System.out.println("\t\t" + leaderInfo + "\n\t" + documents );
+        System.out.println("Processing batch with Operation ID: " + operationId);
+        
+        // Split individual operations
+        String[] docs = documents.split("$");
+        boolean result = false;
+
+        
+        try{
+            for (String doc : docs) {
+                System.out.println("\nProcessing documents list: " + doc);
+
+                Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
+                Matcher matcher = pattern.matcher(doc);
+
+                if (matcher.find()) {
+                    String id = matcher.group(1);
+                    String content = matcher.group(2);
+                    int version = Integer.parseInt(matcher.group(3));
+
+                    System.out.println("Document Details:");
+                    System.out.println("  ID: " + id);
+                    System.out.println("  Content: " + content);
+                    System.out.println("  Version: " + version);
+
+                    // Process the document 
+                    
+                } else {
+                    System.err.println("Invalid document format in operation: " + doc);
+                }
+            }
+            return result ? (operationId +":" +leaderInfo ): null;
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
+        }
         
     }
 

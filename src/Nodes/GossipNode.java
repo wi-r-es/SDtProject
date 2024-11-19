@@ -68,4 +68,8 @@ public class GossipNode extends Thread {
        return node.startFullSyncProcess();
     }
 
+    public boolean documentListEmpty(){
+        return node.documentListEmpty();
+    }
+
 }
