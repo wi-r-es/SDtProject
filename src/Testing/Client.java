@@ -39,11 +39,22 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
-            Thread.sleep(5000);
+            Thread.sleep(10000);
             Node node = new Node("Node-NEW");
             node.start();
             node.getGossipNode().getHeartbeatService().syncNewElement();
 
+
+            Document doc4 = new Document("This is a new document4");
+            Document doc5 = new Document("This is a new document5");
+            Document doc6 = new Document("This is a new document6");
+            doc1 = new Document("Updated doc 1");
+
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc4));
+            rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc5));
+            rq.enqueue(rq.performOperation(OPERATION.CREATE, doc6));
+            rq.enqueue(rq.performOperation(OPERATION.DELETE, doc2));
             
 
         } catch (MalformedURLException | RemoteException | NotBoundException e) {

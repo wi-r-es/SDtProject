@@ -91,6 +91,7 @@ public class Node extends Thread {
                       
                     }
                     System.out.println(this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("\n\n\n\tGET DOCUMENT LIST: \n" + getDocumentsList());
                     Thread.sleep(1000);
                 
                 } catch (InterruptedException e) {
