@@ -306,7 +306,7 @@ public class HeartbeatService extends Thread {
                         
                         OPERATION op = message.getOperation();
                         Object obj = message.getPayload();
-                        Document doc = (Document) obj;
+                        //Document doc = (Document) obj;
                             
                         switch (op) {
                             case FULL_SYNC: //for full sync for new node
@@ -646,7 +646,8 @@ public class HeartbeatService extends Thread {
         try {
             Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
             byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
+            byte[] compressedData = CompressionUtils.compress(serializedData);
+            byte[] finalData = addHeader("COMP", compressedData);
                 
             InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
 
@@ -661,13 +662,15 @@ public class HeartbeatService extends Thread {
 
     private void fullSyncInnit(UUID leaderID, int leader_port, int sync_port ){
         try(DatagramSocket syncSocket = new DatagramSocket(sync_port)){
-            syncSocket.setSoTimeout(5000);
+            syncSocket.setSoTimeout(50000);
             //2nd sent the request
             fullSyncRequest(leaderID, leader_port, sync_port);
             // Await for updated DB
             Message data = waitFullSync(syncSocket);
-
+            System.out.println(data);
             Object obj = data.getPayload();
+
+            System.out.println("\n\n\n\t\t\tFULL SYNC RECEIVED\n\n\n");
 
             System.out.println("OBJECT: " + obj);
             
@@ -681,7 +684,7 @@ public class HeartbeatService extends Thread {
     private Message waitFullSync(DatagramSocket socket){
         byte[] buf = new byte[2048];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
-        int attempts = 10;
+        int attempts = 100;
         try{
             while (attempts > 0) {
                 socket.receive(packet);
@@ -692,12 +695,14 @@ public class HeartbeatService extends Thread {
                 
                 byte[] decompressedData = CompressionUtils.decompress(payload);
                 Message msg = (Message)deserialize(decompressedData);
+                System.out.println("MESSAGE: " + msg);
                 OPERATION op = msg.getOperation();
 
                 if(op == OPERATION.FULL_SYNC_ANS){
                     return msg;
                 }
                 System.err.println("Operation not premited");
+                attempts--;
             }
         }catch(Exception e){
             System.out.println("Error: " + e);
