@@ -761,7 +761,15 @@ public class HeartbeatService extends Thread {
                     System.out.println("  Content: " + content);
                     System.out.println("  Version: " + version);
 
-                    // Process the document 
+                    Document doc_aux = new Document(content, UUID.fromString(id), version);
+
+                    if(gossipNode.documentListEmpty()){
+                        gossipNode.addDocument(doc_aux);
+                    }else if(gossipNode.searchDocument(doc_aux) == -1){
+                        gossipNode.addDocument(doc_aux); 
+                    }else if(gossipNode.searchDocument(doc_aux) != -1){
+                        gossipNode.updateDocument(doc_aux);
+                    }
                     
                 } else {
                     System.err.println("Invalid document format in operation: " + doc);
