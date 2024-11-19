@@ -60,6 +60,11 @@ public class HeartbeatService extends Thread {
         heartbeatCounters.put(gossipNode.getNodeId(), new AtomicInteger(0));  // Initializes heartbeat counter
     }
 
+    @Override
+    public String toString(){
+        return "Node{id='" + gossipNode.getNodeName()  +  "', port='" + this.getUDPport() + "'}";
+    }
+
     public int getUDPport(){
         return this.udpPort;
     }
@@ -285,6 +290,8 @@ public class HeartbeatService extends Thread {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     socket.receive(packet); 
+                    System.out.println("Message received in receiveMessage on port: " + packet.getPort());
+                    System.out.println("Packet content: " + new String(packet.getData(), 0, packet.getLength()));
                     // Extract the header (first 4 bytes) and payload
                     String header = new String(packet.getData(), 0, 4);
                     byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
@@ -322,8 +329,9 @@ public class HeartbeatService extends Thread {
 
 
                         System.out.println("Received compressed message");
+                        
                     } else if ("UNCO".equals(header)) {
-
+                        
                         Message message = (Message) deserialize(payload);
                         OPERATION op = message.getOperation();
                         switch (op) {
@@ -557,7 +565,7 @@ public class HeartbeatService extends Thread {
     }
     private void sendACKDiscovery(UUID targetNodeId, int target_port) {
         try {
-            Message msg = Message.replyHeartbeatMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
+            Message msg = Message.replyDiscoveryMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
             byte[] serializedData = serialize(msg);
             byte[] finalData = addHeader("UNCO", serializedData);
                 
@@ -566,11 +574,12 @@ public class HeartbeatService extends Thread {
             DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
             socket.send(packet);
 
-            System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter ");
+            System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " to port " + target_port);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     private String broadcastDiscovery(int port, Message msg){
         try(DatagramSocket syncSocket = new DatagramSocket(port)){
             syncSocket.setSoTimeout(5000);
@@ -585,7 +594,7 @@ public class HeartbeatService extends Thread {
                 syncSocket.receive(packet);
     
                 // Deserialize the response
-                byte[] data = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
+                byte[] data = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
                 Message responseMessage = (Message) deserialize(data);
     
                 // Process the response
@@ -662,6 +671,8 @@ public class HeartbeatService extends Thread {
 
             System.out.println("OBJECT: " + obj);
             
+        }catch(SocketException e){
+            System.out.println("SOCKET EXCEPTION");
         }catch(IOException e ){
             e.printStackTrace();
         }
@@ -698,7 +709,8 @@ public class HeartbeatService extends Thread {
     private void leaderRespondToFullSync(Message msg, UUID targetNodeId, int target_port) {
         try {            
             byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("COMP", serializedData);
+            byte[] compressedData = CompressionUtils.compress(serializedData);
+            byte[] finalData = addHeader("COMP", compressedData);
                 
             InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
 

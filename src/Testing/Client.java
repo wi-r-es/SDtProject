@@ -13,7 +13,7 @@ import shared.OPERATION;
 
 public class Client {
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         try {
             printOptions();
             
@@ -39,6 +39,7 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
+            Thread.sleep(5000);
             Node node = new Node("Node-NEW");
             node.start();
             node.getGossipNode().getHeartbeatService().syncNewElement();

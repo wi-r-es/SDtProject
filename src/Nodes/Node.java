@@ -90,7 +90,7 @@ public class Node extends Thread {
                            
                       
                     }
-    
+                    System.out.println(this.getGossipNode().getHeartbeatService().toString());
                     Thread.sleep(1000);
                 
                 } catch (InterruptedException e) {
