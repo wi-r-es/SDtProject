@@ -33,6 +33,7 @@ public class Document implements Serializable {
     }
     public void setContent(String content) {
         this.content = content;
+        this.version += 1;
     }
 
     public int getVersion() {

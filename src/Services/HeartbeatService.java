@@ -444,10 +444,10 @@ public class HeartbeatService extends Thread {
     private boolean handleUpdate(Document document) {
         System.out.println("Handling UPDATE for: " + document);
         int res = gossipNode.searchDocument(document);
-        if(res == 1){
+        if(res != -1){
             return gossipNode.updateDocument(document);
         }
-        else if (res==-1){
+        else if (res ==-1){
            return gossipNode.addDocument(document);
         }
         return false;
@@ -796,20 +796,6 @@ public class HeartbeatService extends Thread {
         String leader_port = parts[1];
         
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
-
-
-
-
-        /* pontos 1 e 2, 3 , e 4  feito falta o resto
-          Funções a criar: 
-
-          2- New element manda multicast averiguar lider ---> broadcast()  LINHA 111 FUNCAO E 95 EXEMPLO CHAMADA
-          4- Sync request
-          5- Sync()
-          6- Comparar local bd do node com lider
-          7- Pedir sync outra vez (dependendo)
-        */ 
-
     }
     
 

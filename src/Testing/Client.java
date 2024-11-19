@@ -48,7 +48,7 @@ public class Client {
             Document doc4 = new Document("This is a new document4");
             Document doc5 = new Document("This is a new document5");
             Document doc6 = new Document("This is a new document6");
-            doc1 = new Document("Updated doc 1");
+            doc1.setContent("Updated doc 1");
 
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc4));
             rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
