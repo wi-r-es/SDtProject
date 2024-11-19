@@ -1,13 +1,12 @@
 package Nodes;
 import Services.HeartbeatService;
 import shared.Message;
-import shared.OPERATION;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.swing.text.DocumentFilter;
+
 
 import Resources.Document;
 public class GossipNode extends Thread {

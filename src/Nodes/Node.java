@@ -15,7 +15,11 @@ import java.util.Map;
 import java.util.Set;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,6 +75,7 @@ public class Node extends Thread {
                         // things only leader will be abvle to do like commits TBD
                         if (checkQueue()) {
                             System.out.println("there are messages in queue");
+                            ArrayList<Document> temp = new ArrayList<>(documentsList);
                             //process everything in queue
                             MessageQueue mq = messageQueue.getQueue();
                             while (!mq.isEmpty()){
@@ -79,7 +84,7 @@ public class Node extends Thread {
                                 System.out.println(s);
                                 processMessage(s);
                             }
-                            startSyncProcess();
+                            startSyncProcess(temp);
                             
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
@@ -275,7 +280,7 @@ public class Node extends Thread {
             Document document = Document.clone((Document)payload);
             switch (op) {
                 case CREATE:
-                    if (!documentsList.contains(document)) {
+                    if (!documentsList.stream().anyMatch(doc -> doc.getId().equals(document.getId()))) {
                         addDocument(document);
                         addOperation("CREATE" + ";" + document.toString());
                         System.out.println("Document created: " + document);
@@ -349,12 +354,14 @@ public class Node extends Thread {
         distributedOperations.replace(op, "FINISHED");
         //distributedOperations.put(op, "WAITING");
     }
-    public void startSyncProcess(){
+    public void startSyncProcess(ArrayList<Document> temp){
         updateQuorum();
         try{
-        
+            
             String operationId = UniqueIdGenerator.generateOperationId((Integer.toString(operationsBatch.hashCode())));
             addDistributedOperation(operationId);
+            // Filter duplicates in operationsBatch
+            //List<String> uniqueOperations = operationsBatch.stream().distinct().toList();
         
             Message syncMessage = new Message(
                 OPERATION.SYNC,      // WILL JOIN ALL OPERATIONS IN ARRAT TO THE MESSAGE
@@ -363,7 +370,21 @@ public class Node extends Thread {
             );
             gossipNode.getHeartbeatService().broadcast(syncMessage, true);
             System.out.println("SYNC message sent with operation ID: " + operationId);
-            waitForQuorum(operationId);
+            CompletableFuture<Boolean> quorumFuture = waitForQuorum(operationId);
+
+        quorumFuture.thenAccept(success -> {
+            if (success) {
+                commitSyncProcess(operationId);
+                System.out.println("Commit successful for operation ID: " + operationId);
+            } else {
+                System.err.println("Retrying sync process for operation ID: " + operationId);
+                retrySyncProcess(operationId, temp); 
+            }
+        }).exceptionally(e -> {
+            System.err.println("\n\n\n\n\n\n\tERROR FATAL IN SYNC NIM HEREHERHEHRE\n\n\n\n\n\n");
+            e.printStackTrace();
+            return null;
+        });
         
             /*  OPERATION BY OPERATION INSTEAD OF BATCH OF THEM
 
@@ -378,12 +399,13 @@ public class Node extends Thread {
             System.out.println("SYNC message sent for operation: " + operation + " with operation ID: " + operationId);
             waitForQuorum(operationId);
         }
-    //*/
+            */
         }catch (Exception e) {
             e.printStackTrace();
         }
     }
-    private void waitForQuorum(String operationId) {
+    private CompletableFuture<Boolean> waitForQuorum(String operationId) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         new Thread(() -> {
             int attempts = 10; // Max attempts to wait for quorum
             int delay = 1000; // 1 second between checks
@@ -396,9 +418,9 @@ public class Node extends Thread {
     
                     if (ackCount >= getQuorum()) {
                         System.out.println("\n\n\n Quorum achieved for operation ID: " + operationId+ "n\n\n");
-                        commitSyncProcess(operationId);
-                        
-                        break;
+                        //commitSyncProcess(operationId);
+                        future.complete(true); 
+                        return;
                     }
     
                     Thread.sleep(delay);
@@ -408,12 +430,56 @@ public class Node extends Thread {
                 if (attempts == 0) {
                     System.err.println("Failed to achieve quorum for operation ID: " + operationId);
                 }
+             
+            future.complete(false);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 e.printStackTrace();
+                future.completeExceptionally(e);
+                
             }
         }).start();
+        return future;
     }
+    private void retrySyncProcess(String operationId, ArrayList<Document> temp) {
+        int maxRetries = 3;
+        int retryCount = 0;
+    
+        while (retryCount < maxRetries) {
+            try {
+                System.out.println("Retrying sync process for operation ID: " + operationId + " (attempt " + (retryCount + 1) + ")");
+                waitForQuorum(operationId).thenAccept(success -> {
+                    if (success) {
+                        commitSyncProcess(operationId);
+                    }
+                }).exceptionally(e -> {
+                    e.printStackTrace();
+                    return null;
+                });
+                retryCount++;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    
+        if (retryCount == maxRetries) {
+            System.err.println("Max retries reached for operation ID: " + operationId);
+            System.err.println("Reverting changes....");
+            revertChanges(temp);  
+            System.err.println("Changes reverted....");
+        }
+    }
+    private void revertChanges(ArrayList<Document> previousState) {
+        synchronized (this) {
+            documentsList = new ArrayList<>(previousState);  
+            clearOperationsBatch();  
+            System.out.println("Reverted changes to the previous state.");
+        }
+    }
+
+
+
+
     public void commitSyncProcess(String operationId){
         try{
             sendCommitMessage(operationId);
