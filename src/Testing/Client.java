@@ -44,7 +44,7 @@ public class Client {
             node.start();
             node.getGossipNode().getHeartbeatService().syncNewElement();
 
-
+/* */
             Document doc4 = new Document("This is a new document4");
             Document doc5 = new Document("This is a new document5");
             Document doc6 = new Document("This is a new document6");
@@ -55,7 +55,7 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc5));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc6));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc2));
-            
+// */            
 
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
             e.printStackTrace();

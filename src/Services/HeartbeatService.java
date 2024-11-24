@@ -38,6 +38,8 @@ public class HeartbeatService extends Thread {
 
     //for ack syncs
     private final int TCP_PORT = 9090;
+    private long tempListTimestamp;
+    private final long TEMP_LIST_TIMEOUT = 300000; // 5 mins in milli
 
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
@@ -97,7 +99,14 @@ public class HeartbeatService extends Thread {
     //Broadcast implementation
     private void incrementAndBroadcastHeartbeat() {
         //incrementHeartbeat();
-        if(gossipNode.isLeader())
+        
+        if(gossipNode.tempListExists()){
+            if (System.currentTimeMillis() - tempListTimestamp > TEMP_LIST_TIMEOUT) {
+                System.out.println("Temp list expired, discarding changes.");
+                gossipNode.clearTempList();
+            }
+        }
+        //if(gossipNode.isLeader())
         {
            // System.out.println(gossipNode.getNodeId());
             //System.out.println(gossipNode.isLeader());
@@ -117,7 +126,14 @@ public class HeartbeatService extends Thread {
     }
 
 
-
+/*
+██████  ██████   ██████   █████  ██████   ██████  █████  ███████ ████████ 
+██   ██ ██   ██ ██    ██ ██   ██ ██   ██ ██      ██   ██ ██         ██    
+██████  ██████  ██    ██ ███████ ██   ██ ██      ███████ ███████    ██    
+██   ██ ██   ██ ██    ██ ██   ██ ██   ██ ██      ██   ██      ██    ██    
+██████  ██   ██  ██████  ██   ██ ██████   ██████ ██   ██ ███████    ██    
+                                                                        
+ */
     //BROADCAST
     public void broadcast(Message message, boolean compress) {
         try (MulticastSocket multicastSocket = new MulticastSocket()) {
@@ -144,6 +160,14 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+
+    /*
+                                    ██   ██ ███████  █████  ██████  ████████ ██████  ███████  █████  ████████ 
+                                    ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
+                                    ███████ █████   ███████ ██████     ██    ██████  █████   ███████    ██    
+                                    ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
+                                    ██   ██ ███████ ██   ██ ██   ██    ██    ██████  ███████ ██   ██    ██                                                                                                                                                                                
+     */
 
     private void respondeToHeartbeat(UUID targetNodeId, int target_port) {
         try {
@@ -186,7 +210,7 @@ public class HeartbeatService extends Thread {
     private void addKnownNode(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
-        System.out.println("\tCotent inside add to knownNodes->  " + content+"\n\n");
+        //System.out.println("\tCotent inside add to knownNodes->  " + content+"\n\n");
         String[] parts = content.split(":");
         String senderNodeId = parts[1];
         int port = Integer.parseInt(parts[2]);
@@ -195,14 +219,18 @@ public class HeartbeatService extends Thread {
     }
 
     /*
-  _____               _             __  __                                       __  __       _ _   _     ___    _       _ 
- |  __ \             (_)           |  \/  |                                     |  \/  |     | | | (_)   / / |  | |     (_)
- | |__) |___  ___ ___ ___   _____  | \  / | ___  ___ ___  __ _  __ _  ___  ___  | \  / |_   _| | |_ _   / /| |  | |_ __  _ 
- |  _  // _ \/ __/ _ \ \ \ / / _ \ | |\/| |/ _ \/ __/ __|/ _` |/ _` |/ _ \/ __| | |\/| | | | | | __| | / / | |  | | '_ \| |
- | | \ \  __/ (_|  __/ |\ V /  __/ | |  | |  __/\__ \__ \ (_| | (_| |  __/\__ \ | |  | | |_| | | |_| |/ /  | |__| | | | | |
- |_|  \_\___|\___\___|_| \_/ \___| |_|  |_|\___||___/___/\__,_|\__, |\___||___/ |_|  |_|\__,_|_|\__|_/_/    \____/|_| |_|_|
-                                                                __/ |                                                      
-                                                               |___/                                                       
+██████  ███████  ██████ ███████ ██ ██    ██ ███████ ███    ███ ███████ ███████ ███████  █████   ██████  ███████ 
+██   ██ ██      ██      ██      ██ ██    ██ ██      ████  ████ ██      ██      ██      ██   ██ ██       ██      
+██████  █████   ██      █████   ██ ██    ██ █████   ██ ████ ██ █████   ███████ ███████ ███████ ██   ███ █████   
+██   ██ ██      ██      ██      ██  ██  ██  ██      ██  ██  ██ ██           ██      ██ ██   ██ ██    ██ ██      
+██   ██ ███████  ██████ ███████ ██   ████   ███████ ██      ██ ███████ ███████ ███████ ██   ██  ██████  ███████ 
+                                                                                                                
+███    ███ ██    ██ ██      ████████ ██  ██████  █████  ███████ ████████ 
+████  ████ ██    ██ ██         ██    ██ ██      ██   ██ ██         ██    
+██ ████ ██ ██    ██ ██         ██    ██ ██      ███████ ███████    ██    
+██  ██  ██ ██    ██ ██         ██    ██ ██      ██   ██      ██    ██    
+██      ██  ██████  ███████    ██    ██  ██████ ██   ██ ███████    ██     
+                                                                                                                                   
      */
     
 
@@ -246,8 +274,6 @@ public class HeartbeatService extends Thread {
                             System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
                     }
 
-
-                    System.out.println("Received compressed message");
                 } else if ("UNCO".equals(header)) {
 
                     Message message = (Message) deserialize(payload);
@@ -259,7 +285,10 @@ public class HeartbeatService extends Thread {
 
                             break;
                         case COMMIT: // for commit purposes
+                            processCommit();
                             System.out.println("\n\n\t COMMITED -> " + message + "\n\n");
+                            //set temp list como list e limpar temp list para nao ocupar espaco
+                            
                             break;
                         case DISCOVERY: // for NEW NODE 
                             if (this.gossipNode.isLeader()){
@@ -270,7 +299,7 @@ public class HeartbeatService extends Thread {
                             System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
                     }
 
-                    System.out.println(this.gossipNode.getNodeName()+"Received uncompressed message: " + message);
+                    //System.out.println(this.gossipNode.getNodeName()+"Received uncompressed message: " + message);
                 } else {
                     System.out.println("Unknown message type: " + header);
                 }
@@ -281,6 +310,15 @@ public class HeartbeatService extends Thread {
         }
     }
 
+    /*
+██    ██ ███    ██ ██  ██████  █████  ███████ ████████ 
+██    ██ ████   ██ ██ ██      ██   ██ ██         ██    
+██    ██ ██ ██  ██ ██ ██      ███████ ███████    ██    
+██    ██ ██  ██ ██ ██ ██      ██   ██      ██    ██    
+ ██████  ██   ████ ██  ██████ ██   ██ ███████    ██    
+                                                       
+                                                   
+     */
     private void receiveMessage() {
         byte[] buffer = new byte[2048]; 
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -290,8 +328,8 @@ public class HeartbeatService extends Thread {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     socket.receive(packet); 
-                    System.out.println("Message received in receiveMessage on port: " + packet.getPort());
-                    System.out.println("Packet content: " + new String(packet.getData(), 0, packet.getLength()));
+                    // System.out.println("Message received in receiveMessage on port: " + packet.getPort());
+                    // System.out.println("Packet content: " + new String(packet.getData(), 0, packet.getLength()));
                     // Extract the header (first 4 bytes) and payload
                     String header = new String(packet.getData(), 0, 4);
                     byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
@@ -336,10 +374,10 @@ public class HeartbeatService extends Thread {
                         OPERATION op = message.getOperation();
                         switch (op) {
                             case HEARTBEAT_ACK: // reply to hearbeats 
-                                System.out.println("\n\tIM HERE IN CASE HEARTBEAT_ACK\n");
-                                if(this.gossipNode.isLeader()){
+                                //System.out.println("\n\tIM HERE IN CASE HEARTBEAT_ACK\n");
+                                //if(this.gossipNode.isLeader()){
                                     addKnownNode(message);
-                                }
+                               // }
                                 break;
                             
                             case ACK: 
@@ -373,17 +411,18 @@ public class HeartbeatService extends Thread {
     
 
 /*
-   _____                        _____ _  __
-  / ____|                 /\   / ____| |/ /
- | (___  _   _ _ __      /  \ | |    | ' / 
-  \___ \| | | | '_ \    / /\ \| |    |  <  
-  ____) | |_| | | | |  / ____ \ |____| . \ 
- |_____/ \__, |_| |_| /_/    \_\_____|_|\_\
-          __/ |                            
-         |___/                             
+███████ ██    ██ ███    ██        █████   ██████ ██   ██ 
+██       ██  ██  ████   ██       ██   ██ ██      ██  ██  
+███████   ████   ██ ██  ██ █████ ███████ ██      █████   
+     ██    ██    ██  ██ ██       ██   ██ ██      ██  ██  
+███████    ██    ██   ████       ██   ██  ██████ ██   ██ 
+                                                                                    
  */
 
     public String processBatch(String batch) {
+        this.gossipNode.innitTempList();
+        tempListTimestamp = System.currentTimeMillis();
+
         System.out.println("\n\n\t\tINSIDE PROCESS BATCH\n\n\n");
         // Split the batch into operation ID and operations
         String[] parts = batch.split(";", 3); // split the message into the each section of it
@@ -409,19 +448,28 @@ public class HeartbeatService extends Thread {
                     String id = matcher.group(1);
                     String content = matcher.group(2);
                     int version = Integer.parseInt(matcher.group(3));
-
+                    ArrayList<Document> list = gossipNode.getTempDocumentsList();
                     // System.out.println("Document Details:");
                     // System.out.println("  ID: " + id);
                     // System.out.println("  Content: " + content);
                     // System.out.println("  Version: " + version);
 
                     // Process the operation 
+                    //@Deprecated version
+                    // if (operation.startsWith("CREATE")) {
+                    //     result = handleCreate(new Document(content, UUID.fromString(id), version));
+                    // } else if (operation.startsWith("UPDATE")) {
+                    //     result =  handleUpdate(new Document(content, UUID.fromString(id), version));
+                    // } else if (operation.startsWith("DELETE")) {
+                    //     result =  handleDelete(new Document(content, UUID.fromString(id), version));
+                    // }
+
                     if (operation.startsWith("CREATE")) {
-                        result = handleCreate(new Document(content, UUID.fromString(id), version));
+                        result = handleCreate(new Document(content, UUID.fromString(id), version), list);
                     } else if (operation.startsWith("UPDATE")) {
-                        result =  handleUpdate(new Document(content, UUID.fromString(id), version));
+                        result =  handleUpdate(new Document(content, UUID.fromString(id), version), list);
                     } else if (operation.startsWith("DELETE")) {
-                        result =  handleDelete(new Document(content, UUID.fromString(id), version));
+                        result =  handleDelete(new Document(content, UUID.fromString(id), version), list);
                     }
                 } else {
                     System.err.println("Invalid document format in operation: " + operation);
@@ -436,11 +484,12 @@ public class HeartbeatService extends Thread {
     }
 
 
+    @Deprecated
     private boolean handleCreate(Document document) {
         System.out.println("Handling CREATE for: " + document);
         return gossipNode.addDocument(document);  
     }
-
+    @Deprecated
     private boolean handleUpdate(Document document) {
         System.out.println("Handling UPDATE for: " + document);
         int res = gossipNode.searchDocument(document);
@@ -453,10 +502,41 @@ public class HeartbeatService extends Thread {
         return false;
         
     }
-
+    @Deprecated
     private boolean handleDelete(Document document) {
         System.out.println("Handling DELETE for: " + document);
         return gossipNode.removeDocument(document);
+    }
+        /*
+                                    ██████  ██    ██ ███████ ██████  ██       ██████   █████  ██████  ██ ███    ██  ██████      
+                                    ██    ██ ██    ██ ██      ██   ██ ██      ██    ██ ██   ██ ██   ██ ██ ████   ██ ██           
+                                    ██    ██ ██    ██ █████   ██████  ██      ██    ██ ███████ ██   ██ ██ ██ ██  ██ ██   ███     
+                                    ██    ██  ██  ██  ██      ██   ██ ██      ██    ██ ██   ██ ██   ██ ██ ██  ██ ██ ██    ██     
+                                    ██████    ████   ███████ ██   ██ ███████  ██████  ██   ██ ██████  ██ ██   ████  ██████      
+                                                                                                                                
+                                                                                       
+     */    
+    private boolean handleCreate(Document document, ArrayList<Document> list) {
+        System.out.println("Handling CREATE for: " + document);
+        return gossipNode.addDocument(document, list);  
+    }
+
+    private boolean handleUpdate(Document document, ArrayList<Document> list) {
+        System.out.println("Handling UPDATE for: " + document);
+        int res = gossipNode.searchDocument(document, list);
+        if(res != -1){
+            return gossipNode.updateDocument(document, list);
+        }
+        else if (res == -1){
+           return gossipNode.addDocument(document, list);
+        }
+        return false;
+        
+    }
+
+    private boolean handleDelete(Document document, ArrayList<Document> list) {
+        System.out.println("Handling DELETE for: " + document);
+        return gossipNode.removeDocument(document, list);
     }
 
 
@@ -518,6 +598,17 @@ public class HeartbeatService extends Thread {
 
     }
 
+                                                            /*
+         ██████  ██████  ███    ███ ███    ███ ██ ████████ 
+        ██      ██    ██ ████  ████ ████  ████ ██    ██    
+        ██      ██    ██ ██ ████ ██ ██ ████ ██ ██    ██    
+        ██      ██    ██ ██  ██  ██ ██  ██  ██ ██    ██    
+         ██████  ██████  ██      ██ ██      ██ ██    ██    
+    */
+    private void processCommit(){
+        gossipNode.swapLists();
+    }
+
 
 
 
@@ -542,14 +633,12 @@ public class HeartbeatService extends Thread {
 
     /*
     
-                _____ _____  _____  _____ ______      ________ _______     __
-                |  __ \_   _|/ ____|/ ____/ __ \ \    / /  ____|  __ \ \   / /
-                | |  | || | | (___ | |   | |  | \ \  / /| |__  | |__) \ \_/ / 
-                | |  | || |  \___ \| |   | |  | |\ \/ / |  __| |  _  / \   /  
-                | |__| || |_ ____) | |___| |__| | \  /  | |____| | \ \  | |   
-                |_____/_____|_____/ \_____\____/   \/   |______|_|  \_\ |_|   
-                                                                            
-                                                               
+██████  ██ ███████  ██████  ██████  ██    ██ ███████ ██████  ██    ██ 
+██   ██ ██ ██      ██      ██    ██ ██    ██ ██      ██   ██  ██  ██  
+██   ██ ██ ███████ ██      ██    ██ ██    ██ █████   ██████    ████   
+██   ██ ██      ██ ██      ██    ██  ██  ██  ██      ██   ██    ██    
+██████  ██ ███████  ██████  ██████    ████   ███████ ██   ██    ██    
+                                                                                                                                                                                                                                                                               
     */
     private void processDiscoveryRequest(Message message){
         Object obj = message.getPayload();
@@ -619,12 +708,11 @@ public class HeartbeatService extends Thread {
     }
 
     /*
-        _______ _    _ _      _         _______     ___   _  _____
-        |  ____| |  | | |    | |       / ____\ \   / / \ | |/ ____|
-        | |__  | |  | | |    | |      | (___  \ \_/ /|  \| | |     
-        |  __| | |  | | |    | |       \___ \  \   / | . ` | |     
-        | |    | |__| | |____| |____   ____) |  | |  | |\  | |____ 
-        |_|     \____/|______|______| |_____/   |_|  |_| \_|\_____|
+███████ ██    ██ ██      ██          ███████ ██    ██ ███    ██  ██████ 
+██      ██    ██ ██      ██          ██       ██  ██  ████   ██ ██      
+█████   ██    ██ ██      ██          ███████   ████   ██ ██  ██ ██      
+██      ██    ██ ██      ██               ██    ██    ██  ██ ██ ██      
+██       ██████  ███████ ███████     ███████    ██    ██   ████  ██████ 
 
      */
 
@@ -724,6 +812,7 @@ public class HeartbeatService extends Thread {
             socket.send(packet);
 
             System.out.println("FULL_SYNC PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+            System.out.println(msg);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -731,6 +820,7 @@ public class HeartbeatService extends Thread {
 
     public String processDocumentList(String batch) {
         System.out.println("\n\n\t\tINSIDE PROCESS FULL SYNC\n\n\n");
+        System.out.println("\n\n\t\t"+batch+"\n\n\n");
         // Split the batch into operation ID and operations
         String[] parts = batch.split(";", 3); // split the message into the each section of it
         String operationId = parts[0];
@@ -772,7 +862,7 @@ public class HeartbeatService extends Thread {
                     }
                     
                 } else {
-                    System.err.println("Invalid document format in operation: " + doc);
+                    System.err.println("Invalid document format in full sync: " + doc);
                 }
             }
             return result ? (operationId +":" +leaderInfo ): null;

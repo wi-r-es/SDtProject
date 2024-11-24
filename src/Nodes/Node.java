@@ -5,6 +5,7 @@ import shared.Message;
 import shared.MessageQueue;
 import shared.OPERATION;
 import utils.UniqueIdGenerator;
+import utils.PrettyPrinter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,10 +19,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import Resources.Document;
 import Services.AckServiceServer;
@@ -36,7 +39,9 @@ public class Node extends Thread {
     private final UUID UID;
     private final GossipNode gossipNode;  
     private ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
+    private ConcurrentHashMap<UUID, String> knownNodesNames = new ConcurrentHashMap<>();  // Known node IDs with their name
     private ArrayList<Document> documentsList = new ArrayList<>(); 
+    private ArrayList<Document> temp = null;
     private ArrayList<String> operationsBatch = new ArrayList<>();
     private boolean isLeader;
     private messageQueueServer messageQueue; 
@@ -63,19 +68,20 @@ public class Node extends Thread {
             while(running){
                 try {
                     System.out.println("Leader thread is running: " + isLeader);
-
+                    System.out.println(this.getGossipNode().getHeartbeatService().toString());
                     if (isLeader ) {
-                        System.out.println("\n\tKNOWN NODESS:\n");
-                        System.out.print("\t");
-                        System.out.println(knownNodes);
-                        System.out.print("\n");
+                        // System.out.println("\n\tKNOWN NODESS:\n");
+                        // System.out.print("\t");
+                        // System.out.println(knownNodes);
+                        // System.out.print("\n");
 
-                        System.out.println("Checking if this keeps printing or not");
+                        // System.out.println("Checking if this keeps printing or not");
                         System.out.println("Checking queue status: " + checkQueue());
                         // things only leader will be abvle to do like commits TBD
                         if (checkQueue()) {
                             System.out.println("there are messages in queue");
-                            ArrayList<Document> temp = new ArrayList<>(documentsList);
+                            innitTempList();
+                            //temp = new ArrayList<>(documentsList);
                             //process everything in queue
                             MessageQueue mq = messageQueue.getQueue();
                             while (!mq.isEmpty()){
@@ -84,7 +90,7 @@ public class Node extends Thread {
                                 System.out.println(s);
                                 processMessage(s);
                             }
-                            startSyncProcess(temp);
+                            startSyncProcess();
                             
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
@@ -95,8 +101,14 @@ public class Node extends Thread {
                            
                       
                     }
-                    System.out.println(this.getGossipNode().getHeartbeatService().toString());
-                    System.out.println("\n\n\n\tGET DOCUMENT LIST: \n" + getDocumentsList());
+                    System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("\tGET NODES LIST: \n" );
+                    printKnownNodes();
+                    
+                    
+                    System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("\tGET DOCUMENT LIST: \n" + getDocumentsList()+ this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("\n\n\nIS IT EMPTY: \n" + documentListEmpty());
                     Thread.sleep(1000);
                 
                 } catch (InterruptedException e) {
@@ -137,13 +149,7 @@ public class Node extends Thread {
         //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
-    private synchronized void updateQuorum(){
-        long N = knownNodes.mappingCount();
-        this.quorum= ((int)N / 2) + 1;
-    }
-    private int getQuorum(){
-       return this.quorum;
-    }
+
 
     public synchronized  boolean checkQueue() throws RemoteException{
         if (messageQueue != null){return  messageQueue.checkQueue();}
@@ -172,6 +178,9 @@ public class Node extends Thread {
 
     public void addKnownNode(UUID nodeId, int port){
         knownNodes.put(nodeId,  port);
+    }
+    public void addKnownNode(UUID nodeId, String name){
+        knownNodesNames.putIfAbsent(nodeId,  name);
     }
 
     public void addACK(UUID nodeId, String syncOP){
@@ -222,10 +231,35 @@ public class Node extends Thread {
         Collections.shuffle(nodesList);
         return nodesList.subList(0, Math.min(3, nodesList.size())); 
     }
+    public List<Map.Entry<UUID, Integer>> getNodesList() {
+        List<Map.Entry<UUID, Integer>> nodesList = new ArrayList<>(knownNodes.entrySet());
+        return nodesList; 
+    }
 
     public boolean isLeader(){
         return isLeader;
     }
+
+    private synchronized void printKnownNodes(){
+        List<Map.Entry<UUID, Integer>> knownNodes = getNodesList();
+        String[] headers = {"UUID", "Value"};
+        List<String[]> rows = knownNodes.stream()
+                .map(entry -> new String[]{entry.getKey().toString(), entry.getValue().toString()})
+                .collect(Collectors.toList());
+
+        // Print the table
+        PrettyPrinter.printTable(headers, rows);
+    }
+
+
+    /*
+██████   ██████   ██████      ██████  ██████  ███████ 
+██   ██ ██    ██ ██          ██    ██ ██   ██ ██      
+██   ██ ██    ██ ██          ██    ██ ██████  ███████ 
+██   ██ ██    ██ ██          ██    ██ ██           ██ 
+██████   ██████   ██████      ██████  ██      ███████ 
+                                                      
+     */
 
     public boolean documentListEmpty(){
         return documentsList.isEmpty();
@@ -266,6 +300,99 @@ public class Node extends Thread {
     public synchronized boolean removeDocument(Document document){
         return documentsList.removeIf(doc -> doc.getId().equals(document.getId()));
     }
+    public ArrayList<Document> getDocumentsList() {
+        return documentsList;
+    }
+    // Operations for temporary list
+    public void innitTempList() {
+        if (documentsList.isEmpty()) {
+            System.err.println("[WARNING] documentsList is empty; temp will also be empty.");
+        }
+        temp = new ArrayList<>(documentsList); // Copy documentsList to temp
+        System.out.println("[DEBUG] Temp list initialized: " + temp);
+    }
+    public ArrayList<Document> getTempDocumentsList() {
+        return temp;
+    }
+    public void clearTempList(){
+        temp.clear();
+    }
+    public boolean tempListExists(){
+        if(temp!=null){
+            return true;
+        }
+        return false;
+    }
+/** 
+                                                    
+                                                ██████  ██    ██ ███████ ██████  ██       ██████   █████  ██████  ██ ███    ██  ██████      
+                                                ██    ██ ██    ██ ██      ██   ██ ██      ██    ██ ██   ██ ██   ██ ██ ████   ██ ██           
+                                                ██    ██ ██    ██ █████   ██████  ██      ██    ██ ███████ ██   ██ ██ ██ ██  ██ ██   ███     
+                                                ██    ██  ██  ██  ██      ██   ██ ██      ██    ██ ██   ██ ██   ██ ██ ██  ██ ██ ██    ██     
+                                                ██████    ████   ███████ ██   ██ ███████  ██████  ██   ██ ██████  ██ ██   ████  ██████      
+                                                                                                                                            
+                                                                                                                                    
+    */
+
+    // @Overloading
+    public synchronized boolean addDocument(Document doc, ArrayList<Document> list){
+        return list.add(doc);
+    }
+    // @Overloading
+    public synchronized boolean updateDocument(int index, Document doc, ArrayList<Document> list){
+        try{
+            list.set(index, doc);
+            return true;
+        }catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+    // @Overloading
+    public synchronized boolean updateDocument(Document doc, ArrayList<Document> list){
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId().equals(doc.getId())) {
+                list.set(i, doc);
+                System.out.println("Document updated: " + doc);
+                return true;
+            }
+        }
+        System.out.println("Document not found for update: " + doc);
+        return false;
+    }
+    // @Overloading
+    public synchronized boolean removeDocument(Document document, ArrayList<Document> list){
+        return list.removeIf(doc -> doc.getId().equals(document.getId()));
+    }
+    // @Overloading
+    protected int findDocumentIndex(UUID id, ArrayList<Document> list) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId().equals(id)) {
+                return i;
+            }
+        }
+        return -1; // Return -1 if not found
+    }
+
+    
+
+
+/*
+███    ███ ███████  ██████       ██████  ██    ██ ███████ ██    ██ ███████     
+████  ████ ██      ██           ██    ██ ██    ██ ██      ██    ██ ██          
+██ ████ ██ ███████ ██   ███     ██    ██ ██    ██ █████   ██    ██ █████       
+██  ██  ██      ██ ██    ██     ██ ▄▄ ██ ██    ██ ██      ██    ██ ██          
+██      ██████████  ██████       ██████   ██████  ███████  ██████  ███████     
+                                    ▀▀                                         
+███████ ██████   ██████   ██████ ███████ ███████ ███████ ██ ███    ██  ██████  
+██   ██ ██   ██ ██    ██ ██      ██      ██      ██      ██ ████   ██ ██       
+██████  ██████  ██    ██ ██      █████   ███████ ███████ ██ ██ ██  ██ ██   ███ 
+██      ██   ██ ██    ██ ██      ██           ██      ██ ██ ██  ██ ██ ██    ██ 
+██      ██   ██  ██████   ██████ ███████ ███████ ███████ ██ ██   ████  ██████  
+                                                                               
+                                                                              
+*/   
+
     public synchronized void addOperation(String op){
         operationsBatch.add(op);
     }
@@ -280,8 +407,8 @@ public class Node extends Thread {
             Document document = Document.clone((Document)payload);
             switch (op) {
                 case CREATE:
-                    if (!documentsList.stream().anyMatch(doc -> doc.getId().equals(document.getId()))) {
-                        addDocument(document);
+                    if (!temp.stream().anyMatch(doc -> doc.getId().equals(document.getId()))) {
+                        addDocument(document, temp);
                         addOperation("CREATE" + ";" + document.toString());
                         System.out.println("Document created: " + document);
                     } else {
@@ -291,11 +418,11 @@ public class Node extends Thread {
     
                 case UPDATE:
                     boolean updated = false;
-                    for (int i = 0; i < documentsList.size(); i++) {
-                        Document existingDoc = documentsList.get(i);
+                    for (int i = 0; i < temp.size(); i++) {
+                        Document existingDoc = temp.get(i);
                         if (existingDoc.getId().equals(document.getId())) {
                             if (existingDoc.getVersion() < document.getVersion()) {
-                                updateDocument(i, document);
+                                updateDocument(i, document, temp);
                                 addOperation("UPDATE" + ";" + document.toString());
                                 System.out.println("Document updated to latest version: " + document);
                             } else {
@@ -307,13 +434,13 @@ public class Node extends Thread {
                     }
                     if (!updated) {
                         System.out.println("Document not found for update, adding it: " + document);
-                        addDocument(document);
+                        addDocument(document, temp);
                         addOperation("CREATE" + ";" + document.toString());
                     }
                     break;
     
                 case DELETE:
-                    boolean removed = removeDocument(document);
+                    boolean removed = removeDocument(document, temp);
                     if (removed) {
                         addOperation("DELETE" + ";" + document.toString());
                         System.out.println("Document deleted: " + document);
@@ -330,21 +457,18 @@ public class Node extends Thread {
         }
     }
 
-    public ArrayList<Document> getDocumentsList() {
-        return documentsList;
-    }
+
+
+    
 
      
 
     /*
-   _____                  
-  / ____|                 
- | (___  _   _ _ __   ___ 
-  \___ \| | | | '_ \ / __|
-  ____) | |_| | | | | (__ 
- |_____/ \__, |_| |_|\___|
-          __/ |           
-         |___/            
+███████ ██    ██ ███    ██  ██████ 
+██       ██  ██  ████   ██ ██      
+███████   ████   ██ ██  ██ ██      
+     ██    ██    ██  ██ ██ ██      
+███████    ██    ██   ████  ██████                                           
      */
     private synchronized void addDistributedOperation(String op){
         distributedOperations.putIfAbsent(op, "WAITING");
@@ -354,7 +478,7 @@ public class Node extends Thread {
         distributedOperations.replace(op, "FINISHED");
         //distributedOperations.put(op, "WAITING");
     }
-    public void startSyncProcess(ArrayList<Document> temp){
+    public void startSyncProcess(){
         updateQuorum();
         try{
             
@@ -404,6 +528,25 @@ public class Node extends Thread {
             e.printStackTrace();
         }
     }
+    /** 
+                                                                
+                                                            ██████  ██    ██  ██████  ██████  ██    ██ ███    ███ 
+                                                            ██    ██ ██    ██ ██    ██ ██   ██ ██    ██ ████  ████ 
+                                                            ██    ██ ██    ██ ██    ██ ██████  ██    ██ ██ ████ ██ 
+                                                            ██ ▄▄ ██ ██    ██ ██    ██ ██   ██ ██    ██ ██  ██  ██ 
+                                                            ██████   ██████   ██████  ██   ██  ██████  ██      ██ 
+                                                                ▀▀                                                
+                                                                
+    */
+
+
+    private synchronized void updateQuorum(){
+        long N = knownNodes.mappingCount();
+        this.quorum= ((int)N / 2) + 1;
+    }
+    private int getQuorum(){
+       return this.quorum;
+    }                                                                
     private CompletableFuture<Boolean> waitForQuorum(String operationId) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         new Thread(() -> {
@@ -441,48 +584,58 @@ public class Node extends Thread {
         }).start();
         return future;
     }
-    private void retrySyncProcess(String operationId, ArrayList<Document> temp) {
-        int maxRetries = 3;
-        int retryCount = 0;
     
-        while (retryCount < maxRetries) {
+    private void retrySyncProcess(String operationId, ArrayList<Document> temp) {
+        int maxRetries = 5;
+        AtomicInteger retryCount = new AtomicInteger(0);    
+        while (retryCount.get() < maxRetries) {
             try {
-                System.out.println("Retrying sync process for operation ID: " + operationId + " (attempt " + (retryCount + 1) + ")");
+                System.out.println("Retrying sync process for operation ID: " + operationId + " (attempt " + (retryCount.get() + 1) + ")");
                 waitForQuorum(operationId).thenAccept(success -> {
                     if (success) {
                         commitSyncProcess(operationId);
-                    }
+                    } else if ( retryCount.incrementAndGet() == maxRetries) {
+                        System.err.println("Max retries reached for operation ID: " + operationId);
+                        System.err.println("Reverting changes....");
+                        revertChanges(temp);  
+                        System.err.println("Changes reverted....");
+                    } 
                 }).exceptionally(e -> {
                     e.printStackTrace();
                     return null;
                 });
-                retryCount++;
+                //retryCount.incrementAndGet();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     
-        if (retryCount == maxRetries) {
-            System.err.println("Max retries reached for operation ID: " + operationId);
-            System.err.println("Reverting changes....");
-            revertChanges(temp);  
-            System.err.println("Changes reverted....");
-        }
+        
     }
     private void revertChanges(ArrayList<Document> previousState) {
         synchronized (this) {
             documentsList = new ArrayList<>(previousState);  
             clearOperationsBatch();  
+            //clearTempList();
             System.out.println("Reverted changes to the previous state.");
         }
     }
 
-
+                                                            /*
+                                                            ██████  ██████  ███    ███ ███    ███ ██ ████████ 
+                                                            ██      ██    ██ ████  ████ ████  ████ ██    ██    
+                                                            ██      ██    ██ ██ ████ ██ ██ ████ ██ ██    ██    
+                                                            ██      ██    ██ ██  ██  ██ ██  ██  ██ ██    ██    
+                                                            ██████  ██████  ██      ██ ██      ██ ██    ██    
+                                                                                                            
+                                                            */
 
 
     public void commitSyncProcess(String operationId){
         try{
             sendCommitMessage(operationId);
+            System.out.println("SWAPPING LISTS");
+            swapLists();
             System.out.println("COMMIT message sent FOR operation ID: " + operationId);
             clearOperationsBatch();
             commitDistributedOperation(operationId);
@@ -501,6 +654,35 @@ public class Node extends Thread {
         operationsBatch.clear();
     }
 
+    protected synchronized void swapLists() {
+        System.out.println("[DEBUG] Before swap:");
+        System.out.println("documentsList: " + documentsList);
+        System.out.println("temp: " + temp);
+        synchronized(temp){
+            if (temp != null && !temp.isEmpty() ) {
+                documentsList = new ArrayList<>(temp); // Copy temp to documentsList
+                temp.clear(); // Clear temp
+            } else {
+                System.err.println("[ERROR] Temp list is null; cannot swap.");
+            }
+    }
+    
+        System.out.println("[DEBUG] After swap:");
+        System.out.println("documentsList: " + documentsList);
+        System.out.println("temp: " + temp);
+    }
+    
+
+
+/*
+███████ ██    ██ ██      ██          ███████ ██    ██ ███    ██  ██████ 
+██      ██    ██ ██      ██          ██       ██  ██  ████   ██ ██      
+█████   ██    ██ ██      ██          ███████   ████   ██ ██  ██ ██      
+██      ██    ██ ██      ██               ██    ██    ██  ██ ██ ██      
+██       ██████  ███████ ███████     ███████    ██    ██   ████  ██████ 
+                                                                       
+ */
+
     // Create updated DB in new Node
     public Message startFullSyncProcess(){
         String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + Long.toString(System.currentTimeMillis()));; 
@@ -509,6 +691,7 @@ public class Node extends Thread {
         for (Document doc: documentsList){
             payload = payload + String.join("$" , doc.toString());
         }
+        System.out.println("documents sent to full sync: " + documentsList);
 
         Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payload);
         return fullSyncContent;
