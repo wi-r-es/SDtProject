@@ -41,6 +41,7 @@ public class Node extends Thread {
     private ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
     private ConcurrentHashMap<UUID, String> knownNodesNames = new ConcurrentHashMap<>();  // Known node IDs with their name
     private ArrayList<Document> documentsList = new ArrayList<>(); 
+    private DocumentsDB documents = new DocumentsDB();
     private ArrayList<Document> temp = null;
     private ArrayList<String> operationsBatch = new ArrayList<>();
     private boolean isLeader;
@@ -80,18 +81,7 @@ public class Node extends Thread {
                         // things only leader will be abvle to do like commits TBD
                         if (checkQueue()) {
                             System.out.println("there are messages in queue");
-                            innitTempList();
-                            //temp = new ArrayList<>(documentsList);
-                            //process everything in queue
-                            MessageQueue mq = messageQueue.getQueue();
-                            while (!mq.isEmpty()){
-                                Message s = mq.dequeue();
-                                System.out.println("PROCESSING the message");
-                                System.out.println(s);
-                                processMessage(s);
-                            }
-                            startSyncProcess();
-                            
+                            processAndCommit();
                             //  FUNCTION TO PROCESS MESSAGES FROM QUEUE
                         }
                         if(!distributedOperations.isEmpty()){
@@ -107,8 +97,8 @@ public class Node extends Thread {
                     
                     
                     System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
-                    System.out.println("\tGET DOCUMENT LIST: \n" + getDocumentsList()+ this.getGossipNode().getHeartbeatService().toString());
-                    System.out.println("\n\n\nIS IT EMPTY: \n" + documentListEmpty());
+                    System.out.println("\tGET DOCUMENT LIST: \n" + getDocuments().getDocumentsMap().toString() + this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("\n\n\nIS IT EMPTY: \n" + getDocuments().getDocumentsMap().isEmpty());
                     Thread.sleep(1000);
                 
                 } catch (InterruptedException e) {
@@ -334,46 +324,11 @@ public class Node extends Thread {
                                                                                                                                     
     */
 
-    // @Overloading
-    public synchronized boolean addDocument(Document doc, ArrayList<Document> list){
-        return list.add(doc);
+   
+    public DocumentsDB getDocuments(){
+        return documents;
     }
-    // @Overloading
-    public synchronized boolean updateDocument(int index, Document doc, ArrayList<Document> list){
-        try{
-            list.set(index, doc);
-            return true;
-        }catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-    }
-    // @Overloading
-    public synchronized boolean updateDocument(Document doc, ArrayList<Document> list){
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getId().equals(doc.getId())) {
-                list.set(i, doc);
-                System.out.println("Document updated: " + doc);
-                return true;
-            }
-        }
-        System.out.println("Document not found for update: " + doc);
-        return false;
-    }
-    // @Overloading
-    public synchronized boolean removeDocument(Document document, ArrayList<Document> list){
-        return list.removeIf(doc -> doc.getId().equals(document.getId()));
-    }
-    // @Overloading
-    protected int findDocumentIndex(UUID id, ArrayList<Document> list) {
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getId().equals(id)) {
-                return i;
-            }
-        }
-        return -1; // Return -1 if not found
-    }
-
+    
     
 
 
@@ -402,46 +357,67 @@ public class Node extends Thread {
         Object payload = msg.getPayload();
         System.out.println("\n\t" + op);
         System.out.println("\n\t" + payload);
-
+        Document document;
+        try {
+            document = Document.clone((Document)payload);
+            processOP(op, document);
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        
+    }
+    protected synchronized void processOP(OPERATION op, Document document){
         try{
-            Document document = Document.clone((Document)payload);
+
             switch (op) {
                 case CREATE:
-                    if (!temp.stream().anyMatch(doc -> doc.getId().equals(document.getId()))) {
-                        addDocument(document, temp);
+                    if (documents.updateOrAddDocument(document)) {
                         addOperation("CREATE" + ";" + document.toString());
                         System.out.println("Document created: " + document);
-                    } else {
-                        System.out.println("Document already exists: " + document);
-                    }
+                    } 
                     break;
     
                 case UPDATE:
-                    boolean updated = false;
-                    for (int i = 0; i < temp.size(); i++) {
-                        Document existingDoc = temp.get(i);
-                        if (existingDoc.getId().equals(document.getId())) {
-                            if (existingDoc.getVersion() < document.getVersion()) {
-                                updateDocument(i, document, temp);
-                                addOperation("UPDATE" + ";" + document.toString());
-                                System.out.println("Document updated to latest version: " + document);
-                            } else {
-                                System.out.println("Document already up-to-date: " + existingDoc);
-                            }
-                            updated = true;
-                            break;
-                        }
-                    }
-                    if (!updated) {
-                        System.out.println("Document not found for update, adding it: " + document);
-                        addDocument(document, temp);
-                        addOperation("CREATE" + ";" + document.toString());
+                    if (documents.updateOrAddDocument(document)) {
+                        addOperation("UPDATE;" + document.toString());
                     }
                     break;
     
                 case DELETE:
-                    boolean removed = removeDocument(document, temp);
-                    if (removed) {
+                    if (documents.removeDocument(document)) {
+                        addOperation("DELETE" + ";" + document.toString());
+                        System.out.println("Document deleted: " + document);
+                    } else {
+                        System.out.println("Document not found for deletion: " + document);
+                    }
+                    break;
+    
+                default:
+                    System.err.println("Unsupported operation: " + op);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    protected synchronized void processOP(String op, Document document){
+        try{
+
+            switch (op) {
+                case "CREATE":
+                    if (documents.updateOrAddDocument(document)) {
+                        addOperation("CREATE" + ";" + document.toString());
+                        System.out.println("Document created: " + document);
+                    } 
+                    break;
+    
+                case "UPDATE":
+                    if (documents.updateOrAddDocument(document)) {
+                        addOperation("UPDATE;" + document.toString());
+                    }
+                    break;
+    
+                case "DELETE":
+                    if (documents.removeDocument(document)) {
                         addOperation("DELETE" + ";" + document.toString());
                         System.out.println("Document deleted: " + document);
                     } else {
@@ -478,11 +454,49 @@ public class Node extends Thread {
         distributedOperations.replace(op, "FINISHED");
         //distributedOperations.put(op, "WAITING");
     }
-    public void startSyncProcess(){
+    private synchronized void cancelDistributedOperation(String op){
+        distributedOperations.replace(op, "CANCELED");
+        System.out.println("Operation canceled");
+        //distributedOperations.put(op, "WAITING");
+    }
+    private synchronized boolean isCommited(String op){
+        String state = distributedOperations.get(op);
+        return state == "FINISHED" ? true : false; 
+    }
+    public void processAndCommit() {
+        documents.lock();
+        try {
+            documents.createTempMap();
+    
+            // Process messages from the queue
+            MessageQueue mq = messageQueue.getQueue();
+            while (!mq.isEmpty()) {
+                Message s = mq.dequeue();
+                System.out.println("PROCESSING the message");
+                System.out.println(s);
+                processMessage(s);
+            }
+            String opID = startSyncProcess();
+            
+            // Check if operation was commited
+            if (opID != null &&  isCommited(opID)) {
+                documents.commitChanges();
+            } else {
+                documents.revertChanges();
+            }
+        } catch (RemoteException e) {
+                e.printStackTrace();
+        } finally {
+            documents.unlock();
+        }
+    }
+    private String startSyncProcess(){
         updateQuorum();
         try{
             
             String operationId = UniqueIdGenerator.generateOperationId((Integer.toString(operationsBatch.hashCode())));
+            System.out.println("Operations Batch");
+            System.out.println(operationsBatch);
             addDistributedOperation(operationId);
             // Filter duplicates in operationsBatch
             //List<String> uniqueOperations = operationsBatch.stream().distinct().toList();
@@ -502,13 +516,14 @@ public class Node extends Thread {
                 System.out.println("Commit successful for operation ID: " + operationId);
             } else {
                 //System.err.println("Retrying sync process for operation ID: " + operationId);
-                retrySyncProcess(operationId, temp); 
+                retrySyncProcess(operationId); 
             }
         }).exceptionally(e -> {
             System.err.println("\n\n\n\n\n\n\tERROR FATAL IN SYNC NIM HEREHERHEHRE\n\n\n\n\n\n");
             e.printStackTrace();
             return null;
         });
+        return operationId;
         
             /*  OPERATION BY OPERATION INSTEAD OF BATCH OF THEM
 
@@ -527,6 +542,7 @@ public class Node extends Thread {
         }catch (Exception e) {
             e.printStackTrace();
         }
+        return null;
     }
     /** 
                                                                 
@@ -604,7 +620,7 @@ public class Node extends Thread {
         }
     }
     
-    private void retrySyncProcess(String operationId, ArrayList<Document> temp) {
+    private void retrySyncProcess(String operationId) {
         int maxRetries = 5;
         int retryDelay = 5000;
         AtomicInteger retryCount = new AtomicInteger(0);    
@@ -641,6 +657,9 @@ public class Node extends Thread {
                 e.printStackTrace();
             }
         }
+        clearOperationsBatch();
+        cancelDistributedOperation(operationId);
+        // revertChanges(new ArrayList<Document>(temp));
     
         
     }
@@ -719,13 +738,31 @@ public class Node extends Thread {
     public Message startFullSyncProcess(){
         String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + Long.toString(System.currentTimeMillis()));; 
 
-        String payload = operationID + ";" + getNodeId() + ":" + this.gossipNode.getHeartbeatService().getUDPport() + ";";
-        for (Document doc: documentsList){
-            payload = payload + String.join("$" , doc.toString());
-        }
-        System.out.println("documents sent to full sync: " + documentsList);
+        // String payload = operationID + ";" + getNodeId() + ":" + this.gossipNode.getHeartbeatService().getUDPport() + ";";
+        // for (Document doc: documentsList){
+        //     payload = payload + String.join("$" , doc.toString());
+        // }
+        // System.out.println("documents sent to full sync: " + documentsList);
+        // Start building the payload with operation ID and node details
+        StringBuilder payloadBuilder = new StringBuilder(operationID)
+                                                .append(";")
+                                                .append(getNodeId())
+                                                .append(":")
+                                                .append(this.gossipNode.getHeartbeatService().getUDPport())
+                                                .append(";");
 
-        Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payload);
+        // Retrieve all documents from DocumentsDB and add to payload
+        documents.getDocumentsMap().values().forEach(doc -> {
+        payloadBuilder.append(doc.toString()).append("$");
+        });
+        // Remove trailing "$" if there are documents
+        if (payloadBuilder.charAt(payloadBuilder.length() - 1) == '$') {
+            payloadBuilder.deleteCharAt(payloadBuilder.length() - 1);
+        }
+        System.out.println("Documents sent to full sync: " + documents.getDocumentsMap().values());
+
+
+        Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
         return fullSyncContent;
     }
 }

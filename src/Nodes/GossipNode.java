@@ -1,6 +1,7 @@
 package Nodes;
 import Services.HeartbeatService;
 import shared.Message;
+import shared.OPERATION;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,35 +92,14 @@ public class GossipNode extends Thread {
                                                                                        
      */
 
-     public synchronized boolean addDocument(Document doc, ArrayList<Document> list){
-        return node.addDocument(doc, list);
-    }
-    public synchronized int searchDocument(Document doc, ArrayList<Document> list){
-        return node.findDocumentIndex(doc.getId(), list);
-    }
-    public synchronized boolean updateDocument(int index, Document doc, ArrayList<Document> list){
-        return node.updateDocument(index, doc, list);
-    }
-    public synchronized boolean updateDocument(Document doc, ArrayList<Document> list){
-        return node.updateDocument(doc, list);
-    }
-    public synchronized boolean removeDocument(Document document, ArrayList<Document> list){
-        return node.removeDocument(document, list);
-    }
-    public void innitTempList(){
-        node.innitTempList();
-    }
-    public ArrayList<Document> getTempDocumentsList() {
-        return node.getTempDocumentsList();
-    }
-    public void swapLists(){
-        node.swapLists();
-    }
-    public void clearTempList(){
-        node.clearTempList();
-    }
-    public boolean tempListExists(){
-        return node.tempListExists();
-    }
+     public synchronized void processOP(OPERATION op, Document document){
+        node.processOP(op, document);
+     }
+     public synchronized void processOP(String op, Document document){
+        node.processOP(op, document);
+     }
+     public DocumentsDB getDocuments(){
+        return node.getDocuments();
+     }
 
 }

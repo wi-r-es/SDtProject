@@ -98,16 +98,18 @@ public class HeartbeatService extends Thread {
     
     //Broadcast implementation
     private void incrementAndBroadcastHeartbeat() {
+        //System.out.println(" DID I BREAK HREATBEAT?0000");
         //incrementHeartbeat();
         
-        if(gossipNode.tempListExists()){
+        if(gossipNode.getDocuments().tempMapExists()){
             if (System.currentTimeMillis() - tempListTimestamp > TEMP_LIST_TIMEOUT) {
                 System.out.println("Temp list expired, discarding changes.");
-                gossipNode.clearTempList();
+                gossipNode.getDocuments().revertChanges();
             }
         }
         //if(gossipNode.isLeader())
         {
+           
            // System.out.println(gossipNode.getNodeId());
             //System.out.println(gossipNode.isLeader());
             Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
@@ -420,7 +422,7 @@ public class HeartbeatService extends Thread {
  */
 
     public String processBatch(String batch) {
-        this.gossipNode.innitTempList();
+        this.gossipNode.getDocuments().createTempMap();
         tempListTimestamp = System.currentTimeMillis();
 
         System.out.println("\n\n\t\tINSIDE PROCESS BATCH\n\n\n");
@@ -448,7 +450,8 @@ public class HeartbeatService extends Thread {
                     String id = matcher.group(1);
                     String content = matcher.group(2);
                     int version = Integer.parseInt(matcher.group(3));
-                    ArrayList<Document> list = gossipNode.getTempDocumentsList();
+                    
+                    gossipNode.processOP(operation, new Document(content, UUID.fromString(id), version));
                     // System.out.println("Document Details:");
                     // System.out.println("  ID: " + id);
                     // System.out.println("  Content: " + content);
@@ -464,13 +467,7 @@ public class HeartbeatService extends Thread {
                     //     result =  handleDelete(new Document(content, UUID.fromString(id), version));
                     // }
 
-                    if (operation.startsWith("CREATE")) {
-                        result = handleCreate(new Document(content, UUID.fromString(id), version), list);
-                    } else if (operation.startsWith("UPDATE")) {
-                        result =  handleUpdate(new Document(content, UUID.fromString(id), version), list);
-                    } else if (operation.startsWith("DELETE")) {
-                        result =  handleDelete(new Document(content, UUID.fromString(id), version), list);
-                    }
+                    
                 } else {
                     System.err.println("Invalid document format in operation: " + operation);
                 }
@@ -484,29 +481,7 @@ public class HeartbeatService extends Thread {
     }
 
 
-    @Deprecated
-    private boolean handleCreate(Document document) {
-        System.out.println("Handling CREATE for: " + document);
-        return gossipNode.addDocument(document);  
-    }
-    @Deprecated
-    private boolean handleUpdate(Document document) {
-        System.out.println("Handling UPDATE for: " + document);
-        int res = gossipNode.searchDocument(document);
-        if(res != -1){
-            return gossipNode.updateDocument(document);
-        }
-        else if (res ==-1){
-           return gossipNode.addDocument(document);
-        }
-        return false;
-        
-    }
-    @Deprecated
-    private boolean handleDelete(Document document) {
-        System.out.println("Handling DELETE for: " + document);
-        return gossipNode.removeDocument(document);
-    }
+
         /*
                                     ██████  ██    ██ ███████ ██████  ██       ██████   █████  ██████  ██ ███    ██  ██████      
                                     ██    ██ ██    ██ ██      ██   ██ ██      ██    ██ ██   ██ ██   ██ ██ ████   ██ ██           
@@ -516,28 +491,8 @@ public class HeartbeatService extends Thread {
                                                                                                                                 
                                                                                        
      */    
-    private boolean handleCreate(Document document, ArrayList<Document> list) {
-        System.out.println("Handling CREATE for: " + document);
-        return gossipNode.addDocument(document, list);  
-    }
 
-    private boolean handleUpdate(Document document, ArrayList<Document> list) {
-        System.out.println("Handling UPDATE for: " + document);
-        int res = gossipNode.searchDocument(document, list);
-        if(res != -1){
-            return gossipNode.updateDocument(document, list);
-        }
-        else if (res == -1){
-           return gossipNode.addDocument(document, list);
-        }
-        return false;
-        
-    }
 
-    private boolean handleDelete(Document document, ArrayList<Document> list) {
-        System.out.println("Handling DELETE for: " + document);
-        return gossipNode.removeDocument(document, list);
-    }
 
 
     private boolean processSync(Object obj){
@@ -606,7 +561,7 @@ public class HeartbeatService extends Thread {
          ██████  ██████  ██      ██ ██      ██ ██    ██    
     */
     private void processCommit(){
-        gossipNode.swapLists();
+        gossipNode.getDocuments().commitChanges();
     }
 
 
@@ -823,15 +778,20 @@ public class HeartbeatService extends Thread {
         System.out.println("\n\n\t\t"+batch+"\n\n\n");
         // Split the batch into operation ID and operations
         String[] parts = batch.split(";", 3); // split the message into the each section of it
+        if (parts.length < 3) {
+            System.err.println("Invalid batch format: " + batch);
+            return null;
+        }
         String operationId = parts[0];
         String leaderInfo = parts[1];
         String documents = parts[2];
-        System.out.println("\t\t" + leaderInfo + "\n\t" + documents );
+        System.out.println("\t\t" + leaderInfo + "\n\t" +" documents after splitting batch" +documents );
         System.out.println("Processing batch with Operation ID: " + operationId);
         
         // Split individual operations
-        String[] docs = documents.split("$");
+        String[] docs = documents.split("\\$"); // Split individual operations on literal "$" instead of using the regex meaning of $
         boolean result = false;
+        System.out.println("Inside documents list after splitting: " + docs);
 
         
         try{
@@ -852,14 +812,7 @@ public class HeartbeatService extends Thread {
                     System.out.println("  Version: " + version);
 
                     Document doc_aux = new Document(content, UUID.fromString(id), version);
-
-                    if(gossipNode.documentListEmpty()){
-                        gossipNode.addDocument(doc_aux);
-                    }else if(gossipNode.searchDocument(doc_aux) == -1){
-                        gossipNode.addDocument(doc_aux); 
-                    }else if(gossipNode.searchDocument(doc_aux) != -1){
-                        gossipNode.updateDocument(doc_aux);
-                    }
+                    gossipNode.getDocuments().updateOrAddDocument(doc_aux);
                     
                 } else {
                     System.err.println("Invalid document format in full sync: " + doc);
