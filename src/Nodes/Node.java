@@ -501,7 +501,7 @@ public class Node extends Thread {
                 commitSyncProcess(operationId);
                 System.out.println("Commit successful for operation ID: " + operationId);
             } else {
-                System.err.println("Retrying sync process for operation ID: " + operationId);
+                //System.err.println("Retrying sync process for operation ID: " + operationId);
                 retrySyncProcess(operationId, temp); 
             }
         }).exceptionally(e -> {
@@ -550,11 +550,12 @@ public class Node extends Thread {
     private CompletableFuture<Boolean> waitForQuorum(String operationId) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         new Thread(() -> {
-            int attempts = 10; // Max attempts to wait for quorum
-            int delay = 1000; // 1 second between checks
+            
+            AtomicInteger attempts = new AtomicInteger(10); // Max attempts to wait for quorum
+            int delay = 500; // Sleep times between checks
     
             try {
-                while (attempts > 0) {
+                while (attempts.get() > 0) {
                     long ackCount = documentChangesACKS.values().stream()
                         .filter(op -> op.equals(operationId))
                         .count();
@@ -565,13 +566,20 @@ public class Node extends Thread {
                         future.complete(true); 
                         return;
                     }
+
+                    System.out.println("[DEBUG] Nodes Missing ACKs for Operation ID: " + operationId);
+                    knownNodes.forEach((nodeId, port) -> {
+                        if (!documentChangesACKS.containsKey(nodeId)) {
+                            System.out.println("[DEBUG] Missing ACK from Node: " + nodeId);
+                        }
+                    });
     
                     Thread.sleep(delay);
-                    attempts--;
+                    attempts.decrementAndGet();
                 }
     
-                if (attempts == 0) {
-                    System.err.println("Failed to achieve quorum for operation ID: " + operationId);
+                if (attempts.get() == 0) {
+                    System.err.println("Failed to achieve quorum for operation ID: " + operationId); 
                 }
              
             future.complete(false);
@@ -584,26 +592,50 @@ public class Node extends Thread {
         }).start();
         return future;
     }
+
+
+    private boolean waitForQuorumSync(String operationId) {
+        CompletableFuture<Boolean> quorumFuture = waitForQuorum(operationId);
+        try {
+            return quorumFuture.get(); // Blocks until the quorum check completes
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
     
     private void retrySyncProcess(String operationId, ArrayList<Document> temp) {
         int maxRetries = 5;
+        int retryDelay = 5000;
         AtomicInteger retryCount = new AtomicInteger(0);    
         while (retryCount.get() < maxRetries) {
             try {
                 System.out.println("Retrying sync process for operation ID: " + operationId + " (attempt " + (retryCount.get() + 1) + ")");
-                waitForQuorum(operationId).thenAccept(success -> {
-                    if (success) {
-                        commitSyncProcess(operationId);
-                    } else if ( retryCount.incrementAndGet() == maxRetries) {
-                        System.err.println("Max retries reached for operation ID: " + operationId);
-                        System.err.println("Reverting changes....");
-                        revertChanges(temp);  
-                        System.err.println("Changes reverted....");
-                    } 
-                }).exceptionally(e -> {
-                    e.printStackTrace();
-                    return null;
-                });
+
+                boolean quorumAchieved = waitForQuorumSync(operationId);
+
+                if (quorumAchieved) {
+                    commitSyncProcess(operationId);
+                    return; // Exit the retry loop after successful quorum
+                } else {
+                    retryCount.incrementAndGet();
+                    System.err.println("Quorum not achieved. Retry attempt " + retryCount.get());
+                }
+
+                Thread.sleep(retryDelay);
+                // waitForQuorum(operationId).thenAccept(success -> {
+                //     if (success) {
+                //         commitSyncProcess(operationId);
+                //     } else if ( retryCount.incrementAndGet() == maxRetries) {
+                //         System.err.println("Max retries reached for operation ID: " + operationId);
+                //         System.err.println("Reverting changes....");
+                //         revertChanges(temp);  
+                //         System.err.println("Changes reverted....");
+                //     } 
+                // }).exceptionally(e -> {
+                //     e.printStackTrace();
+                //     return null;
+                // });
                 //retryCount.incrementAndGet();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -613,7 +645,7 @@ public class Node extends Thread {
         
     }
     private void revertChanges(ArrayList<Document> previousState) {
-        synchronized (this) {
+        synchronized (temp) {
             documentsList = new ArrayList<>(previousState);  
             clearOperationsBatch();  
             //clearTempList();
@@ -631,7 +663,7 @@ public class Node extends Thread {
                                                             */
 
 
-    public void commitSyncProcess(String operationId){
+    public synchronized void commitSyncProcess(String operationId){
         try{
             sendCommitMessage(operationId);
             System.out.println("SWAPPING LISTS");
