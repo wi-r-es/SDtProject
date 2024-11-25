@@ -31,21 +31,7 @@ public class GossipNode extends Thread {
     public String getNodeName(){
         return node.getNodeName();
     }
-    public synchronized boolean addDocument(Document doc){
-        return node.addDocument(doc);
-    }
-    public synchronized int searchDocument(Document doc){
-        return node.findDocumentIndex(doc.getId());
-    }
-    public synchronized boolean updateDocument(int index, Document doc){
-        return node.updateDocument(index, doc);
-    }
-    public synchronized boolean updateDocument(Document doc){
-        return node.updateDocument(doc);
-    }
-    public synchronized boolean removeDocument(Document document){
-        return node.removeDocument(document);
-    }
+    
 
 
 
@@ -72,13 +58,6 @@ public class GossipNode extends Thread {
     // Create updated DB in new Node
     public Message startFullSyncProcess(){
        return node.startFullSyncProcess();
-    }
-
-    public boolean documentListEmpty(){
-        return node.documentListEmpty();
-    }
-    public ArrayList<Document> getDocumentsList() {
-        return node.getDocumentsList();
     }
 
 

@@ -39,7 +39,7 @@ public class HeartbeatService extends Thread {
     //for ack syncs
     private final int TCP_PORT = 9090;
     private long tempListTimestamp;
-    private final long TEMP_LIST_TIMEOUT = 300000; // 5 mins in milli
+    private final long TEMP_LIST_TIMEOUT = 300000; // 2.5 mins in milli
 
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
@@ -272,6 +272,11 @@ public class HeartbeatService extends Thread {
                             processSync(obj);
                             //sendSyncAck(UUID targetNodeId, int target_port)
                             break;
+                        case REVERT: //for syncing purposes
+                            if(this.gossipNode.isLeader()){ break;}
+                            
+                            
+                            break;
                         default:
                             System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
                     }
@@ -433,46 +438,44 @@ public class HeartbeatService extends Thread {
         String operations = parts[2];
         System.out.println("\t\t" + leaderInfo + "\n\t" + operations );
         System.out.println("Processing batch with Operation ID: " + operationId);
-        
+        System.out.println("\nThe leadrInfo: " + leaderInfo);
         // Split individual operations
-        String[] operationArray = operations.split("$");
+        String[] operationArray = operations.split("\\$");
         boolean result = false;
 
         
         try{
             for (String operation : operationArray) {
-                System.out.println("\nProcessing operation: " + operation);
-
+                System.out.println("\nProcessing operation for SYNC: " + operation);
+                String[] _op = operation.split(";");
+                String op = _op[0];
+                String doc = _op[1];
+                //System.out.println("\nThe operation: " + op);
+                //System.out.println("\nThe document: " + doc);
                 Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
-                Matcher matcher = pattern.matcher(operation);
+                Matcher matcher = pattern.matcher(doc);
 
                 if (matcher.find()) {
                     String id = matcher.group(1);
                     String content = matcher.group(2);
                     int version = Integer.parseInt(matcher.group(3));
                     
-                    gossipNode.processOP(operation, new Document(content, UUID.fromString(id), version));
+                    gossipNode.processOP(op, new Document(content, UUID.fromString(id), version));
+                    
                     // System.out.println("Document Details:");
                     // System.out.println("  ID: " + id);
                     // System.out.println("  Content: " + content);
                     // System.out.println("  Version: " + version);
 
-                    // Process the operation 
-                    //@Deprecated version
-                    // if (operation.startsWith("CREATE")) {
-                    //     result = handleCreate(new Document(content, UUID.fromString(id), version));
-                    // } else if (operation.startsWith("UPDATE")) {
-                    //     result =  handleUpdate(new Document(content, UUID.fromString(id), version));
-                    // } else if (operation.startsWith("DELETE")) {
-                    //     result =  handleDelete(new Document(content, UUID.fromString(id), version));
-                    // }
-
                     
                 } else {
                     System.err.println("Invalid document format in operation: " + operation);
+                    return null;
                 }
             }
-            return result ? (operationId +":" +leaderInfo ): null;
+            System.out.println("End of Sync: " + gossipNode.getDocuments().getDocuments().toString());
+
+            return (operationId +":" +leaderInfo );
         }catch(Exception e){
             e.printStackTrace();
             return null;
@@ -496,6 +499,7 @@ public class HeartbeatService extends Thread {
 
 
     private boolean processSync(Object obj){
+        gossipNode.getDocuments().lock();
         String infoLeader = processBatch((String)obj);
         System.out.println(infoLeader);
         if(infoLeader != null){
@@ -561,7 +565,7 @@ public class HeartbeatService extends Thread {
          ██████  ██████  ██      ██ ██      ██ ██    ██    
     */
     private void processCommit(){
-        gossipNode.getDocuments().commitChanges();
+        gossipNode.getDocuments().unlock();;
     }
 
 

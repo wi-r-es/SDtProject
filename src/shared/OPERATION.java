@@ -14,5 +14,6 @@ public enum OPERATION {
     HEARTBEAT_ACK,
     DISCOVERY,
     DISCOVERY_ACK,
+    REVERT
     
 }

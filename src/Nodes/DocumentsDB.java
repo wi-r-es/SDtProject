@@ -18,6 +18,15 @@ public class DocumentsDB {
         tempMap = null;
     }
     
+
+        /*
+██████   ██████   ██████      ██████  ██████  ███████ 
+██   ██ ██    ██ ██          ██    ██ ██   ██ ██      
+██   ██ ██    ██ ██          ██    ██ ██████  ███████ 
+██   ██ ██    ██ ██          ██    ██ ██           ██ 
+██████   ██████   ██████      ██████  ██      ███████ 
+                                                      
+     */
     public synchronized boolean updateOrAddDocument(Document newDoc) {
         Document existingDoc = documentMap.get(newDoc.getId());
         
@@ -40,11 +49,12 @@ public class DocumentsDB {
     }
 
     public void commitChanges() {
-        documentMap = tempMap;
+        //documentMap = tempMap;
         tempMap = null;
     }
 
     public void revertChanges() {
+        documentMap = tempMap;
         tempMap = null;
     }
     protected ConcurrentHashMap<UUID, Document> getTempDocumentsMap() {
@@ -52,6 +62,9 @@ public class DocumentsDB {
     }
     protected ConcurrentHashMap<UUID, Document> getDocumentsMap() {
         return documentMap;
+    }
+    public ConcurrentHashMap<UUID, Document> getDocuments() {
+        return new ConcurrentHashMap<UUID, Document>(documentMap);
     }
     // protected void clearTempMap(){
     //     tempMap.clear();
