@@ -38,8 +38,8 @@ public class HeartbeatService extends Thread {
 
     //for ack syncs
     private final int TCP_PORT = 9090;
-    private long tempListTimestamp;
-    private final long TEMP_LIST_TIMEOUT = 300000; // 2.5 mins in milli
+    // private long tempListTimestamp;
+    // private final long TEMP_LIST_TIMEOUT = 300000; // 2.5 mins in milli
 
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
@@ -101,12 +101,12 @@ public class HeartbeatService extends Thread {
         //System.out.println(" DID I BREAK HREATBEAT?0000");
         //incrementHeartbeat();
         
-        if(gossipNode.getDocuments().tempMapExists()){
-            if (System.currentTimeMillis() - tempListTimestamp > TEMP_LIST_TIMEOUT) {
-                System.out.println("Temp list expired, discarding changes.");
-                gossipNode.getDocuments().revertChanges();
-            }
-        }
+        // if(gossipNode.getDocuments().tempMapExists()){
+        //     if (System.currentTimeMillis() - tempListTimestamp > TEMP_LIST_TIMEOUT) {
+        //         System.out.println("Temp list expired, discarding changes.");
+        //         gossipNode.getDocuments().revertChanges();
+        //     }
+        // }
         //if(gossipNode.isLeader())
         {
            
@@ -172,20 +172,17 @@ public class HeartbeatService extends Thread {
      */
 
     private void respondeToHeartbeat(UUID targetNodeId, int target_port) {
-        try {
-            Message msg = Message.replyHeartbeatMessage("ACK_Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
-            byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+        Message msg = Message.replyHeartbeatMessage("ACK_Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+        // byte[] serializedData = serialize(msg);
+        // byte[] finalData = addHeader("UNCO", serializedData);
+            
+        // InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
 
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
-            socket.send(packet);
+        // DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+        // socket.send(packet);
+        sendUncompMessage(msg, targetNodeId, target_port);
 
-            System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
     }
     private void replyToHeartbeat(Message message){
         Object obj = message.getPayload();
@@ -274,7 +271,7 @@ public class HeartbeatService extends Thread {
                             break;
                         case REVERT: //for syncing purposes
                             if(this.gossipNode.isLeader()){ break;}
-                            
+                                gossipNode.getDocuments().revertChanges();
                             
                             break;
                         default:
@@ -318,13 +315,13 @@ public class HeartbeatService extends Thread {
     }
 
     /*
-██    ██ ███    ██ ██  ██████  █████  ███████ ████████ 
-██    ██ ████   ██ ██ ██      ██   ██ ██         ██    
-██    ██ ██ ██  ██ ██ ██      ███████ ███████    ██    
-██    ██ ██  ██ ██ ██ ██      ██   ██      ██    ██    
- ██████  ██   ████ ██  ██████ ██   ██ ███████    ██    
-                                                       
-                                                   
+                                                        ██    ██ ███    ██ ██  ██████  █████  ███████ ████████ 
+                                                        ██    ██ ████   ██ ██ ██      ██   ██ ██         ██    
+                                                        ██    ██ ██ ██  ██ ██ ██      ███████ ███████    ██    
+                                                        ██    ██ ██  ██ ██ ██ ██      ██   ██      ██    ██    
+                                                        ██████  ██   ████ ██  ██████ ██   ██ ███████    ██    
+                                                                                                            
+                                                                                                        
      */
     private void receiveMessage() {
         byte[] buffer = new byte[2048]; 
@@ -395,6 +392,26 @@ public class HeartbeatService extends Thread {
                                     
                                 }
                                 break;
+                            case FULL_SYNC_ACK: 
+                                if (this.gossipNode.isLeader()){
+                                    System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED FOR OPERATION: " + message);
+                                    Object obj = message.getPayload();
+
+                                    String content = (String) obj;
+                                    String[] parts = content.split(":");
+                                    // System.out.println(parts[0]);
+                                    // System.out.println(parts[1]);
+                                    // if(parts[0]=="[OPERATION]"){
+                                    String opID = parts[1];
+                                    gossipNode.addFullSyncACK(opID);
+
+                                    //}
+                                    // String senderNodeId = parts[1];
+                                    // String opID = parts[2];
+                                    //processACK(obj);
+                                    
+                                }
+                                break;
                             default:
                                 System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
                         }
@@ -428,7 +445,7 @@ public class HeartbeatService extends Thread {
 
     public String processBatch(String batch) {
         this.gossipNode.getDocuments().createTempMap();
-        tempListTimestamp = System.currentTimeMillis();
+        //tempListTimestamp = System.currentTimeMillis();
 
         System.out.println("\n\n\t\tINSIDE PROCESS BATCH\n\n\n");
         // Split the batch into operation ID and operations
@@ -529,21 +546,18 @@ public class HeartbeatService extends Thread {
     //     }
     // }
     private void sendSyncAck(UUID targetNodeId, int target_port, String operationID) {
-        try {
-            Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() + ":" + operationID + ":" + 
-                                                        heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
-            byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+        Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() + ":" + operationID + ":" + 
+                                                    heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+        // byte[] serializedData = serialize(msg);
+        // byte[] finalData = addHeader("UNCO", serializedData);
+            
+        // InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
 
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
-            socket.send(packet);
+        // DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+        // socket.send(packet);
+        sendUncompMessage(msg, targetNodeId, target_port);
 
-            System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
     }
 //
     private void processACK(Object obj){
@@ -612,20 +626,17 @@ public class HeartbeatService extends Thread {
         gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
     }
     private void sendACKDiscovery(UUID targetNodeId, int target_port) {
-        try {
-            Message msg = Message.replyDiscoveryMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
-            byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+        Message msg = Message.replyDiscoveryMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
+        // byte[] serializedData = serialize(msg);
+        // byte[] finalData = addHeader("UNCO", serializedData);
+            
+        // InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
 
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
-            socket.send(packet);
+        // DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+        // socket.send(packet);
+        sendUncompMessage(msg, targetNodeId, target_port );
 
-            System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " to port " + target_port);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " to port " + target_port);
     }
 
     private String broadcastDiscovery(int port, Message msg){
@@ -690,21 +701,18 @@ public class HeartbeatService extends Thread {
     }
 
     private void fullSyncRequest(UUID leaderNodeId, int leader_port, int sync_port) {
-        try {
-            Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
-            byte[] serializedData = serialize(msg);
-            byte[] compressedData = CompressionUtils.compress(serializedData);
-            byte[] finalData = addHeader("COMP", compressedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
+        Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
+        // byte[] serializedData = serialize(msg);
+        // byte[] compressedData = CompressionUtils.compress(serializedData);
+        // byte[] finalData = addHeader("COMP", compressedData);
+            
+        // InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(leaderNodeId));
 
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, leader_port);
-            socket.send(packet);
+        // DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, leader_port);
+        // socket.send(packet);
+        sendCompMessage(msg, leaderNodeId, leader_port);
 
-            System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
     }
 
     private void fullSyncInnit(UUID leaderID, int leader_port, int sync_port ){
@@ -721,7 +729,18 @@ public class HeartbeatService extends Thread {
 
             System.out.println("OBJECT: " + obj);
             String list = (String) obj; 
-            processDocumentList(list);
+            String r = processDocumentList(list);
+            System.out.println("Processed document list full sync result: ->" + r);
+            //Processed document list full sync result: ->c594c62794ecd0e89ab09de38cc5576cce273b7cdc3778e6cfe95abf78f3c74c:f107eb3c-5d00-46f4-82a9-700a94108701:9723
+            String parts[] = r.split(":");
+
+            String op = parts[0];
+            String nodeID = parts[1];
+            String port = parts[2];
+            
+            Message replyMessage = Message.replyFullSyncMessage("[OPERATION]:"+op);
+            sendUncompMessage(replyMessage, leaderID, leader_port);
+            
         }catch(SocketException e){
             System.out.println("SOCKET EXCEPTION");
         }catch(IOException e ){
@@ -760,21 +779,9 @@ public class HeartbeatService extends Thread {
     }
 
     private void leaderRespondToFullSync(Message msg, UUID targetNodeId, int target_port) {
-        try {            
-            byte[] serializedData = serialize(msg);
-            byte[] compressedData = CompressionUtils.compress(serializedData);
-            byte[] finalData = addHeader("COMP", compressedData);
-                
-            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
-
-            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
-            socket.send(packet);
-
-            System.out.println("FULL_SYNC PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
-            System.out.println(msg);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        sendCompMessage(msg, targetNodeId, target_port);
+        System.out.println("FULL_SYNC PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+        System.out.println(msg);
     }
 
     public String processDocumentList(String batch) {
@@ -822,7 +829,7 @@ public class HeartbeatService extends Thread {
                     System.err.println("Invalid document format in full sync: " + doc);
                 }
             }
-            return result ? (operationId +":" +leaderInfo ): null;
+            return (operationId +":" +leaderInfo );
         }catch(Exception e){
             e.printStackTrace();
             return null;
@@ -845,6 +852,11 @@ public class HeartbeatService extends Thread {
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
     }
     
+
+
+
+
+
 
     private void detectFailures() {
         long currentTime = System.currentTimeMillis();
@@ -894,6 +906,36 @@ public class HeartbeatService extends Thread {
                                                                          
 
     */
+
+    private void sendUncompMessage(Message msg, UUID targetNodeId, int target_port){
+        try{
+            byte[] serializedData = serialize(msg);
+            byte[] finalData = addHeader("UNCO", serializedData);
+                    
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+            socket.send(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void sendCompMessage(Message msg, UUID targetNodeId, int target_port){
+        try{
+            byte[] serializedData = serialize(msg);
+            byte[] compressedData = CompressionUtils.compress(serializedData);
+            byte[] finalData = addHeader("COMP", compressedData);
+            
+                    
+            InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
+
+            DatagramPacket packet = new DatagramPacket(finalData, finalData.length, targetAddress, target_port);
+            socket.send(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /** FOR IMPROVE READABILITY IN THE BROADCAST AND UNICAST ABOVE */
     private byte[] serialize(Object object) throws IOException {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();

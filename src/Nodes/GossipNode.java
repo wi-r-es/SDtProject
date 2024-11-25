@@ -54,6 +54,9 @@ public class GossipNode extends Thread {
     public void addACK(UUID nodeId, String syncOP){
         node.addACK(nodeId, syncOP);
     }
+    public void addFullSyncACK(String opID){
+        node.commitFullSync(opID);
+    }
 
     // Create updated DB in new Node
     public Message startFullSyncProcess(){

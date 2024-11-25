@@ -63,6 +63,10 @@ public class Message implements Serializable{
         String PAYLOAD = content;
         return new Message(OPERATION.ACK, PAYLOAD);
     }
+    public static Message replyFullSyncMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.FULL_SYNC_ACK, PAYLOAD);
+    }
     public static Message discoveryMessage(UUID nodeId, int port){
         String PAYLOAD = "WHOS_THE_LEADER:" + nodeId + ":" + port + ":" + System.currentTimeMillis();
         return new Message(OPERATION.DISCOVERY, PAYLOAD);

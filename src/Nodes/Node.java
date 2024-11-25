@@ -683,4 +683,10 @@ public class Node extends Thread {
         Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
         return fullSyncContent;
     }
+    protected synchronized void commitFullSync(String op){
+        //System.out.println("Inside full sync commit");
+        distributedOperations.put(op, "COMPLETED");
+        //System.out.println(distributedOperations.toString());
+        //distributedOperations.put(op, "WAITING");
+    }
 }
