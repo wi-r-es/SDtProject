@@ -163,6 +163,17 @@ public class Node extends Thread {
         return gossipNode;
     }
 
+    public int getPeerPort(UUID peerId) {
+        // System.out.println("getting peer port " +peerId + "for node: " + this.UID );
+        // System.out.println(knownNodes.toString());
+        // System.out.println("done getting peer port");
+        return knownNodes.get(peerId); 
+    }
+    
+    public Set<Map.Entry<UUID, Integer>> getKnownNodes() {
+        return knownNodes.entrySet();
+    }
+
 
     public void addKnownNode(UUID nodeId, int port){
         knownNodes.put(nodeId,  port);
@@ -689,4 +700,12 @@ public class Node extends Thread {
         //System.out.println(distributedOperations.toString());
         //distributedOperations.put(op, "WAITING");
     }
+
+
+
+
+
+
+
+    
 }

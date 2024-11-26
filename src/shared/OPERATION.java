@@ -11,9 +11,12 @@ public enum OPERATION {
     FULL_SYNC_ACK,
     COMMIT,
     HEARTBEAT,
+    LHEARTBEAT,
     HEARTBEAT_ACK,
     DISCOVERY,
     DISCOVERY_ACK,
-    REVERT
+    REVERT,
+    VOTE_REQ,
+    VOTE_ACK
     
 }

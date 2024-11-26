@@ -1,5 +1,8 @@
 package Services;
 import Nodes.*;
+import Nodes.Raft.RaftNode;
+import Nodes.Raft.RequestVoteArgs;
+import Nodes.Raft.RequestVoteReply;
 import Resources.Document;
 import shared.Message;
 import shared.OPERATION;
@@ -97,7 +100,7 @@ public class HeartbeatService extends Thread {
     }
     
     //Broadcast implementation
-    private void incrementAndBroadcastHeartbeat() {
+    public void incrementAndBroadcastHeartbeat() {
         {
             Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
             this.broadcast(hb_message, false);
@@ -141,7 +144,8 @@ public class HeartbeatService extends Thread {
             DatagramPacket packet = new DatagramPacket(finalData, finalData.length, group, PORT);
             multicastSocket.send(packet);
     
-            System.out.println("Broadcasting message: " + message.getOperation() + " with compression=" + compress + " content=[" +  "]");
+            // System.out.println("Broadcasting message: " + message.getOperation() + " with compression=" + compress + " content=[" +  "]");
+            // System.out.println("Broadcasting message content: " + message.getPayload() + "]");
         } catch (IOException e) {
             System.err.println("Error broadcasting message: " + e.getMessage());
             e.printStackTrace();
@@ -161,12 +165,12 @@ public class HeartbeatService extends Thread {
                                     + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
         sendUncompMessage(msg, targetNodeId, target_port);
 
-        System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+        //System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
     }
     private void replyToHeartbeat(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
-        System.out.println("\tCotent inside reply to heartbeat->  " + content+"\n\n");
+        //System.out.println("\tCotent inside reply to heartbeat->  " + content+"\n\n");
         String[] parts = content.split(":");
         String senderNodeId = parts[1];
         int target_port = Integer.parseInt(parts[2]);
@@ -267,6 +271,11 @@ public class HeartbeatService extends Thread {
                             replyToHeartbeat(message);
 
                             break;
+                        case LHEARTBEAT: // reply to hearbeats from leader
+                            //RaftNode rn = gossipNode.getRaftNode();
+                            gossipNode.getRaftNode().handleHeartbeat(message);
+
+                            break;
                         case COMMIT: // for commit purposes
                             processCommit();
                             System.out.println("\n\n\t COMMITED -> " + message + "\n\n");
@@ -276,6 +285,14 @@ public class HeartbeatService extends Thread {
                             if (this.gossipNode.isLeader()){
                                 processDiscoveryRequest(message);
                             }
+                            break;
+                        case VOTE_REQ:
+                            // System.out.println("inside receive VOTE_REQ: \n");
+                            // System.out.println(message);
+                            RaftNode rn = gossipNode.getRaftNode();
+                            RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
+                            if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
+                            rn.handleVoteRequest(rvargrs);
                             break;
                         default:
                             System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
@@ -376,10 +393,17 @@ public class HeartbeatService extends Thread {
                                     String[] parts = content.split(":");
                                     String opID = parts[1];
                                     gossipNode.addFullSyncACK(opID);
-
-                                    
                                 }
                                 break;
+                            case VOTE_ACK:
+                                System.out.println("inside receive VOTE_ACK: \n");
+                                System.out.println(   ((RequestVoteReply) message.getPayload()).toString() );
+                                RequestVoteReply rvreply = (RequestVoteReply) message.getPayload();
+                                RaftNode rn = gossipNode.getRaftNode();
+                                rn.handleVoteResponse(rvreply);
+                                
+                                break;
+                                
                             default:
                                 System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
                         }
@@ -851,7 +875,7 @@ public class HeartbeatService extends Thread {
 
     */
 
-    private void sendUncompMessage(Message msg, UUID targetNodeId, int target_port){
+    public void sendUncompMessage(Message msg, UUID targetNodeId, int target_port){
         try{
             byte[] serializedData = serialize(msg);
             byte[] finalData = addHeader("UNCO", serializedData);

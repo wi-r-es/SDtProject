@@ -47,6 +47,10 @@ public class Message implements Serializable{
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT, PAYLOAD);
     }
+    public static Message LheartbeatMessage(String content){
+        String PAYLOAD = content;
+        return new Message(OPERATION.LHEARTBEAT, PAYLOAD);
+    }
     public static Message replyHeartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT_ACK, PAYLOAD);
