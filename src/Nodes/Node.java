@@ -9,8 +9,6 @@ import utils.PrettyPrinter;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,8 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import java.util.stream.Collectors;
 
 import Nodes.Raft.RaftNode;
@@ -31,9 +28,11 @@ import Services.AckServiceServer;
 import remote.messageQueueServer;
 
 import java.rmi.RemoteException;
-import java.security.Key;
 
-
+/**
+ * The Node class represents a node in a distributed system.
+ * It extends the Thread class to run as a separate thread.
+ */
 public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
@@ -43,18 +42,41 @@ public class Node extends Thread {
     //private ArrayList<Document> documentsList = new ArrayList<>(); 
     private DocumentsDB documents = new DocumentsDB();
     //private ArrayList<Document> temp = null;
-    private ArrayList<String> operationsBatch = new ArrayList<>();
+    private ArrayList<String> operationsBatch = new ArrayList<>(); // Operations processed from message Queue
     private boolean isLeader;
     private messageQueueServer messageQueue; 
-    private AckServiceServer ackS = null;
+    private AckServiceServer ackS = null; // not used
     private ConcurrentHashMap<UUID, String> documentChangesACKS = new ConcurrentHashMap<>();  // to save acks for operations of syncing before commmit
     private ConcurrentHashMap<String, String> distributedOperations = new ConcurrentHashMap<>();  // to save BIG SCALE operationsID WITH ITS STATUS
-    private ConcurrentHashMap<String, ArrayList<String>> distributedOperationsDescription = new ConcurrentHashMap<>();  
-    private ConcurrentHashMap<String, String> distributedOperationsDesignation = new ConcurrentHashMap<>();  
+    private ConcurrentHashMap<String, ArrayList<String>> distributedOperationsDescription = new ConcurrentHashMap<>();  // List of the Operation ID action
+    private ConcurrentHashMap<String, String> distributedOperationsDesignation = new ConcurrentHashMap<>();  // Mapping of the operation ID to its general action (sync, full sync)
     private int quorum;
 
-    private volatile boolean running = true;
+    private volatile boolean running = true; // to check whether the node is running or not 
     
+    /**
+     * The run method is executed when the thread starts.
+     * It performs the following tasks:
+     * 1. If the node is a leader:
+     *    - Starts the leader services (RMI and ACK services). // ACK server not used anymore, deprecated
+     * 2. While the node is running:
+     *    - Checks if the node is a leader.
+     *    - If the node is a leader:
+     *      - Checks if there are messages in the message queue.
+     *      - If there are messages, processes and commits them.
+     *      - Checks if there are any distributed operations in progress.
+     *      - Prints the status of distributed operations.
+     *      - If the current term of the Raft node reaches 100, stops the node. (to test the raft leader election after failure)
+     *    - Prints the list of known nodes.
+     *    - Prints the list of documents in the DocumentsDB.
+     *    - Sleeps for 1 second.
+     * 3. If an InterruptedException occurs:
+     *    - Preserves the interrupt status.
+     *    - Prints a message indicating that the worker thread was interrupted.
+     *    - Breaks the loop.
+     * 4. If any other exception occurs:
+     *    - Prints the stack trace of the exception.
+     */
     @Override
     public void run() {
         try {
@@ -116,7 +138,13 @@ public class Node extends Thread {
         }
         
     }
-
+    /**
+     * Constructor for the Node class.
+     *
+     * @param nodeId The ID of the node.
+     * @throws RemoteException If a remote exception occurs.
+     * @return Node
+     */
     public Node(String nodeId) throws RemoteException {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
@@ -129,6 +157,14 @@ public class Node extends Thread {
         //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
+    /**
+     * Constructor for the Node class with a leader flag.
+     *
+     * @param nodeId The ID of the node.
+     * @param L      Indicates if the node is a leader.
+     * @throws RemoteException If a remote exception occurs.
+     * @return Node
+     */
     public Node(String nodeId, boolean L) throws RemoteException  {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
@@ -143,12 +179,19 @@ public class Node extends Thread {
         gossipNode.start();
     }
 
-
+    /**
+     * Checks if there are messages in the message queue to be processed.
+     *
+     * @return True if there are messages, false otherwise.
+     * @throws RemoteException If a remote exception occurs.
+     */
     protected synchronized  boolean checkQueue() throws RemoteException{
         if (messageQueue != null){return  messageQueue.checkQueue();}
         else return false;
     }
-
+    /**
+     * Stops the node from running. (By changing the running variable to false)
+     */
     public void stopRunning() {
         System.out.println("im gonna stop myself");
         running = false; 
@@ -158,6 +201,7 @@ public class Node extends Thread {
         System.out.println("Node " + this.nodeId + " shutting down.");
     }
 
+    //Getters
     public UUID getNodeId() {
         return UID;
     }
@@ -175,27 +219,46 @@ public class Node extends Thread {
         // System.out.println("done getting peer port");
         return knownNodes.get(peerId); 
     }
-    
+    /**
+     * Returns a list of known nodes.
+     *
+     * @return A list of Map.Entry objects containing the UUID and port of the known nodes.
+     */
     public Set<Map.Entry<UUID, Integer>> getKnownNodes() {
         return knownNodes.entrySet();
     }
 
-
+    /** 
+     * Add known node to map (uuid - udp port number).
+     */
     public void addKnownNode(UUID nodeId, int port){
         knownNodes.put(nodeId,  port);
     }
+    /**
+     * Add known node to map (uuid - node name).
+     */
     public void addKnownNode(UUID nodeId, String name){
         knownNodesNames.putIfAbsent(nodeId,  name);
     }
-
+    /**
+     * Add ACKS for sync process.
+     * 
+     * @param nodeId ID of Node that sent the ACK.
+     * @param syncOP Operation Id.
+    */
     public void addACK(UUID nodeId, String syncOP){
         documentChangesACKS.putIfAbsent(nodeId, syncOP);
     }
-
+    /** 
+     * Start Leader Services.
+     */
     protected void startLeaderServices() throws RemoteException {
         startRMIService();       
         //startACKService();    
     }
+    /** 
+     * Start RMI Service.
+     */
     public void startRMIService() throws RemoteException {
         try {
             messageQueue = new messageQueueServer(nodeId, 2323);
@@ -204,11 +267,16 @@ public class Node extends Thread {
             e.printStackTrace();
         }
     }
+    /** 
+     * Set the flag isLeader to true for when the node becomes a leader. 
+     */
     protected void becomeLeader(){
         this.isLeader=true;
     }
 
-
+    /** 
+     * Start ACK Service.
+     */
     public void startACKService() {
         new Thread(() -> {
             try {
@@ -239,15 +307,23 @@ public class Node extends Thread {
         Collections.shuffle(nodesList);
         return nodesList.subList(0, Math.min(3, nodesList.size())); 
     }
+    /** 
+     * Returns a copy (for safety reasons) of the current known nodesList.
+     */
     public List<Map.Entry<UUID, Integer>> getNodesList() {
         List<Map.Entry<UUID, Integer>> nodesList = new ArrayList<>(knownNodes.entrySet());
         return nodesList; 
     }
-
+    /** 
+     * Verify if the node is the current Leader.
+     */
     public boolean isLeader(){
         return isLeader;
     }
 
+    /**
+     * Function to printify the list of known nodes in a neat way .
+     */
     protected synchronized void printKnownNodes(){
         List<Map.Entry<UUID, Integer>> knownNodes = getNodesList();
         String[] headers = {"UUID", "Value"};
@@ -260,7 +336,9 @@ public class Node extends Thread {
     }
 
 
-   
+    /**
+     *  Getter for the documents instance of node.
+     */
     public DocumentsDB getDocuments(){
         return documents;
     }
@@ -283,11 +361,17 @@ public class Node extends Thread {
                                                                                
                                                                               
 */   
-
+    /** 
+     * Adds processed operation to batch.
+     */
     public synchronized void addOperation(String op){
         operationsBatch.add(op);
     }
 
+    /** 
+     * Helper function to process Message from Message Queue. 
+     * @param msg The Message to be processed.
+     * */
     public synchronized void processMessage(Message msg){
         OPERATION op = msg.getOperation();
         Object payload = msg.getPayload();
@@ -302,6 +386,12 @@ public class Node extends Thread {
         }
         
     }
+
+    /** 
+     * Helper function to process operation from Message Queue. 
+     * @param op Operation regarding the document.
+     * @param document Document related to the operation to be processed.
+     */
     protected synchronized void processOP(OPERATION op, Document document){
         try{
 
@@ -316,7 +406,7 @@ public class Node extends Thread {
     
                 case UPDATE:
                     if (documents.updateOrAddDocument(document)) {
-                       addOperation("UPDATE;" + document.toString());
+                       addOperation("UPDATE;" + document.toString()); // uses the same function has above, but logs the orinal operation from the message queue accordingly.
            
                     }
                     break;
@@ -339,6 +429,12 @@ public class Node extends Thread {
         }
  
     }
+    /** 
+     * Overloading method for different class type for the first parameter.
+     * Helper function to process operation from Message Queue .
+     * @param op Operation regarding the document.
+     * @param document Document related to the operation to be processed.
+     */
     protected synchronized void processOP(String op, Document document){
         try{
             System.out.println("inside proccessOP for syncing->" + op + ":"+document  );
@@ -381,7 +477,7 @@ public class Node extends Thread {
 
 
     
-
+    // Helper function to debug state of documents.
     public void debugState(String context) {
         System.out.println("DocumentsDB state at " + context + ": " + documents.getDocuments().toString());
     }   
@@ -393,32 +489,72 @@ public class Node extends Thread {
      ██    ██    ██  ██ ██ ██      
 ███████    ██    ██   ████  ██████                                           
      */
+    /**
+     * Adds the batch of operations through its operation generated ID to the map and set it to WAITING (for ACKS from other nodes).
+     * @param op The Operartion ID regarding the batch operation to be distributed across the cluster.
+     */
     private synchronized void addDistributedOperation(String op){
         distributedOperations.putIfAbsent(op, "WAITING");
         //distributedOperations.put(op, "WAITING");
     }
+    /**
+     * Commits distributed operation .
+     * @param op The Operartion ID regarding the batch operation distributed across the cluster.
+     */
     private synchronized void commitDistributedOperation(String op){
         distributedOperations.replace(op, "COMMITED");
         //distributedOperations.put(op, "WAITING");
     }
+    /**
+     * Cancels distributed operation .
+     * @param op The Operartion ID regarding the batch operation distributed across the cluster.
+     */
     private synchronized void cancelDistributedOperation(String op){
         distributedOperations.replace(op, "CANCELED");
-        Message syncMessage = new Message(
+        //Creates the message to cancel the previous sync request
+        Message cancelSyncMessage = new Message(
                 OPERATION.REVERT,     
                 ";" +getNodeId() + ":" +this.gossipNode.getHeartbeatService().getUDPport() +";" 
             );
-            gossipNode.getHeartbeatService().broadcast(syncMessage, true);
+            gossipNode.getHeartbeatService().broadcast(cancelSyncMessage, true);
         System.out.println("Operation canceled");
         //distributedOperations.put(op, "WAITING");
     }
+    /**
+     * Checks whether the distributed operation was commited or not.
+     * @param op The Operation ID.
+     * @return true if operation was commited( as "FINISHED") false otherwise.
+     */
     private synchronized boolean isCommited(String op){
         String state = distributedOperations.get(op);
         return state == "FINISHED" ? true : false; 
     }
+    /**
+     * Checks whether the distributed operation was CANCELLE.
+     * @param op The Operation ID.
+     * @return true if operation was cancelled( as "CANCELED") false otherwise.
+     */
     private synchronized boolean isCancelled(String op){
         String state = distributedOperations.get(op);
         return state == "CANCELED" ? true : false; 
     }
+    /**
+    * Processes and commits the operations in the message queue.
+    * 1. Locks the documents to synchronize access.
+    * 2. Creates a temporary map of the documents.
+    * 3. Processes messages from the message queue until it is empty:
+    *    - Dequeues a message from the queue.
+    *    - Processes the message based on its operation type (CREATE, UPDATE, DELETE).
+    * 4. Starts the sync process and retrieves the operation ID.
+    * 5. If the operation is committed:
+    *    - Commits the changes to the documents.
+    *    - Prints the state of the documents after committing.
+    * 6. If the operation is canceled:
+    *    - Prints an error message indicating that quorum was not achieved.
+    *    - Reverts the changes to the documents.
+    * 7. Unlocks the documents.
+    * 8. If a RemoteException occurs, prints the stack trace.
+    */
     protected void processAndCommit() {
         documents.lock();
         try {
@@ -449,6 +585,24 @@ public class Node extends Thread {
             documents.unlock();
         }
     }
+    /**
+     * Starts the sync process for distributed operations.
+     * 1. Updates the quorum value based on the number of known nodes.
+     * 2. Generates a unique operation ID using the hash code of the operations batch.
+     * 3. Adds the operation ID to the distributed operations map with a status of "WAITING".
+     * 4. Stores the operations batch in the distributed operations description map.
+     * 5. Sets the designation of the operation as "SYNC".
+     * 6. Filters out duplicate operations from the operations batch.
+     * 7. Creates a sync message with the operation ID, node ID, UDP port, and joined unique operations.
+     * 8. Broadcasts the sync message to all known nodes.
+     * 9. Waits for a quorum of acknowledgments using the `waitForQuorum` method.
+     * 10. If the quorum is achieved, commits the sync process.
+     * 11. If the quorum is not achieved, retries the sync process.
+     * 12. If an exception occurs during the sync process, prints the stack trace.
+     * 13. Returns the operation ID.
+     *
+     * @return The operation ID of the sync process.
+     */
     private String startSyncProcess(){
         updateQuorum();
         try{
@@ -516,14 +670,43 @@ public class Node extends Thread {
                                                                 
     */
 
-
+    /**
+     * Updates the quorum value based on the number of known nodes.
+     * The quorum is calculated as (number of nodes / 2) + 1.
+     */
     private synchronized void updateQuorum(){
         long N = knownNodes.mappingCount();
         this.quorum= ((int)N / 2) + 1;
     }
+    /** 
+     * Getter for the previously calculated minimum quorum size. 
+     */
     private int getQuorum(){
        return this.quorum;
-    }                                                                
+    }           
+    /**
+     * Waits for a quorum of acknowledgments for a given operation ID.
+     * 1. Creates a CompletableFuture to represent the quorum check.
+     * 2. Starts a new thread to perform the quorum check.
+     * 3. Initializes the maximum number of attempts and the delay between attempts.
+     * 4. While there are remaining attempts:
+     *    - Counts the number of acknowledgments received for the operation ID.
+     *    - If the count reaches the quorum, completes the future with true and returns.
+     *    - Prints debug information about missing acknowledgments.
+     *    - Sleeps for the specified delay.
+     *    - Decrements the number of attempts.
+     * 5. If the maximum number of attempts is reached without achieving quorum:
+     *    - Prints an error message.
+     *    - Completes the future with false.
+     * 6. If an InterruptedException occurs:
+     *    - Preserves the interrupt status.
+     *    - Prints the stack trace.
+     *    - Completes the future exceptionally with the exception.
+     *
+     * @param operationId The operation ID.
+     * @return A CompletableFuture that completes with a boolean indicating if the quorum was achieved.
+     */                                                     
+    @SuppressWarnings("unused")
     private CompletableFuture<Boolean> waitForQuorum(String operationId) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         new Thread(() -> {
@@ -570,7 +753,13 @@ public class Node extends Thread {
         return future;
     }
 
-
+    /**
+     * Waits for a quorum of acknowledgments for a given operation ID synchronously.
+     * Calls `waitForQuorum` and blocks until the quorum check completes.
+     *
+     * @param operationId The operation ID.
+     * @return True if the quorum was achieved, false otherwise.
+     */
     private boolean waitForQuorumSync(String operationId) {
         CompletableFuture<Boolean> quorumFuture = waitForQuorum(operationId);
         try {
@@ -580,7 +769,23 @@ public class Node extends Thread {
             return false;
         }
     }
-    
+    /**
+     * Retries the sync process for a given operation ID.
+     * 1. Initializes the maximum number of retries and the delay between retries.
+     * 2. While the retry count is less than the maximum retries:
+     *    - Prints a retry attempt message.
+     *    - Calls `waitForQuorumSync` to wait for quorum synchronously.
+     *    - If quorum is achieved, commits the sync process and returns.
+     *    - Increments the retry count and prints an error message.
+     *    - Sleeps for the specified retry delay.
+     * 3. If the maximum retries are reached without achieving quorum:
+     *    - Prints an error message.
+     *    - Clears the operations batch.
+     *    - Cancels the distributed operation.
+     *    - Reverts the changes to the documents.
+     *
+     * @param operationId The operation ID.
+     */
     private void retrySyncProcess(String operationId) {
         int maxRetries = 5;
         int retryDelay = 5000;
@@ -622,9 +827,6 @@ public class Node extends Thread {
         clearOperationsBatch();
         cancelDistributedOperation(operationId);
         documents.revertChanges();
-        // revertChanges(new ArrayList<Document>(temp));
-    
-        
     }
     
 
@@ -637,7 +839,12 @@ public class Node extends Thread {
                                                                                                             
                                                             */
 
-
+    /**
+    * Commits the sync process for a given operation ID.
+    * Sends a commit message, clears the operations batch, and marks the distributed operation as committed.
+    *
+    * @param operationId The operation ID.
+    */   
     public synchronized void commitSyncProcess(String operationId){
         try{
             sendCommitMessage(operationId);
@@ -648,6 +855,12 @@ public class Node extends Thread {
             e.printStackTrace();
         }
     }
+    /**
+    * Sends a commit message for a given operation ID.
+    * Creates a commit message and broadcasts it to all nodes without requiring acknowledgment.
+    *
+    * @param operationID The operation ID.
+    */
     private void sendCommitMessage(String operationID){
         Message syncMessage = new Message(
                 OPERATION.COMMIT,    
@@ -655,6 +868,9 @@ public class Node extends Thread {
             );
             gossipNode.getHeartbeatService().broadcast(syncMessage, false);
     }
+    /**
+    * Clears the operations batch by removing all elements from the list.
+    */
     private void clearOperationsBatch(){
         operationsBatch.clear();
     }
@@ -671,15 +887,15 @@ public class Node extends Thread {
                                                                        
  */
 
-    // Create updated DB in new Node
+    /**
+     * Starts the full sync process to create an updated DB in a new node.
+     * Generates an operation ID, builds the payload with node details and all documents, 
+     * and returns a message containing the full sync content.
+     *
+     * @return The message containing the full sync content.
+     */
     public Message startFullSyncProcess(){
         String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + Long.toString(System.currentTimeMillis()));; 
-
-        // String payload = operationID + ";" + getNodeId() + ":" + this.gossipNode.getHeartbeatService().getUDPport() + ";";
-        // for (Document doc: documentsList){
-        //     payload = payload + String.join("$" , doc.toString());
-        // }
-        // System.out.println("documents sent to full sync: " + documentsList);
         // Start building the payload with operation ID and node details
         StringBuilder payloadBuilder = new StringBuilder(operationID)
                                                 .append(";")
@@ -703,6 +919,10 @@ public class Node extends Thread {
         Message fullSyncContent = new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
         return fullSyncContent;
     }
+    /**
+     * Commits Full Sync operation .
+     * @param op The Operartion ID regarding the batch operation.
+     */
     protected synchronized void commitFullSync(String op){
         //System.out.println("Inside full sync commit");
         distributedOperations.put(op, "COMPLETED");
