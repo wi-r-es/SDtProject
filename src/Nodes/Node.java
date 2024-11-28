@@ -86,6 +86,9 @@ public class Node extends Thread {
                             }
                             
                         }
+                        if (   ((RaftNode) (this)).getCurrentTerm()==100   ){
+                            this.stopRunning();
+                        }
                            
                       
                     }
@@ -99,9 +102,7 @@ public class Node extends Thread {
                     System.out.println("\n\n\nIS IT EMPTY: \n" + getDocuments().getDocumentsMap().isEmpty());
                     Thread.sleep(1000);
 
-                    if (   ((RaftNode) (this)).getCurrentTerm()==100   ){
-                        this.stopRunning();
-                    }
+                    
                 
                 } catch (InterruptedException e) {
                         Thread.currentThread().interrupt(); // Preserve interrupt status
@@ -202,6 +203,9 @@ public class Node extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    protected void becomeLeader(){
+        this.isLeader=true;
     }
 
 

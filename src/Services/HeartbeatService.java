@@ -294,7 +294,7 @@ public class HeartbeatService extends Thread {
                             RaftNode rn = gossipNode.getRaftNode();
                             RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
                             if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
-                            rn.handleVoteRequest(rvargrs);
+                            rn.handleVoteRequest(rvargrs, message.getUdpPort());
                             break;
                         default:
                             System.err.println("This operation is not supported in this part of the code, BIG BUG2: " + op);
@@ -411,7 +411,7 @@ public class HeartbeatService extends Thread {
                                 rn = gossipNode.getRaftNode();
                                 RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
                                 if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
-                                rn.handleVoteRequest(rvargrs);
+                                rn.handleVoteRequest(rvargrs, message.getUdpPort());
                                 break;
                                 
                             default:

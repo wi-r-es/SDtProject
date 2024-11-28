@@ -22,7 +22,7 @@ public class RaftNode extends Node {
     //CONSTANTS
     private static final int ELECTION_TIMEOUT_MIN = 150;  
     private static final int ELECTION_TIMEOUT_MAX = 300;  
-    private static final int HEARTBEAT_INTERVAL = 50;     
+    private static final int HEARTBEAT_INTERVAL = 1000;     
 
 
     private AtomicInteger currentTerm;
@@ -293,9 +293,12 @@ public class RaftNode extends Node {
 
     
     private void sendVoteRequest() { // in a perfect world should send this via unicast to every other node instead of multicasting
-        Message voteRequest = new Message(
+        Message voteRequest = new Message( //public Message(OPERATION op, Object pl, String nodeName, UUID nodeId, int udpPort) {
             OPERATION.VOTE_REQ,
-            new RequestVoteArgs(currentTerm.get(), getNodeId(), log.size() - 1, getLastLogTerm())
+            new RequestVoteArgs(currentTerm.get(), getNodeId(), log.size() - 1, getLastLogTerm()),
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
         );
         System.out.println(voteRequest);
         System.out.println("[DEBUG] Sending vote request to peers." );
@@ -313,7 +316,7 @@ public class RaftNode extends Node {
                 (lastLogTerm == myLastLogTerm && lastLogIndex >= log.size() - 1);
     }
 
-    public synchronized void handleVoteRequest(RequestVoteArgs args) {
+    public synchronized void handleVoteRequest(RequestVoteArgs args, int port) {
         System.out.println("[DEBUG] Hadnling Vote request." );
         System.out.println(args);
         addNewLog("VOTE_RESPONSE", args);
@@ -360,7 +363,7 @@ public class RaftNode extends Node {
         this.getGossipNode().getHeartbeatService().sendUncompMessage(
             voteResponse,
             args.getCandidateId(),
-            getPeerPort(args.getCandidateId())
+            port//getPeerPort(args.getCandidateId())
         );
     }
 
@@ -390,8 +393,8 @@ public class RaftNode extends Node {
     }
 
     
-
-    private void becomeLeader() {
+    @Override
+    protected void becomeLeader() {
         if (state.get() != NodeState.CANDIDATE) {
             return;
         }
@@ -414,6 +417,8 @@ public class RaftNode extends Node {
                 TimeUnit.MILLISECONDS
             );
         }
+        super.becomeLeader();
+        
     }
     public void stepDown(int newTerm) {
         System.out.println("[DEBUG] Stepping down: current term=" + currentTerm.get() + ", new term=" + newTerm);
@@ -440,14 +445,26 @@ public class RaftNode extends Node {
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private void broadcastHeartbeat() {
-        
+    private void broadcastHeartbeat() { //public static Message LheartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        if (state.get() != NodeState.LEADER) {
+            return;
+        }
         Message heartbeat = Message.LheartbeatMessage(
-            "Heartbeat from leader:" + getNodeId() + ":" + currentTerm
+            "Heartbeat from leader:" + getNodeId() + ":" + currentTerm,
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
         );
         this.getGossipNode().getHeartbeatService().broadcast(heartbeat, false);
     }
+    // @SuppressWarnings("deprecation")
+    // private void broadcastHeartbeat() {
+        
+    //     Message heartbeat = Message.LheartbeatMessage(
+    //         "Heartbeat from leader:" + getNodeId() + ":" + currentTerm
+    //     );
+    //     this.getGossipNode().getHeartbeatService().broadcast(heartbeat, false);
+    // }
 
     
 
@@ -468,7 +485,7 @@ public class RaftNode extends Node {
         try {
             UUID leaderNodeId = UUID.fromString(parts[1].trim());
             int leaderTerm = Integer.parseInt(parts[2].trim());
-    
+            
             // Ignore our own heartbeats
             if (leaderNodeId.equals(this.getNodeId())) {
                 return;
@@ -477,7 +494,11 @@ public class RaftNode extends Node {
             System.out.println("[DEBUG] Received heartbeat from leader " + leaderNodeId +
                             " for term " + leaderTerm + ", current term: " + currentTerm.get());
     
-            // If we see a higher term, always update our term and become follower
+            if (leaderTerm < currentTerm.get()) {
+                return;  // Ignore old term heartbeats
+            }
+                            // If we see a higher term, always update our term and become follower
+            
             if (leaderTerm > currentTerm.get()) {
                 System.out.println("[DEBUG] Updating to higher term: " + leaderTerm);
                 stepDown(leaderTerm);
