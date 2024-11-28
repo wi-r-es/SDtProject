@@ -11,12 +11,12 @@ import java.util.UUID;
 import Nodes.Raft.RaftNode;
 import Resources.Document;
 public class GossipNode extends Thread {
-    private final RaftNode node;
+    private final Node node;
     private final HeartbeatService heartbeatService;
 
 
     public GossipNode(Node node) {
-        this.node = (RaftNode) node;
+        this.node = (Node) node;
         this.heartbeatService = new HeartbeatService(this);
     }
     @Override
@@ -31,7 +31,7 @@ public class GossipNode extends Thread {
         return node.getNodeName();
     }
     public RaftNode getRaftNode() {
-        return node;
+        return (RaftNode) node;
     }
     
 

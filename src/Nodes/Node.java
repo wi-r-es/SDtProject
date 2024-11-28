@@ -20,12 +20,12 @@ import java.util.concurrent.CompletableFuture;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import Nodes.Raft.RaftNode;
 import Resources.Document;
 import Services.AckServiceServer;
 import remote.messageQueueServer;
@@ -58,7 +58,7 @@ public class Node extends Thread {
     @Override
     public void run() {
         try {
-            if(isLeader)
+            if(isLeader())
             {
                 System.out.println("Leader thread started for node: " + nodeId);
                 // startRMIService();
@@ -98,6 +98,10 @@ public class Node extends Thread {
                     System.out.println("\tGET DOCUMENT LIST: \n" + getDocuments().getDocumentsMap().toString() + this.getGossipNode().getHeartbeatService().toString());
                     System.out.println("\n\n\nIS IT EMPTY: \n" + getDocuments().getDocumentsMap().isEmpty());
                     Thread.sleep(1000);
+
+                    if (   ((RaftNode) (this)).getCurrentTerm()==100   ){
+                        this.stopRunning();
+                    }
                 
                 } catch (InterruptedException e) {
                         Thread.currentThread().interrupt(); // Preserve interrupt status
@@ -139,12 +143,13 @@ public class Node extends Thread {
     }
 
 
-    public synchronized  boolean checkQueue() throws RemoteException{
+    protected synchronized  boolean checkQueue() throws RemoteException{
         if (messageQueue != null){return  messageQueue.checkQueue();}
         else return false;
     }
 
     public void stopRunning() {
+        System.out.println("im gonna stop myself");
         running = false; 
     }
 
@@ -186,7 +191,7 @@ public class Node extends Thread {
         documentChangesACKS.putIfAbsent(nodeId, syncOP);
     }
 
-    public void startLeaderServices() throws RemoteException {
+    protected void startLeaderServices() throws RemoteException {
         startRMIService();       
         //startACKService();    
     }
@@ -239,7 +244,7 @@ public class Node extends Thread {
         return isLeader;
     }
 
-    private synchronized void printKnownNodes(){
+    protected synchronized void printKnownNodes(){
         List<Map.Entry<UUID, Integer>> knownNodes = getNodesList();
         String[] headers = {"UUID", "Value"};
         List<String[]> rows = knownNodes.stream()
@@ -410,7 +415,7 @@ public class Node extends Thread {
         String state = distributedOperations.get(op);
         return state == "CANCELED" ? true : false; 
     }
-    public void processAndCommit() {
+    protected void processAndCommit() {
         documents.lock();
         try {
             documents.createTempMap();

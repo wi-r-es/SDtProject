@@ -1,5 +1,8 @@
 package Testing;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +25,24 @@ public class RaftClusterTest {
     
         // Start all nodes
         //nodes.forEach(node -> new Thread(node::startElection).start());
-        nodes.forEach(node -> new Thread(node::scheduleElectionTimeout).start());
+        //nodes.forEach(node -> new Thread(node::scheduleElectionTimeout).start());
+        
+        // try {
+        //     File logFile = new File("output8.txt");
+        //     PrintStream fileOut = new PrintStream(logFile);
+        //     System.setOut(fileOut); // Redirects System.out to the file
+        // } catch (FileNotFoundException e) {
+        //     e.printStackTrace();
+        //     return; // Exit if the file can't be created
+        // }
+
+       
+
+        
+        nodes.forEach(node -> new Thread(node).start());
+
+       
+        //System.out.println("Program finished.");
     }
 }
     

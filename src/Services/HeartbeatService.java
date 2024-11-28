@@ -103,6 +103,7 @@ public class HeartbeatService extends Thread {
     public void incrementAndBroadcastHeartbeat() {
         {
             Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
+            //Message hb_message = Message.LheartbeatMessage("Heartbeat from leader:" + gossipNode.getRaftNode().getNodeId() + ":" + gossipNode.getRaftNode().getCurrentTerm());
             this.broadcast(hb_message, false);
         }
 
@@ -258,7 +259,7 @@ public class HeartbeatService extends Thread {
                             
                             break;
                         default:
-                            System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
+                            System.err.println("This operation is not supported in this part of the code, BIG BUG1: " + op);
                     }
 
                 } else if ("UNCO".equals(header)) {
@@ -269,6 +270,7 @@ public class HeartbeatService extends Thread {
                         case HEARTBEAT: // reply to hearbeats 
                         //System.out.println("\n\tIM HERE IN CASE HEARTBEAT\n");
                             replyToHeartbeat(message);
+                            //gossipNode.getRaftNode().handleHeartbeat(message);
 
                             break;
                         case LHEARTBEAT: // reply to hearbeats from leader
@@ -295,7 +297,7 @@ public class HeartbeatService extends Thread {
                             rn.handleVoteRequest(rvargrs);
                             break;
                         default:
-                            System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
+                            System.err.println("This operation is not supported in this part of the code, BIG BUG2: " + op);
                     }
 
                     //System.out.println(this.gossipNode.getNodeName()+"Received uncompressed message: " + message);
@@ -361,7 +363,7 @@ public class HeartbeatService extends Thread {
                                 break;
 
                             default:
-                                System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
+                                System.err.println("This operation is not supported in this part of the code, BIG BUG3: " + op);
                         }
 
 
@@ -397,15 +399,23 @@ public class HeartbeatService extends Thread {
                                 break;
                             case VOTE_ACK:
                                 System.out.println("inside receive VOTE_ACK: \n");
-                                System.out.println(   ((RequestVoteReply) message.getPayload()).toString() );
+                                System.out.println( "REQUESTVOTEREPLY" + ((RequestVoteReply) message.getPayload()).toString() );
                                 RequestVoteReply rvreply = (RequestVoteReply) message.getPayload();
                                 RaftNode rn = gossipNode.getRaftNode();
                                 rn.handleVoteResponse(rvreply);
                                 
                                 break;
+                            case VOTE_REQ:
+                                // System.out.println("inside receive VOTE_REQ: \n");
+                                // System.out.println(message);
+                                rn = gossipNode.getRaftNode();
+                                RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
+                                if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
+                                rn.handleVoteRequest(rvargrs);
+                                break;
                                 
                             default:
-                                System.err.println("This operation is not supported in this part of the code, BIG BUG" + op);
+                                System.err.println("This operation is not supported in this part of the code, BIG BUG4: " + op);
                         }
 
                         //System.out.println(this.gossipNode.getNodeName()+"Received uncompressed message: " + message);

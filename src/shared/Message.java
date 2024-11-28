@@ -13,13 +13,43 @@ public class Message implements Serializable{
     private Object payload;
     private final AtomicInteger message_id = new AtomicInteger(0);
     private final long timestamp;
+
+    private String nodeName;
+    private UUID nodeId;
+    private int udpPort;
+
+    // Updated constructor with node information
+    public Message(OPERATION op, Object pl, String nodeName, UUID nodeId, int udpPort) {
+        this.payload = pl;
+        this.header = op;
+        this.timestamp = System.currentTimeMillis();
+        this.nodeName = nodeName;
+        this.nodeId = nodeId;
+        this.udpPort = udpPort;
+    }
     
 
-    public Message(OPERATION op, Object pl){
-        this.payload = pl;
-        this.header =op;
-        this.timestamp = System.currentTimeMillis(); 
+    // Backward compatibility constructor
+    public Message(OPERATION op, Object pl) {
+        this(op, pl, null, null, 0);
     }
+    // public Message(OPERATION op, Object pl){
+    //     this.payload = pl;
+    //     this.header =op;
+    //     this.timestamp = System.currentTimeMillis(); 
+    // }
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    public UUID getNodeId() {
+        return nodeId;
+    }
+
+    public int getUdpPort() {
+        return udpPort;
+    }
+
 
     public OPERATION getOperation(){
         return header;
@@ -36,49 +66,104 @@ public class Message implements Serializable{
     public long getTimestamp(){
         return this.timestamp;
     }
+    // @Override
+    // public String toString() {
+    //     return "Message{header='" + header + "', payload=" + payload + "}";
+    // }
     @Override
     public String toString() {
-        return "Message{header='" + header + "', payload=" + payload + "}";
+        return "Message{" +
+               "header='" + header + "'" +
+               ", payload=" + payload +
+               ", nodeName='" + nodeName + "'" +
+               ", nodeId=" + nodeId +
+               ", udpPort=" + udpPort +
+               "}";
     }
 
-
-
+    public static Message heartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.HEARTBEAT, content, nodeName, nodeId, udpPort);
+    }
     public static Message heartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT, PAYLOAD);
     }
+
+    public static Message LheartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.LHEARTBEAT, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message replyHeartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.HEARTBEAT_ACK, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message SyncMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.SYNC, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message FullSyncMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.FULL_SYNC, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message replySyncMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.ACK, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message replyFullSyncMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.FULL_SYNC_ACK, content, nodeName, nodeId, udpPort);
+    }
+
+    public static Message discoveryMessage(UUID nodeId, int port, String nodeName) {
+        String PAYLOAD = "WHOS_THE_LEADER:" + nodeId + ":" + port + ":" + System.currentTimeMillis();
+        return new Message(OPERATION.DISCOVERY, PAYLOAD, nodeName, nodeId, port);
+    }
+
+    public static Message replyDiscoveryMessage(String content, String nodeName, UUID nodeId, int udpPort) {
+        return new Message(OPERATION.DISCOVERY_ACK, content, nodeName, nodeId, udpPort);
+    }
+    
+    
+    @Deprecated
     public static Message LheartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.LHEARTBEAT, PAYLOAD);
     }
+    @Deprecated
     public static Message replyHeartbeatMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.HEARTBEAT_ACK, PAYLOAD);
     }
+    @Deprecated
     public static Message SyncMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.SYNC, PAYLOAD);
     }
+    @Deprecated
     public static Message FullSyncMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.FULL_SYNC, PAYLOAD);
     }
+    @Deprecated
     public static Message replySyncMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.ACK, PAYLOAD);
     }
+    @Deprecated
     public static Message replyFullSyncMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.FULL_SYNC_ACK, PAYLOAD);
     }
+    @Deprecated
     public static Message discoveryMessage(UUID nodeId, int port){
         String PAYLOAD = "WHOS_THE_LEADER:" + nodeId + ":" + port + ":" + System.currentTimeMillis();
         return new Message(OPERATION.DISCOVERY, PAYLOAD);
     }
+    @Deprecated
     public static Message replyDiscoveryMessage(String content){
         String PAYLOAD = content;
         return new Message(OPERATION.DISCOVERY_ACK, PAYLOAD);
     }
+        
     
 }
 
