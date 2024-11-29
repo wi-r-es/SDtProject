@@ -1,20 +1,21 @@
 package Nodes.Raft;
 
-import java.lang.System.Logger;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
+
 
 import shared.Message;
 import shared.OPERATION;
 import Nodes.Node;
 
-import java.util.*;
-
+/**
+ * The RaftNode class represents a node in a Raft consensus cluster.
+ * It extends the Node class and implements the Raft consensus algorithm and needed variables.
+ */
 public class RaftNode extends Node {
     //FOR LOGS
     //private static final Logger LOGGER = Logger.getLogger(RaftNode.class.getName());
@@ -42,6 +43,13 @@ public class RaftNode extends Node {
     private final Random random;
     private final Object timerLock = new Object();
 
+    /**
+     * Constructor for the RaftNode class.
+     *
+     * @param nodeId    The ID of the node.
+     * @param isLeader  Indicates if the node is the leader.
+     * @throws RemoteException If a remote exception occurs.
+     */
     public RaftNode(String nodeId, boolean isLeader) throws RemoteException {
         super(nodeId, isLeader);
         this.currentTerm = new AtomicInteger(0);;
@@ -57,18 +65,36 @@ public class RaftNode extends Node {
         startElectionMonitor();
     }
 
+    /**
+     * Returns the current state of the node.
+     *
+     * @return The current state of the node.
+     */
     public NodeState getNodeState() {
         return state.get();
     }
-
+    /**
+     * Returns the current term of the node.
+     *
+     * @return The current term of the node.
+     */
     public int getCurrentTerm() {
         return currentTerm.get();
     }
 
+    /**
+     * Shuts down the node.
+     */
     public void shutdown() {
         scheduler.shutdownNow();
     }
 
+    /**
+     * Adds a new log entry.
+     *
+     * @param logType The type of the log entry.
+     * @param vars    The variables associated with the log entry.
+     */
     private void addNewLog(String logType, Object... vars){
         LogEntry newLog = null ;
         switch(logType){
@@ -105,6 +131,11 @@ public class RaftNode extends Node {
             {log.add(newLog);}
     }
 
+    /**
+     * The run method is executed when the thread starts.
+     * It initializes the Raft state and starts the election monitor.
+     * Then it calls the parent's method.
+     */
     @Override
     public void run() {
         try {
@@ -128,7 +159,9 @@ public class RaftNode extends Node {
             scheduler.shutdownNow();
         }
     }
-    
+    /**
+     * Starts the leader services when the node becomes the leader.
+     */  
     @Override
     protected void startLeaderServices() {
         // Called when node becomes leader
@@ -141,7 +174,12 @@ public class RaftNode extends Node {
         
         }
     }
-
+     /**
+     * Checks the message queue when the node is the leader.
+     *
+     * @return true if there are messages in the queue, false otherwise.
+     * @throws RemoteException If a remote exception occurs.
+     */
     @Override
     protected boolean checkQueue() throws RemoteException {
         // Your queue checking logic that's Raft-aware
@@ -150,6 +188,9 @@ public class RaftNode extends Node {
         }
         return false;
     }
+    /**
+     * Processes and commits messages when the node is the leader.
+     */
     @Override
     protected void processAndCommit() {
         // Your processing logic that's Raft-aware
@@ -157,6 +198,11 @@ public class RaftNode extends Node {
             super.processAndCommit();
         }
     }
+    /**
+     * Returns the log entries as a string.
+     *
+     * @return The log entries as a string.
+     */
     public synchronized String getLogsAsString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Log Entries for Node ").append(getNodeName()).append(":\n");
@@ -167,6 +213,9 @@ public class RaftNode extends Node {
                 
         return sb.toString();
     }
+    /**
+     * Prints the known nodes and the current Raft state aswell as the log entries.
+     */
     @Override
     protected void printKnownNodes() {
         super.printKnownNodes();
@@ -175,13 +224,30 @@ public class RaftNode extends Node {
         
         getLogsAsString();
     }
+    /**
+     * Checks if the node is the leader.
+     *
+     * @return true if the node is the leader, false otherwise.
+     */
     @Override
     public boolean isLeader(){
         if(state.get() == NodeState.LEADER)
         {return true;}
         else return false;
     }
-
+    /**
+     * Starts the election monitor.
+     * 
+     * The election monitor is responsible for continuously checking if the election timeout has been reached.
+     * If the node is not the leader and the election timeout is reached, it starts a new election.
+     * 
+     * The election monitor runs in a separate thread and is scheduled using a ScheduledExecutorService.
+     * It starts with an initial random delay and then runs periodically every 10 milliseconds.
+     * 
+     * The election timeout is determined by the ELECTION_TIMEOUT_MIN and ELECTION_TIMEOUT_MAX constants,
+     * which define the minimum and maximum values for the timeout, respectively.
+     * The actual timeout value is randomly generated within this range.
+     */
     private void startElectionMonitor() {
         int initialDelay = random.nextInt(ELECTION_TIMEOUT_MAX);
         // Start a single timer that checks election timeout continuously
@@ -192,6 +258,9 @@ public class RaftNode extends Node {
             }
         }, initialDelay, 10, TimeUnit.MILLISECONDS);  // Start with random delay
     }
+    /**
+     * Resets the election timeout.
+     */
     private void resetElectionTimeout() {
          // Make timeout more random by using different ranges for different nodes
         String[] parts = this.getNodeName().split("-");
@@ -207,7 +276,9 @@ public class RaftNode extends Node {
         addNewLog("RESET", randomTimeout);
     }
     
-
+    /**
+     * Schedules the election timeout.
+     */
     public void scheduleElectionTimeout() {
         Random random = new Random();
         String parts[] = this.getNodeName().split("-");
@@ -217,7 +288,25 @@ public class RaftNode extends Node {
         executorService.schedule(this::startElection, electionTimeout, TimeUnit.MILLISECONDS);
     }
 
-    
+    /**
+     * Starts a new election.
+     * 
+     * This method is called when the election timeout is reached and the node is not the leader.
+     * It transitions the node to the candidate state and starts the election process.
+     * 
+     * The election process consists of the following steps:
+     * 1. Increment the current term.
+     * 2. Vote for self.
+     * 3. Reset the election timeout.
+     * 4. Send RequestVote RPCs to all other nodes.
+     * 5. Wait for votes from a majority of nodes.
+     * 
+     * If the node receives votes from a majority of nodes, it becomes the leader.
+     * If it doesn't receive enough votes or encounters a higher term, it steps down and becomes a follower.
+     * 
+     * The method uses a CountDownLatch to wait for the votes asynchronously.
+     * It waits for a maximum of ELECTION_TIMEOUT_MIN milliseconds for the votes to arrive.
+ */
     private void startElection() {
         if (state.get() == NodeState.LEADER) {
             return;
@@ -274,6 +363,16 @@ public class RaftNode extends Node {
             return;
         }
     }
+    /**
+     * Retries the election.
+     * 
+     * This method is called when the node is a candidate and a split vote occurs (no candidate receives a majority of votes).
+     * It increments the current term, adds a random delay, and starts a new election.
+     * 
+     * The random delay is added to prevent multiple nodes from starting a new election simultaneously,
+     * which could lead to repeated split votes. The delay is calculated based on the ELECTION_TIMEOUT_MIN,
+     * ELECTION_TIMEOUT_MAX, and a node-specific factor(its number counterpart from its name).
+     */
     private void retryElection() {
         if (state.get() == NodeState.CANDIDATE) {
             System.out.println("[DEBUG] Node " + getNodeName() + " restarting election for term " + (currentTerm.incrementAndGet()));
@@ -291,7 +390,9 @@ public class RaftNode extends Node {
     }
 
 
-    
+    /**
+     * Sends a vote request to all known nodes.
+     */
     private void sendVoteRequest() { // in a perfect world should send this via unicast to every other node instead of multicasting
         Message voteRequest = new Message( //public Message(OPERATION op, Object pl, String nodeName, UUID nodeId, int udpPort) {
             OPERATION.VOTE_REQ,
@@ -305,17 +406,45 @@ public class RaftNode extends Node {
         this.getGossipNode().getHeartbeatService().broadcast(voteRequest, false);
         
     }
-
+    /**
+     * Returns the term of the last log entry.
+     *
+     * @return The term of the last log entry.
+     */
     private int getLastLogTerm() {
         return log.isEmpty() ? 0 : log.get(log.size() - 1).getTerm();
     }
 
+    /**
+     * Checks if the log is up to date.
+     *
+     * @param lastLogIndex The index of the last log entry.
+     * @param lastLogTerm  The term of the last log entry.
+     * @return true if the log is up to date, false otherwise.
+     */
     private boolean isLogUpToDate(int lastLogIndex, int lastLogTerm) {
         int myLastLogTerm = getLastLogTerm();
         return (lastLogTerm > myLastLogTerm) ||
                 (lastLogTerm == myLastLogTerm && lastLogIndex >= log.size() - 1);
     }
-
+    /**
+     * Handles a vote request from a candidate.
+     *
+     * This method is called when the node receives a RequestVote RPC from a candidate.
+     * It checks if the candidate's term is higher than the node's current term and updates the node's state accordingly.
+     * 
+     * The node grants its vote to the candidate if all the following conditions are met:
+     * 1. The candidate's term is equal to or greater than the node's current term.
+     * 2. The node has not voted for another candidate in the current term.
+     * 3. The candidate's log is at least as up-to-date as the node's log.
+     * 4. The node is not currently a candidate.
+     * 
+     * If the node grants its vote, it updates its state and resets the election timeout.
+     * It then sends a RequestVoteReply to the candidate indicating whether the vote was granted or not.
+     *
+     * @param args The arguments of the RequestVote RPC.
+     * @param port The port of the candidate node.
+     */
     public synchronized void handleVoteRequest(RequestVoteArgs args, int port) {
         System.out.println("[DEBUG] Hadnling Vote request." );
         System.out.println(args);
@@ -366,7 +495,22 @@ public class RaftNode extends Node {
             port//getPeerPort(args.getCandidateId())
         );
     }
-
+    /**
+     * Handles a vote response from a node.
+     *
+     * This method is called when the node receives a RequestVoteReply from another node in response to its vote request.
+     * 
+     * If the node is a candidate and the reply is for the current term, it processes the vote response.
+     * If the vote is granted, the node adds the voter's ID to its vote count.
+     * If the vote count reaches a majority, the node becomes the leader.
+     * 
+     * If the reply indicates a higher term, the node updates its current term and transitions to the follower state.
+     * 
+     * If the node is still a candidate after processing the vote response and it did not receive a majority of votes,
+     * it retries the election.
+     *
+     * @param reply The RequestVoteReply received from the node.
+     */
     public synchronized void handleVoteResponse(RequestVoteReply reply) {
         System.out.println("[DEBUG] [node: "+ this.getNodeName()+ "]Received vote response from " + reply.getVoterId() +
                        " for term " + reply.getTerm() + ": vote granted = " + reply.isVoteGranted());
@@ -392,7 +536,17 @@ public class RaftNode extends Node {
         }
     }
 
-    
+    /**
+     * Transitions the node to the leader state.
+     * 
+     * This method is called when the node receives a majority of votes and becomes the leader.
+     * It performs the following actions:
+     * 1. Sets the node's state to LEADER.
+     * 2. Stops the election timeout monitor.
+     * 3. Starts sending periodic heartbeats to followers.
+     * 4. Initializes the nextIndex and matchIndex for each follower.
+     * 5. Starts the leader-specific services.
+     */
     @Override
     protected void becomeLeader() {
         if (state.get() != NodeState.CANDIDATE) {
@@ -420,6 +574,11 @@ public class RaftNode extends Node {
         super.becomeLeader();
         
     }
+    /**
+     * Steps down as the leader.
+     *
+     * @param newTerm The new term.
+     */
     public void stepDown(int newTerm) {
         System.out.println("[DEBUG] Stepping down: current term=" + currentTerm.get() + ", new term=" + newTerm);
         // Called when we discover a higher term or need to step down
@@ -444,7 +603,9 @@ public class RaftNode extends Node {
             resetElectionTimeout();
         }
     }
-
+    /**
+     * Broadcasts a heartbeat to all known nodes.
+     */
     private void broadcastHeartbeat() { //public static Message LheartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
         if (state.get() != NodeState.LEADER) {
             return;
@@ -457,17 +618,42 @@ public class RaftNode extends Node {
         );
         this.getGossipNode().getHeartbeatService().broadcast(heartbeat, false);
     }
-    // @SuppressWarnings("deprecation")
-    // private void broadcastHeartbeat() {
-        
-    //     Message heartbeat = Message.LheartbeatMessage(
-    //         "Heartbeat from leader:" + getNodeId() + ":" + currentTerm
-    //     );
-    //     this.getGossipNode().getHeartbeatService().broadcast(heartbeat, false);
-    // }
+
 
     
-
+    /**
+     * Handles a heartbeat message from the leader.
+     *
+     * This method is called when the node receives a heartbeat message from the leader.
+     * The heartbeat message contains the leader's term and the leader's node ID.
+     *
+     * The node processes the heartbeat message as follows:
+     *
+     * 1. If the heartbeat is from the node itself (i.e., the node is the leader), it ignores the heartbeat.
+     *
+     * 2. If the leader's term is older than the node's current term, it ignores the heartbeat.
+     *
+     * 3. If the leader's term is newer than the node's current term, the node updates its current term to the leader's term
+     *    and transitions to the follower state. It also clears its voted-for state.
+     *
+     * 4. If the leader's term is equal to the node's current term and the node is not the leader:
+     *    - If the node is a candidate, it means that another node has been elected as the leader for the same term.
+     *      In this case, the node transitions to the follower state and acknowledges the leader.
+     *    - If the node is already a follower, it updates its leader ID and resets the election timeout.
+     *
+     * 5. If the leader's term is equal to the node's current term and the node itself is the leader:
+     *    - This is an unexpected scenario where two nodes consider themselves leaders for the same term.
+     *    - To resolve this conflict, the node compares its own node ID with the leader's node ID.
+     *    - If the leader's node ID is greater than the node's own ID, the node steps down and becomes a follower.
+     *
+     * If an invalid heartbeat message is received (e.g., invalid format or missing fields), the method logs an error
+     * and ignores the heartbeat.
+     *
+     * By processing heartbeat messages, the node maintains its awareness of the current leader and term,
+     * and transitions its state accordingly to maintain consistency with the rest of the cluster.
+     *
+     * @param message The heartbeat message received from the leader.
+     */
     public synchronized void handleHeartbeat(Message message) {
         Object payload = message.getPayload();
         System.out.println("Handliong Heartbeat RAFT NODE");
@@ -528,7 +714,7 @@ public class RaftNode extends Node {
             ex.printStackTrace();
         }
     }
-
+    //WIP
     public synchronized void handleAppendEntries(AppendEntriesArgs args) {
         // Implementation for AppendEntries RPC/UDP (leader to followers)
     }
