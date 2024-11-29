@@ -3,6 +3,7 @@ package utils;
 import java.io.*;
 import java.util.zip.*;
 /**
+ * Utility class for compression and decompression using GZIP.
  * 
  * @see https://medium.com/javarevisited/efficient-handling-and-processing-of-compressed-files-in-java-7d023551168c
  * @see https://blogs.oracle.com/javamagazine/post/curly-braces-java-network-transmission-compression
@@ -12,11 +13,11 @@ import java.util.zip.*;
 public class CompressionUtils {
 
     /**
-     * Compress a byte array using GZIP
-     * 
-     * @param data
-     * @return
-     * @throws IOException
+     * Compresses a byte array using GZIP.
+     *
+     * @param data The byte array to compress.
+     * @return The compressed byte array.
+     * @throws IOException If an I/O error occurs during compression.
      */
     public static byte[] compress(byte[] data) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -27,11 +28,11 @@ public class CompressionUtils {
     }
 
     /**
-     * Decompress a byte array using GZIP
-     * 
-     * @param compressedData
-     * @return
-     * @throws IOException
+     * Decompresses a byte array using GZIP.
+     *
+     * @param compressedData The compressed byte array to decompress.
+     * @return The decompressed byte array.
+     * @throws IOException If an I/O error occurs during decompression.
      */
     public static byte[] decompress(byte[] compressedData) throws IOException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);

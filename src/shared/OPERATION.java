@@ -1,5 +1,8 @@
 package shared;
 
+/**
+ * Represents the available operations that can be performed on messages.
+ */
 public enum OPERATION {
     CREATE,
     UPDATE,

@@ -2,11 +2,17 @@ package utils;
 
 import java.util.List;
 
-/*
- * Prints a formatted table with headers and rows
+/**
+ * Utility class for printing formatted tables.
  */
 public class PrettyPrinter {
 
+    /**
+     * Prints a formatted table with the specified headers and rows.
+     *
+     * @param headers The table headers.
+     * @param rows    The table rows.
+     */
     public static synchronized void printTable(String[] headers, List<String[]> rows) {
         int[] columnWidths = new int[headers.length];
         for (int i = 0; i < headers.length; i++) {
@@ -34,7 +40,12 @@ public class PrettyPrinter {
         System.out.println(separator);
     }
 
-
+    /**
+     * Prints a single row of the table.
+     *
+     * @param row         The row data.
+     * @param columnWidths The widths of each column.
+     */
     private static synchronized void printRow(String[] row, int[] columnWidths) {
         StringBuilder rowBuilder = new StringBuilder("|");
         for (int i = 0; i < row.length; i++) {

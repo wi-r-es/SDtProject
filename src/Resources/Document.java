@@ -4,19 +4,34 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Represents a document with an ID, content, and version.
+ */
 public class Document implements Serializable {
     private final UUID id;
     private String content;
     private int version;
 
-
+    /**
+     * Constructs a new document with the specified content.
+     * Generates a random UUID for the document ID and initializes the version to 0.
+     *
+     * @param content The content of the document.
+     */
     public Document(String content) {
 
         this.id = UUID.randomUUID();
         this.content = content;
         this.version = 0;
     }
-    //copy constructor for clone method
+    /**
+     * Constructs a new document with the specified content, ID, and version.
+     * Used as a copy constructor for cloning documents.
+     *
+     * @param content The content of the document.
+     * @param id      The ID of the document.
+     * @param version The version of the document.
+     */
     public Document(String content, UUID id, int version){
 
         this.id = id;
@@ -24,10 +39,10 @@ public class Document implements Serializable {
         this.version = version;
     }
 
+    // Getters and setters for document properties
     public UUID getId() {
         return id;
     }
-    
     public String getContent() {
         return content;
     }
@@ -35,7 +50,6 @@ public class Document implements Serializable {
         this.content = content;
         this.version += 1;
     }
-
     public int getVersion() {
         return version;
     }
@@ -47,10 +61,18 @@ public class Document implements Serializable {
     }
 
     // SYNC DOCUMENTS
+    /**
+     * Creates a clone of the specified document.
+     *
+     * @param doc The document to clone.
+     * @return A new document instance with the same content, ID, and version as the original document.
+     * @throws CloneNotSupportedException If cloning is not supported.
+     */
     public static Document clone(Document doc) throws CloneNotSupportedException {
         return new Document(doc.getContent(), doc.getId(), doc.getVersion());
     }
-
+    
+    // Override methods for toString, equals, and hashCode
     @Override
     public String toString() {
         return "Document{id='" + id + "', content='" + content  +  "', version='" + version + "'}";
