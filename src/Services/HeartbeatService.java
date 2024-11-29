@@ -7,6 +7,7 @@ import Resources.Document;
 import shared.Message;
 import shared.OPERATION;
 import utils.CompressionUtils;
+import utils.network;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,8 +23,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+/**
+ * The HeartbeatService class handles heartbeat broadcasting and failure detection for a (Gossip)Node.
+ * It extends the Thread class to run as a separate thread.
+ */
 public class HeartbeatService extends Thread {
+
+    private static final int HEARTBEAT_INTERVAL = 5000;  // Interval in milliseconds for sending heartbeats
+    private static final int FAILURE_TIMEOUT = 10000;  // Timeout to detect failure (ms)
+    private static final int NODE_PORT_BASE = 9678;  // base port for UDP communication
+    private static final int PORT = 9876;  // UDP communication multicast
+    private static final String MULTICAST_GROUP = "230.0.0.0";  
+    private final int TCP_PORT = 9090;//for ack syncs
+
 
     private final GossipNode gossipNode;
     private final Map<UUID, AtomicInteger> heartbeatCounters;  // heartbeat counter for each node
@@ -31,19 +43,15 @@ public class HeartbeatService extends Thread {
     private final ScheduledExecutorService scheduler; // for running heartbeats regularly [and fail detection in the future]
     private DatagramSocket socket;
     private int udpPort;
-    private static final int HEARTBEAT_INTERVAL = 5000;  // Interval in milliseconds for sending heartbeats
-    private static final int FAILURE_TIMEOUT = 10000;  // Timeout to detect failure (ms)
-
-    private static final int NODE_PORT_BASE = 9678;  // base port for UDP communication
-
-    private static final int PORT = 9876;  // UDP communication multicast
-    private static final String MULTICAST_GROUP = "230.0.0.0";  
-
-    //for ack syncs
-    private final int TCP_PORT = 9090;
+    
     // private long tempListTimestamp;
     // private final long TEMP_LIST_TIMEOUT = 300000; // 2.5 mins in milli
 
+    /**
+     * Constructor for the HeartbeatService class.
+     *
+     * @param node The GossipNode associated with this HeartbeatService.
+     */
     public HeartbeatService(GossipNode node) {
         this.gossipNode = node;
         this.heartbeatCounters = new ConcurrentHashMap<>();
@@ -64,24 +72,36 @@ public class HeartbeatService extends Thread {
 
         heartbeatCounters.put(gossipNode.getNodeId(), new AtomicInteger(0));  // Initializes heartbeat counter
     }
-
+    /**
+     * Returns a string representation of the HeartbeatService.
+     *
+     * @return A string containing the node name and UDP port.
+     */
     @Override
     public String toString(){
         return "Node{id='" + gossipNode.getNodeName()  +  "', port='" + this.getUDPport() + "'}";
     }
-
+    /**
+     * Returns the UDP port used by the HeartbeatService.
+     *
+     * @return The UDP port number.
+     */
     public int getUDPport(){
         return this.udpPort;
     }
 
-    // Start heartbeat incrementing and failure detection tasks using scheduler
+    
+    /**
+     * The run method is executed when the thread starts.
+     * It schedules heartbeat broadcasting, failure detection and starts separate threads for receiving heartbeats and messages.
+     */
     @Override
-    public void run() {        
+    public void run() {        // Start heartbeat incrementing and failure detection tasks using scheduler
         // broadcast way
         scheduler.scheduleAtFixedRate(this::incrementAndBroadcastHeartbeat, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
         // Detection failure
-        //scheduler.scheduleAtFixedRate(this::detectFailures, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(this::detectFailures, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
         // Start a separate thread for continuously receiving heartbeats
         new Thread(() -> {
@@ -100,6 +120,9 @@ public class HeartbeatService extends Thread {
     }
     
     //Broadcast implementation
+    /**
+     * Increments the heartbeat counter and broadcasts a heartbeat message.
+     */
     public void incrementAndBroadcastHeartbeat() {
         {
             Message hb_message = Message.heartbeatMessage("Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + MULTICAST_GROUP + ":" + incrementHeartbeat()); 
@@ -108,10 +131,19 @@ public class HeartbeatService extends Thread {
         }
 
     }
-
+    /**
+     * Returns the current heartbeat counter value for the associated GossipNode.
+     *
+     * @return The current heartbeat counter value.
+     */
     private int getHeartbeatCounter() {
         return heartbeatCounters.get(gossipNode.getNodeId()).get();
     }
+    /**
+     * Increments the heartbeat counter for the associated GossipNode.
+     *
+     * @return The incremented heartbeat counter value.
+     */
     private int incrementHeartbeat() {
         return heartbeatCounters.get(gossipNode.getNodeId()).incrementAndGet();
     }
@@ -126,18 +158,24 @@ public class HeartbeatService extends Thread {
                                                                         
  */
     //BROADCAST
+    /**
+     * Broadcasts a message to all nodes in the network.
+     *
+     * @param message  The message to broadcast.
+     * @param compress Indicates whether the message should be compressed before broadcasting.
+     */
     public void broadcast(Message message, boolean compress) {
         try (MulticastSocket multicastSocket = new MulticastSocket()) {
 
-            byte[] serializedData = serialize(message);
+            byte[] serializedData = network.serialize(message);
     
 
             byte[] finalData;
             if (compress) {
                 byte[] compressedData = CompressionUtils.compress(serializedData);
-                finalData = addHeader("COMP", compressedData);
+                finalData = network.addHeader("COMP", compressedData);
             } else {
-                finalData = addHeader("UNCO", serializedData);
+                finalData = network.addHeader("UNCO", serializedData);
             }
     
 
@@ -160,7 +198,13 @@ public class HeartbeatService extends Thread {
                                     ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
                                     ██   ██ ███████ ██   ██ ██   ██    ██    ██████  ███████ ██   ██    ██                                                                                                                                                                                
      */
-
+    /**
+    * Responds to a heartbeat from a target node.
+    *
+    * @param targetNodeId The UUID of the target node.
+    * @param target_port  The port of the target node.
+    */
+    @SuppressWarnings("deprecation")
     private void respondeToHeartbeat(UUID targetNodeId, int target_port) {
         Message msg = Message.replyHeartbeatMessage("ACK_Heartbeat:" + gossipNode.getNodeId() + ":" + this.udpPort + ":"  
                                     + heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
@@ -168,6 +212,12 @@ public class HeartbeatService extends Thread {
 
         //System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
     }
+    /**
+    * Processes a received heartbeat message and replies to the sender.
+    *
+    * @param message The received heartbeat message.
+    */
+    @SuppressWarnings("unused")
     private void replyToHeartbeat(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
@@ -183,13 +233,18 @@ public class HeartbeatService extends Thread {
         //computeIfAbsente looks for an entry in "heartbeatCounters" with the key senderNodeId.
         // if key not present, creates a nwe entry with amoticInteger initialization with initialValue = 0
         // updateandGet will atomically updated the value retrieved from before 
+        
         heartbeatCounters.computeIfAbsent(UUID.fromString(senderNodeId), k -> new AtomicInteger(0))
             .updateAndGet(current -> Math.max(current, heartbeatCounter));
         lastReceivedHeartbeats.put(senderNodeId, System.currentTimeMillis());
         
         respondeToHeartbeat(UUID.fromString(senderNodeId), target_port );        
     }
-
+    /**
+    * Adds a known node to the GossipNode's list of known nodes.
+    *
+    * @param message The message containing the node information.
+    */
     private void addKnownNode(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
@@ -216,7 +271,23 @@ public class HeartbeatService extends Thread {
                                                                                                                                    
      */
     
-
+    /**
+     * Receives multicast messages and processes them based on the operation type.
+     * Listens on a multicast group and handles incoming messages.
+     * Messages can be compressed or uncompressed.
+     * Compressed messages are decompressed before processing.
+     * Supported operations:
+     * - SYNC: Processes a sync request if the node is not the leader.
+     * - REVERT: Reverts changes in the node's documents if the node is not the leader.
+     * - HEARTBEAT: Replies to a heartbeat message.
+     * - LHEARTBEAT: Handles a leader heartbeat message.
+     * - COMMIT: Processes a commit operation.
+     * - DISCOVERY: Processes a discovery request if the node is the leader.
+     * - VOTE_REQ: Handles a vote request if the node is not the candidate.
+     * - FULL_SYNC: Handles a full sync request if the node is the leader.
+     * Unsupported operations are logged as errors.
+     */
+    @SuppressWarnings("deprecation")
     private void receiveMulticast() { 
         try (MulticastSocket multicastSocket = new MulticastSocket(PORT)) {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
@@ -237,7 +308,7 @@ public class HeartbeatService extends Thread {
                     System.out.println("Received compressed message");
                     // Decompress and deserialize
                     byte[] decompressedData = CompressionUtils.decompress(payload);
-                    Message message = (Message) deserialize(decompressedData);
+                    Message message = (Message) network.deserialize(decompressedData);
 
                     
                     OPERATION op = message.getOperation();
@@ -264,7 +335,7 @@ public class HeartbeatService extends Thread {
 
                 } else if ("UNCO".equals(header)) {
 
-                    Message message = (Message) deserialize(payload);
+                    Message message = (Message) network.deserialize(payload);
                     OPERATION op = message.getOperation();
                     switch (op) {
                         case HEARTBEAT: // reply to hearbeats 
@@ -320,6 +391,20 @@ public class HeartbeatService extends Thread {
                                                                                                             
                                                                                                         
      */
+    /**
+    * Receives unicast messages and processes them based on the operation type.
+    * Listens on a UDP socket and handles incoming messages.
+    * Messages can be compressed or uncompressed.
+    * Compressed messages are decompressed before processing.
+    * Supported operations:
+    * - HEARTBEAT_ACK: Adds the sender as a known node.
+    * - ACK: Processes a sync acknowledgment if the node is the leader.
+    * - FULL_SYNC_ACK: Processes a full sync acknowledgment if the node is the leader.
+    * - VOTE_ACK: Handles a vote acknowledgment.
+    * - VOTE_REQ: Handles a vote request if the node is not the candidate.
+    * - FULL_SYNC: Handles a full sync request if the node is the leader.
+    * Unsupported operations are logged as errors.
+    */
     private void receiveMessage() {
         byte[] buffer = new byte[2048]; 
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -340,7 +425,7 @@ public class HeartbeatService extends Thread {
                         System.out.println("Received compressed message");
                         // Decompress and deserialize
                         byte[] decompressedData = CompressionUtils.decompress(payload);
-                        Message message = (Message) deserialize(decompressedData);
+                        Message message = (Message) network.deserialize(decompressedData);
 
                         
                         OPERATION op = message.getOperation();
@@ -371,7 +456,7 @@ public class HeartbeatService extends Thread {
                         
                     } else if ("UNCO".equals(header)) {
                         
-                        Message message = (Message) deserialize(payload);
+                        Message message = (Message) network.deserialize(payload);
                         OPERATION op = message.getOperation();
                         switch (op) {
                             case HEARTBEAT_ACK: // reply to hearbeats 
@@ -444,7 +529,11 @@ public class HeartbeatService extends Thread {
 ███████    ██    ██   ████       ██   ██  ██████ ██   ██ 
                                                                                     
  */
-
+    /**
+    * Processes a batch of operations received from a sync request.
+    * @param batch The batch of operations to process.
+    * @return The operation ID and leader info if processing is successful, null otherwise.
+    */
     public String processBatch(String batch) {
         this.gossipNode.getDocuments().createTempMap();
         //tempListTimestamp = System.currentTimeMillis();
@@ -460,7 +549,7 @@ public class HeartbeatService extends Thread {
         System.out.println("\nThe leadrInfo: " + leaderInfo);
         // Split individual operations
         String[] operationArray = operations.split("\\$");
-        boolean result = false;
+        //boolean result = false;
 
         
         try{
@@ -516,7 +605,11 @@ public class HeartbeatService extends Thread {
 
 
 
-
+    /**
+    * Processes a sync request received from another node.
+    * @param obj The sync request payload.
+    * @return true if the sync is processed successfully, false otherwise.
+    */
     private boolean processSync(Object obj){
         gossipNode.getDocuments().lock();
         String infoLeader = processBatch((String)obj);
@@ -547,6 +640,13 @@ public class HeartbeatService extends Thread {
     //         e.printStackTrace();
     //     }
     // }
+    /**
+    * Sends a sync acknowledgment to the target node.
+    * @param targetNodeId The UUID of the target node.
+    * @param target_port The port of the target node.
+    * @param operationID The ID of the operation being acknowledged.
+    */
+    @SuppressWarnings("deprecation")
     private void sendSyncAck(UUID targetNodeId, int target_port, String operationID) {
         Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() + ":" + operationID + ":" + 
                                                     heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
@@ -554,7 +654,10 @@ public class HeartbeatService extends Thread {
 
         System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
     }
-
+    /**
+    * Processes a sync acknowledgment received from another node.
+    * @param obj The acknowledgment payload.
+    */
     private void processACK(Object obj){
         String content = (String) obj;
         String[] parts = content.split(":");
@@ -570,6 +673,10 @@ public class HeartbeatService extends Thread {
         ██      ██    ██ ██ ████ ██ ██ ████ ██ ██    ██    
         ██      ██    ██ ██  ██  ██ ██  ██  ██ ██    ██    
          ██████  ██████  ██      ██ ██      ██ ██    ██    
+    */
+    /**
+    * Processes a commit operation.
+    * Unlocks the lock.
     */
     private void processCommit(){
         gossipNode.getDocuments().unlock();;
@@ -606,6 +713,11 @@ public class HeartbeatService extends Thread {
 ██████  ██ ███████  ██████  ██████    ████   ███████ ██   ██    ██    
                                                                                                                                                                                                                                                                                
     */
+    /**
+    * Processes a discovery request received from a new node.
+    * Leader Node will send the ACK for the request.
+    * @param message The discovery request message.
+    */
     private void processDiscoveryRequest(Message message){
         Object obj = message.getPayload();
         String content = (String) obj;
@@ -618,13 +730,24 @@ public class HeartbeatService extends Thread {
 
         gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
     }
+    /**
+    * Sends a discovery acknowledgment to the target node.
+    * @param targetNodeId The UUID of the target node.
+    * @param target_port The port of the target node.
+    */
+    @SuppressWarnings("deprecation")
     private void sendACKDiscovery(UUID targetNodeId, int target_port) {
         Message msg = Message.replyDiscoveryMessage("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
         sendUncompMessage(msg, targetNodeId, target_port );
 
         System.out.println("DISCOVERY_ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " to port " + target_port);
     }
-
+    /**
+    * Broadcasts a discovery request to find the leader node.
+    * @param port The port to use for the sync socket.
+    * @param msg The discovery request message.
+    * @return The response from the leader node, or null if no response is received.
+    */
     private String broadcastDiscovery(int port, Message msg){
         try(DatagramSocket syncSocket = new DatagramSocket(port)){
             syncSocket.setSoTimeout(5000);
@@ -640,7 +763,7 @@ public class HeartbeatService extends Thread {
     
                 // Deserialize the response
                 byte[] data = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
-                Message responseMessage = (Message) deserialize(data);
+                Message responseMessage = (Message) network.deserialize(data);
     
                 // Process the response
                 if (responseMessage.getOperation() == OPERATION.DISCOVERY_ACK) {
@@ -672,11 +795,15 @@ public class HeartbeatService extends Thread {
 
      */
 
-    
+     /**
+     * Handles the response to a full sync request.
+     * @param response The full sync response message.
+     * @return The leader node ID and port.
+     */
     private String handleFullSyncResponse(Message response){
         Object obj = response.getPayload();
         String content = (String) obj;
-        System.out.println("\tContent inside add to knownNodes->  " + content+"\n\n");
+        //System.out.println("\tContent inside add to knownNodes->  " + content+"\n\n");
         String[] parts = content.split(":"); //("DISCOVERY_ACK:" + gossipNode.getNodeId() + ":" + this.udpPort + ":" + System.currentTimeMillis());
         String LeaderNodeId = parts[1];
         String Leader_UDP_port = parts[2];
@@ -685,14 +812,38 @@ public class HeartbeatService extends Thread {
 
         return LeaderNodeId + ":" + Leader_UDP_port;        
     }
-
+    /**
+    * Sends a full sync request to the leader node.
+    * @param leaderNodeId The UUID of the leader node.
+    * @param leader_port The port of the leader node.
+    * @param sync_port The port to use for the sync socket.
+    */
+    @SuppressWarnings("deprecation")
     private void fullSyncRequest(UUID leaderNodeId, int leader_port, int sync_port) {
         Message msg = Message.FullSyncMessage("FULL_SYNC:" + gossipNode.getNodeId() + ":" + sync_port + ":"  + System.currentTimeMillis());
         sendCompMessage(msg, leaderNodeId, leader_port);
 
         System.out.println("FULL_SYNC SENT FROM " + gossipNode.getNodeId() + " to " + leader_port);
     }
-
+    /**
+     * Initiates a full sync process with the leader node.
+     * 
+     * This method is called by a new node joining the cluster to synchronize its state with the leader.
+     * It performs the following steps:
+     * 1. Creates a new DatagramSocket with the specified sync port.
+     * 2. Sets a timeout of 50 seconds on the socket to wait for a response from the leader.
+     * 3. Sends a full sync request to the leader node using the `fullSyncRequest` method.
+     * 4. Waits for the updated data from the leader using the `waitFullSync` method.
+     * 5. Processes the received document list using the `processDocumentList` method.
+     * 6. Sends a reply to the leader acknowledging the completion of the full sync process.
+     * 
+     * If any exceptions occur during the process, they are caught and logged.
+     * 
+     * @param leaderID The UUID of the leader node.
+     * @param leader_port The port number of the leader node.
+     * @param sync_port The port number to use for the sync socket.
+     */
+    @SuppressWarnings("deprecation")
     private void fullSyncInnit(UUID leaderID, int leader_port, int sync_port ){
         try(DatagramSocket syncSocket = new DatagramSocket(sync_port)){
             syncSocket.setSoTimeout(50000);
@@ -721,11 +872,33 @@ public class HeartbeatService extends Thread {
             
         }catch(SocketException e){
             System.out.println("SOCKET EXCEPTION");
-        }catch(IOException e ){
             e.printStackTrace();
         }
     }
-
+    /**
+     * Waits for the full sync data from the leader node.
+     * 
+     * This method is called by the `fullSyncInnit` method to wait for the updated data from the leader.
+     * It performs the following steps:
+     * 1. Creates a byte array to store the received data.
+     * 2. Creates a DatagramPacket to receive the data.
+     * 3. Initializes a counter for the number of attempts to receive the data.
+     * 4. Enters a loop that continues until the correct data is received or the maximum number of attempts is reached.
+     *    - Receives a packet using the `receive` method of the DatagramSocket.
+     *    - Extracts the header and payload from the received packet.
+     *    - If the header indicates a compressed message, decompresses the payload using the `CompressionUtils.decompress` method.
+     *    - Deserializes the decompressed data into a Message object.
+     *    - Checks the operation type of the received message.
+     *    - If the operation type is `FULL_SYNC_ANS`, returns the received message.
+     *    - If the operation type is not recognized, logs an error and decrements the attempt counter.
+     * 5. If the maximum number of attempts is reached without receiving the correct data, returns null.
+     * 
+     * If any exceptions occur during the process, they are caught and logged.
+     * 
+     * @param socket The DatagramSocket to use for receiving the data.
+     * @return The received Message object containing the full sync data, or null if the data is not received.
+     */
+    @SuppressWarnings("unused")
     private Message waitFullSync(DatagramSocket socket){
         byte[] buf = new byte[2048];
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -739,7 +912,7 @@ public class HeartbeatService extends Thread {
                 byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
                 
                 byte[] decompressedData = CompressionUtils.decompress(payload);
-                Message msg = (Message)deserialize(decompressedData);
+                Message msg = (Message)network.deserialize(decompressedData);
                 System.out.println("MESSAGE: " + msg);
                 OPERATION op = msg.getOperation();
 
@@ -755,13 +928,24 @@ public class HeartbeatService extends Thread {
 
         return null;
     }
-
+    /**
+     * Sends a full sync response to the target node.
+     *
+     * @param msg The full sync message to send.
+     * @param targetNodeId The UUID of the target node.
+     * @param target_port The port of the target node.
+     */
     private void leaderRespondToFullSync(Message msg, UUID targetNodeId, int target_port) {
         sendCompMessage(msg, targetNodeId, target_port);
         System.out.println("FULL_SYNC PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
         System.out.println(msg);
     }
-
+    /**
+     * Processes a list of documents received from a full sync operation.
+     *
+     * @param batch The batch of documents to process.
+     * @return The operation ID and leader info if processing is successful, null otherwise.
+     */
     public String processDocumentList(String batch) {
         System.out.println("\n\n\t\tINSIDE PROCESS FULL SYNC\n\n\n");
         System.out.println("\n\n\t\t"+batch+"\n\n\n");
@@ -815,7 +999,10 @@ public class HeartbeatService extends Thread {
         
     }
 
-    // SPRINT 3 IMP
+    /**
+     * Initiates a full sync process for a new node joining the cluster.
+     */
+    @SuppressWarnings("deprecation")
     public void syncNewElement(){
         // 1st prepare the message for multicast discovery
         int port_for_syncing = 9999;
@@ -835,7 +1022,10 @@ public class HeartbeatService extends Thread {
 
 
 
-
+    /**
+     * Detects node failures based on the last received heartbeat timestamps.
+     * If a node's last heartbeat is older than the failure timeout, it is considered failed.
+     */
     private void detectFailures() {
         long currentTime = System.currentTimeMillis();
         System.out.println(getName());
@@ -850,19 +1040,28 @@ public class HeartbeatService extends Thread {
             }
         }
     }
-
-    // Shut down the scheduler and socket when the thread stops
+    /**
+     * Interrupts the heartbeat service thread and shuts down the scheduler and socket.
+     */
     @Override
     public void interrupt() {
         super.interrupt();
         scheduler.shutdown();
         socket.close();
     }
-
+    /**
+     * Returns the map of heartbeat counters for each node.
+     *
+     * @return The map of heartbeat counters.
+     */
     public Map<UUID, AtomicInteger> getHeartbeatCounters() {
         return heartbeatCounters;
     }
-
+    /**
+     * Returns the map of last received heartbeat timestamps for each node.
+     *
+     * @return The map of last received heartbeat timestamps.
+     */
     public Map<String, Long> getLastReceivedHeartbeats() {
         return lastReceivedHeartbeats;
     }
@@ -884,11 +1083,17 @@ public class HeartbeatService extends Thread {
                                                                          
 
     */
-
+    /**
+     * Sends an uncompressed message to the target node.
+     *
+     * @param msg The message to send.
+     * @param targetNodeId The UUID of the target node.
+     * @param target_port The port of the target node.
+     */
     public void sendUncompMessage(Message msg, UUID targetNodeId, int target_port){
         try{
-            byte[] serializedData = serialize(msg);
-            byte[] finalData = addHeader("UNCO", serializedData);
+            byte[] serializedData = network.serialize(msg);
+            byte[] finalData = network.addHeader("UNCO", serializedData);
                     
             InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
 
@@ -898,11 +1103,18 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+    /**
+     * Sends a compressed message to the target node.
+     *
+     * @param msg The message to send.
+     * @param targetNodeId The UUID of the target node.
+     * @param target_port The port of the target node.
+     */
     private void sendCompMessage(Message msg, UUID targetNodeId, int target_port){
         try{
-            byte[] serializedData = serialize(msg);
+            byte[] serializedData = network.serialize(msg);
             byte[] compressedData = CompressionUtils.compress(serializedData);
-            byte[] finalData = addHeader("COMP", compressedData);
+            byte[] finalData = network.addHeader("COMP", compressedData);
             
                     
             InetAddress targetAddress = InetAddress.getByName(getNodeIPAddress(targetNodeId));
@@ -913,135 +1125,6 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
-
-    /** FOR IMPROVE READABILITY IN THE BROADCAST AND UNICAST ABOVE */
-    private byte[] serialize(Object object) throws IOException {
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        try (ObjectOutputStream objectStream = new ObjectOutputStream(byteStream)) {
-            objectStream.writeObject(object);
-            objectStream.flush();
-        }
-        return byteStream.toByteArray();
-    }
-
-    private Object deserialize(byte[] data) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream objectStream = new ObjectInputStream(new ByteArrayInputStream(data))) {
-            return objectStream.readObject();
-        }
-    }
-    
-
-    private byte[] addHeader(String header, byte[] payload) throws IOException {
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        byteStream.write(header.getBytes()); 
-        byteStream.write(payload);           
-        return byteStream.toByteArray();
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     
 
