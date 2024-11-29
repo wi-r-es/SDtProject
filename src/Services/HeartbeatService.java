@@ -8,12 +8,8 @@ import shared.Message;
 import shared.OPERATION;
 import utils.CompressionUtils;
 import utils.network;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +23,7 @@ import java.util.regex.Pattern;
  * The HeartbeatService class handles heartbeat broadcasting and failure detection for a (Gossip)Node.
  * It extends the Thread class to run as a separate thread.
  */
+@SuppressWarnings("unused")
 public class HeartbeatService extends Thread {
 
     private static final int HEARTBEAT_INTERVAL = 5000;  // Interval in milliseconds for sending heartbeats
