@@ -70,6 +70,12 @@ public class GossipNode extends Thread {
     public void addKnownNode(UUID nodeId, int port){
         node.addKnownNode(nodeId, port);
     }
+     /** 
+     * Remove known node from map (uuid - udp port number).
+     */
+    public void removeKnownNode(UUID nodeId){
+        node.removeKnownNode(nodeId);
+    }
     /**
      * Add known node to map (uuid - node name).
      */

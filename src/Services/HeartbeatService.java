@@ -1024,7 +1024,7 @@ public class HeartbeatService extends Thread {
 
     /**
      * Detects node failures based on the last received heartbeat timestamps.
-     * If a node's last heartbeat is older than the failure timeout, it is considered failed.
+     * If a node's last heartbeat is older than the failure timeout, it is considered failed and therefore removed from the knownNodes map.
      */
     private void detectFailures() {
         long currentTime = System.currentTimeMillis();
@@ -1037,6 +1037,7 @@ public class HeartbeatService extends Thread {
 
             if (currentTime - lastReceivedTime > FAILURE_TIMEOUT) {
                 System.out.println("Node " + nodeId + " is considered failed.");
+                gossipNode.removeKnownNode(UUID.fromString(nodeId));
             }
         }
     }

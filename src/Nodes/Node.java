@@ -108,9 +108,12 @@ public class Node extends Thread {
                             }
                             
                         }
-                        if (   ((RaftNode) (this)).getCurrentTerm()==100   ){
-                            this.stopRunning();
+                        if (this.getClass() == RaftNode.class ){
+                            if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
+                                this.stopRunning();
+                            }
                         }
+                        
                            
                       
                     }
@@ -233,6 +236,12 @@ public class Node extends Thread {
      */
     public void addKnownNode(UUID nodeId, int port){
         knownNodes.put(nodeId,  port);
+    }
+    /** 
+     * Remove known node from map (uuid - udp port number).
+     */
+    public void removeKnownNode(UUID nodeId){
+        knownNodes.remove(nodeId);
     }
     /**
      * Add known node to map (uuid - node name).
