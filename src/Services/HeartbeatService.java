@@ -554,18 +554,20 @@ public class HeartbeatService extends Thread {
                 System.out.println("\nProcessing operation for SYNC: " + operation);
                 String[] _op = operation.split(";");
                 String op = _op[0];
-                String doc = _op[1];
+                String _doc = _op[1];
                 //System.out.println("\nThe operation: " + op);
                 //System.out.println("\nThe document: " + doc);
-                Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
-                Matcher matcher = pattern.matcher(doc);
+                // Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
+                // Matcher matcher = pattern.matcher(doc);
+                Document doc = Document.fromString(_doc);
+                gossipNode.processOP(op, doc);
 
-                if (matcher.find()) {
-                    String id = matcher.group(1);
-                    String content = matcher.group(2);
-                    int version = Integer.parseInt(matcher.group(3));
+                // if (matcher.find()) {
+                //     String id = matcher.group(1);
+                //     String content = matcher.group(2);
+                //     int version = Integer.parseInt(matcher.group(3));
                     
-                    gossipNode.processOP(op, new Document(content, UUID.fromString(id), version));
+                //     gossipNode.processOP(op, new Document(content, UUID.fromString(id), version));
                     
                     // System.out.println("Document Details:");
                     // System.out.println("  ID: " + id);
@@ -573,10 +575,10 @@ public class HeartbeatService extends Thread {
                     // System.out.println("  Version: " + version);
 
                     
-                } else {
-                    System.err.println("Invalid document format in operation: " + operation);
-                    return null;
-                }
+                // } else {
+                //     System.err.println("Invalid document format in operation: " + operation);
+                //     return null;
+                // }
             }
             System.out.println("End of Sync: " + gossipNode.getDocuments().getDocuments().toString());
 
@@ -965,28 +967,29 @@ public class HeartbeatService extends Thread {
 
         
         try{
-            for (String doc : docs) {
-                System.out.println("\nProcessing documents list: " + doc);
+            for (String _doc : docs) {
+                System.out.println("\nProcessing documents list: " + _doc);
+                Document doc = Document.fromString(_doc);
+                gossipNode.getDocuments().updateOrAddDocument(doc);
+                // Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
+                // Matcher matcher = pattern.matcher(doc);
 
-                Pattern pattern = Pattern.compile("id='(.*?)', content='(.*?)', version='(\\d+)'\\}");
-                Matcher matcher = pattern.matcher(doc);
+                // if (matcher.find()) {
+                //     String id = matcher.group(1);
+                //     String content = matcher.group(2);
+                //     int version = Integer.parseInt(matcher.group(3));
 
-                if (matcher.find()) {
-                    String id = matcher.group(1);
-                    String content = matcher.group(2);
-                    int version = Integer.parseInt(matcher.group(3));
+                //     System.out.println("Document Details:");
+                //     System.out.println("  ID: " + id);
+                //     System.out.println("  Content: " + content);
+                //     System.out.println("  Version: " + version);
 
-                    System.out.println("Document Details:");
-                    System.out.println("  ID: " + id);
-                    System.out.println("  Content: " + content);
-                    System.out.println("  Version: " + version);
-
-                    Document doc_aux = new Document(content, UUID.fromString(id), version);
-                    gossipNode.getDocuments().updateOrAddDocument(doc_aux);
+                //     Document doc_aux = new Document(content, UUID.fromString(id), version);
+                //    gossipNode.getDocuments().updateOrAddDocument(doc_aux);
                     
-                } else {
-                    System.err.println("Invalid document format in full sync: " + doc);
-                }
+                // } else {
+                //     System.err.println("Invalid document format in full sync: " + doc);
+                // }
             }
             return (operationId +":" +leaderInfo );
         }catch(Exception e){

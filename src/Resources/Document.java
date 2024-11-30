@@ -3,6 +3,8 @@ package Resources;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Represents a document with an ID, content, and version.
@@ -38,6 +40,24 @@ public class Document implements Serializable {
         this.content = content;
         this.version = version;
     }
+    /**
+     * Constructs a new document from a Document String.
+     * @param str The String version of the document.
+     */
+    public static Document fromString(String str) {
+        // Expected format: {id='uuid', content='text', version='number'}
+        Pattern pattern = Pattern.compile("\\{?id='(.*?)', content='(.*?)', version='(\\d+)'\\}?");
+        Matcher matcher = pattern.matcher(str);
+        
+        if (matcher.find()) {
+            String id = matcher.group(1);
+            String content = matcher.group(2);
+            int version = Integer.parseInt(matcher.group(3));
+            return new Document(content, UUID.fromString(id), version);
+        }
+        throw new IllegalArgumentException("Invalid document string format: " + str);
+    }
+    
 
     // Getters and setters for document properties
     public UUID getId() {
