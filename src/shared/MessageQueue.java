@@ -10,7 +10,7 @@ import remote.messageRemoteInterface;
  * Represents a message queue that allows enqueuing and dequeuing of messages.
  * Implements the messageRemoteInterface for remote method invocation.
  */
-public class MessageQueue extends UnicastRemoteObject implements messageRemoteInterface{
+public class MessageQueue implements messageRemoteInterface{
 
     /**
      * Constructs a new message queue.

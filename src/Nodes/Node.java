@@ -27,7 +27,11 @@ import Resources.Document;
 import Services.AckServiceServer;
 import remote.messageQueueServer;
 
+import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
 /**
  * The Node class represents a node in a distributed system.
@@ -44,7 +48,8 @@ public class Node extends Thread {
     //private ArrayList<Document> temp = null;
     private ArrayList<String> operationsBatch = new ArrayList<>(); // Operations processed from message Queue
     private boolean isLeader;
-    private messageQueueServer messageQueue; 
+    protected messageQueueServer messageQueue; 
+    protected boolean MQSrunning;
     private AckServiceServer ackS = null; // not used
     private ConcurrentHashMap<UUID, String> documentChangesACKS = new ConcurrentHashMap<>();  // to save acks for operations of syncing before commmit
     private ConcurrentHashMap<String, String> distributedOperations = new ConcurrentHashMap<>();  // to save BIG SCALE operationsID WITH ITS STATUS
@@ -53,6 +58,7 @@ public class Node extends Thread {
     private int quorum;
 
     private volatile boolean running = true; // to check whether the node is running or not 
+    private boolean raft =false;
     
     /**
      * The run method is executed when the thread starts.
@@ -96,18 +102,23 @@ public class Node extends Thread {
                     System.out.println(this.getGossipNode().getHeartbeatService().toString());
                     if (isLeader ) {
                         System.out.println("Checking queue status: " + checkQueue());
-                        if (checkQueue()) {
-                            //System.out.println("there are messages in queue");
-                            processAndCommit();
+                        if(raft){
+                            ((RaftNode) (this)).processAndCommit();
                         }
-                        if(!distributedOperations.isEmpty()){
-                            System.out.println("Distributed Operations Status:");
-                            System.out.println("\n\t\t" + distributedOperations);
-                            for( String op : distributedOperations.keySet()){
-                                System.out.println("\n" + distributedOperationsDescription.get(op));
+                        else {
+                            if (checkQueue()) {
+                                System.out.println("there are messages in queue");
+                                processAndCommit();
                             }
-                            
-                        }
+                            if(!distributedOperations.isEmpty()){
+                                System.out.println("Distributed Operations Status:");
+                                System.out.println("\n\t\t" + distributedOperations);
+                                for( String op : distributedOperations.keySet()){
+                                    System.out.println("\n" + distributedOperationsDescription.get(op));
+                                }
+                                
+                            }
+                    }
                         if (this.getClass() == RaftNode.class ){
                             if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
                                 this.stopRunning();
@@ -153,6 +164,7 @@ public class Node extends Thread {
         this.UID =  UUID.randomUUID();;
         this.gossipNode = new GossipNode(this);  // Initialize gossip component by passing 'this' node to 'gossipnode'
         this.isLeader = false;
+        this.MQSrunning = false;
         //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
@@ -174,6 +186,20 @@ public class Node extends Thread {
         this.gossipNode = new GossipNode(this);  
         this.isLeader = L;
         this.quorum=0;
+        //this.messageQueue = new messageQueueServer() ;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            cleanupOnShutdown();
+        }));
+        //messageQueue = new messageQueueServer(nodeId, 2323);
+        gossipNode.start();
+    }
+    public Node(String nodeId, boolean L, boolean r) throws RemoteException  {
+        this.nodeId = nodeId;
+        this.UID =  UUID.randomUUID();;
+        this.gossipNode = new GossipNode(this);  
+        this.isLeader = L;
+        this.quorum=0;
+        this.raft=r;
         //this.messageQueue = new messageQueueServer() ;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             cleanupOnShutdown();
@@ -217,10 +243,16 @@ public class Node extends Thread {
     }
 
     public int getPeerPort(UUID peerId) {
-        // System.out.println("getting peer port " +peerId + "for node: " + this.UID );
-        // System.out.println(knownNodes.toString());
-        // System.out.println("done getting peer port");
-        return knownNodes.get(peerId); 
+        System.out.println("getting peer port " +peerId + "for node: " + this.UID );
+        System.out.println(knownNodes.toString());
+        System.out.println("done getting peer port-> " + knownNodes.get(peerId));
+        Integer port = knownNodes.get(peerId);
+    if (port == null) {
+        System.err.println("No port found for peer: " + peerId);
+        // Either return a default port or throw a proper exception
+        throw new IllegalStateException("No port found for peer: " + peerId);
+    }
+    return port; 
     }
     /**
      * Returns a list of known nodes.
@@ -258,6 +290,12 @@ public class Node extends Thread {
     public void addACK(UUID nodeId, String syncOP){
         documentChangesACKS.putIfAbsent(nodeId, syncOP);
     }
+    protected void setMQS(boolean value){
+        this.MQSrunning = value;
+    }
+    protected boolean getMQS(){
+        return this.MQSrunning;
+    }
     /** 
      * Start Leader Services.
      */
@@ -272,6 +310,27 @@ public class Node extends Thread {
         try {
             messageQueue = new messageQueueServer(nodeId, 2323);
             messageQueue.start();
+            System.out.println("[DEBUG]: STARTED RMI SERVICE");
+        } catch (RemoteException e) {
+            // If the registry already exists, get it and rebind
+            try {
+                Registry registry = LocateRegistry.getRegistry(2323);
+                registry.rebind("MessageQueue", messageQueue.getQueue());
+                messageQueue.start();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+    /** 
+     * Stop RMI Service.
+     */
+    public void stopRMIService() {
+        try {
+            Registry registry = LocateRegistry.getRegistry(2323);
+            registry.unbind("MessageQueue");
+            UnicastRemoteObject.unexportObject(messageQueue.getQueue(), true);  // Unexport the remote object
+            System.out.println("Node " + nodeId + " unregistered from RMI.");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -299,15 +358,7 @@ public class Node extends Thread {
         }).start();
     }
 
-    // public void stopRMIService() {
-    //     try {
-    //         Naming.unbind("rmi://localhost/" + nodeId);
-    //         UnicastRemoteObject.unexportObject(this, true);  // Unexport the remote object
-    //         System.out.println("Node " + nodeId + " unregistered from RMI.");
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
+
         
     
     // Provides a list of known nodes for gossiping
@@ -382,6 +433,7 @@ public class Node extends Thread {
      * @param msg The Message to be processed.
      * */
     public synchronized void processMessage(Message msg){
+        System.out.println("PROCESSING MESSAGE");
         OPERATION op = msg.getOperation();
         Object payload = msg.getPayload();
         System.out.println("\n\t" + op);

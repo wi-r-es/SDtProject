@@ -56,5 +56,17 @@ public class AppendEntriesArgs  implements Serializable {
     public int getLeaderCommit() {
         return leaderCommit;
     }
+
+    @Override
+    public String toString() {
+        return "AppendEntriesArgs{" +
+                "term=" + term +
+                ", leaderId=" + leaderId +
+                ", prevLogIndex=" + prevLogIndex +
+                ", prevLogTerm=" + prevLogTerm +
+                ", leaderCommit=" + leaderCommit +
+                ", entries=" + entries +
+                '}';
+    }
 }
 

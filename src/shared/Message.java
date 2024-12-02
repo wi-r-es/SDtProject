@@ -127,7 +127,7 @@ public class Message implements Serializable{
     public String toString() {
         return "Message{" +
                "header='" + header + "'" +
-               ", payload=" + payload +
+               ", payload=" + payload.toString() +
                ", nodeName='" + nodeName + "'" +
                ", nodeId=" + nodeId +
                ", udpPort=" + udpPort +

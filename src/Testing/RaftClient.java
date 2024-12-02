@@ -1,0 +1,149 @@
+package Testing;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+import Nodes.Node;
+import Nodes.Raft.RaftNode;
+import Resources.Document;
+import remote.LeaderAwareMessageQueueServer;
+import remote.messageRemoteInterface;
+import shared.Message;
+import shared.OPERATION;
+
+public class RaftClient {
+
+
+    
+    public static void main(String[] args) throws InterruptedException {
+        try {
+           // printOptions();
+
+            // try {
+            //     File logFile = new File("raftClientTest.txt");
+            //     PrintStream fileOut = new PrintStream(logFile);
+            //     System.setOut(fileOut); // Redirects System.out to the file
+            // } catch (FileNotFoundException e) {
+            //     e.printStackTrace();
+            //     return; // Exit if the file can't be created
+            // }
+
+            LeaderAwareMessageQueueServer.MessageQueueClient client = new LeaderAwareMessageQueueServer.MessageQueueClient(2323);
+
+            Document doc1 = new Document("This is a new document1");
+            Document doc2 = new Document("This is a new document2");
+            Document doc3 = new Document("This is a new document3");
+            //Message msg = new Message(OPERATION.CREATE, doc1);
+            // Perform remote operations
+            //rq.enqueue(msg);
+            // Use the client
+            try {
+                // Enqueue message
+                Message msg = new Message(OPERATION.CREATE, doc1);
+                System.out.println("Attempting to enqueue message...");
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc1);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.UPDATE, doc1);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc2);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc3);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.DELETE, doc3);
+                // client.enqueue(msg);
+                client.enqueue(OPERATION.CREATE, doc1);
+                client.enqueue(OPERATION.UPDATE, doc1);
+                client.enqueue(OPERATION.CREATE, doc2);
+                client.enqueue(OPERATION.CREATE, doc2);
+                client.enqueue(OPERATION.CREATE, doc3);
+                client.enqueue(OPERATION.DELETE, doc3);
+
+                // Thread.sleep(10000);
+                // RaftNode node = new RaftNode("Node-66", false);
+                // System.out.println("Ffull sync new node");
+                // node.start();
+                // node.getGossipNode().getHeartbeatService().syncNewElementRaftCluster();
+
+                // Document doc4 = new Document("This is a new document4");
+                // Document doc5 = new Document("This is a new document5");
+                // Document doc6 = new Document("This is a new document6");
+                // doc1.setContent("Updated doc 1");
+                // System.out.println("Second Batch of operations");
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc4);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.UPDATE, doc1);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc5);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.CREATE, doc6);
+                // client.enqueue(msg);
+                // msg = new Message(OPERATION.DELETE, doc2);
+                // client.enqueue(msg);
+            
+                System.out.println("Message enqueued successfully");
+                
+                // Dequeue message
+                //Message received = client.dequeue();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+
+            // System.out.println("First Batch of operations");
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
+            // rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
+            // rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
+            // System.out.println("End Batch of operations");
+            // Thread.sleep(10000);
+            // RaftNode node = new RaftNode("Node-66", false);
+            // System.out.println("Ffull sync new node");
+            // node.start();
+            // node.getGossipNode().getHeartbeatService().syncNewElementRaftCluster();
+
+            // System.out.println("END FULL sync new node");
+
+
+            // Document doc4 = new Document("This is a new document4");
+            // Document doc5 = new Document("This is a new document5");
+            // Document doc6 = new Document("This is a new document6");
+            // doc1.setContent("Updated doc 1");
+            // System.out.println("Second Batch of operations");
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc4));
+            // rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc5));
+            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc6));
+            // rq.enqueue(rq.performOperation(OPERATION.DELETE, doc2));
+            // System.out.println("END Batch of operations");
+         
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        
+    }
+
+    public static void printOptions(){
+        try{ 
+        String [] opts = Naming.list("rmi://localhost:2323/Node-0");
+        for(int i=0; i<opts.length; i++){
+             System.out.println(opts[i]);
+        }
+    } catch( Exception e){
+        e.printStackTrace();
+    }
+     }
+}
+
+
+
+

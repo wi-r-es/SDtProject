@@ -1,5 +1,9 @@
 package Services;
 import Nodes.*;
+import Nodes.Raft.AppendEntriesArgs;
+import Nodes.Raft.AppendEntriesReply;
+import Nodes.Raft.LogEntry;
+import Nodes.Raft.NodeState;
 import Nodes.Raft.RaftNode;
 import Nodes.Raft.RequestVoteArgs;
 import Nodes.Raft.RequestVoteReply;
@@ -313,21 +317,31 @@ public class HeartbeatService extends Thread {
                     //Document doc = (Document) obj;
                         
                     switch (op) {
+                        case APPEND_ENTRIES:
+                            if(!this.gossipNode.isLeader()) {
+                                System.out.println("[DEBUG]->APPEND ENTRIES RECIEVED");
+                                AppendEntriesArgs args = (AppendEntriesArgs) obj;
+                                gossipNode.getRaftNode().handleAppendEntries(args, message.getUdpPort());
+                            }
+                            break;
                         case SYNC: //for syncing purposes
                             if(this.gossipNode.isLeader()){ break;}
-                            System.out.println("IN SYNC BROADCAST RECEIVE");
-                            System.out.print("\t");
-                            System.out.println(obj);
+                            // System.out.println("IN SYNC BROADCAST RECEIVE");
+                            // System.out.print("\t");
+                            // System.out.println(obj);
                             processSync(obj);
                             //sendSyncAck(UUID targetNodeId, int target_port)
                             break;
                         case REVERT: //for syncing purposes
                             if(this.gossipNode.isLeader()){ break;}
-                                gossipNode.getDocuments().revertChanges();
-                            
+                            gossipNode.getDocuments().revertChanges();
+                            break;
+                        case COMMIT_INDEX:
+                            if(this.gossipNode.isLeader()){ break;}
+                            gossipNode.getRaftNode().handleCommitIndex(message);
                             break;
                         default:
-                            System.err.println("This operation is not supported in this part of the code, BIG BUG1: " + op);
+                            System.err.println("This operation is not supported in this part of the code [COMP], BIG BUG1: " + op);
                     }
 
                 } else if ("UNCO".equals(header)) {
@@ -346,6 +360,12 @@ public class HeartbeatService extends Thread {
                             gossipNode.getRaftNode().handleHeartbeat(message);
 
                             break;
+                        case APPEND_ENTRIES_REPLY:
+                            if(gossipNode.isLeader()) {
+                                AppendEntriesReply reply = (AppendEntriesReply) message.getPayload();
+                                gossipNode.getRaftNode().handleAppendEntriesReply(reply);
+                            }
+                            break;
                         case COMMIT: // for commit purposes
                             processCommit();
                             System.out.println("\n\n\t COMMITED -> " + message + "\n\n");
@@ -362,10 +382,11 @@ public class HeartbeatService extends Thread {
                             RaftNode rn = gossipNode.getRaftNode();
                             RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
                             if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
+                            //System.out.println("\n\tmessage conrtent\n" + message);
                             rn.handleVoteRequest(rvargrs, message.getUdpPort());
                             break;
                         default:
-                            System.err.println("This operation is not supported in this part of the code, BIG BUG2: " + op);
+                            System.err.println("This operation is not supported in this part of the code [UNCOMP], BIG BUG2: " + op);
                     }
 
                     //System.out.println(this.gossipNode.getNodeName()+"Received uncompressed message: " + message);
@@ -443,6 +464,12 @@ public class HeartbeatService extends Thread {
                                 // Send the document list to new node
                                 leaderRespondToFullSync(msg, UUID.fromString(nodeId), Integer.parseInt(port));}
                                 break;
+                            case QUEUE_TRANSFER:
+                                if (gossipNode.getRaftNode().getNodeState() == NodeState.LEADER) {
+                                    System.out.println("Received QUEUE_TRANSFER message");
+                                    //gossipNode.getRaftNode(). handleQueueTransfer(message);
+                                }
+                                break;
 
                             default:
                                 System.err.println("This operation is not supported in this part of the code, BIG BUG3: " + op);
@@ -494,6 +521,12 @@ public class HeartbeatService extends Thread {
                                 RequestVoteArgs rvargrs = (RequestVoteArgs) message.getPayload();
                                 if ( rvargrs.getCandidateId().equals(gossipNode.getNodeId()) ){break;}
                                 rn.handleVoteRequest(rvargrs, message.getUdpPort());
+                                break;
+                            case APPEND_ENTRIES_REPLY:
+                                if(gossipNode.isLeader()) {
+                                    AppendEntriesReply reply = (AppendEntriesReply) message.getPayload();
+                                    gossipNode.getRaftNode().handleAppendEntriesReply(reply);
+                                }
                                 break;
                                 
                             default:
@@ -591,6 +624,30 @@ public class HeartbeatService extends Thread {
     }
 
 
+    // New helper method to handle AppendEntries replies // NOT USED
+    // private void handleAppendEntriesReply(AppendEntriesReply reply) {
+    //     System.out.println("[DEBUG]: INSIDE handleAppendEntriesReply");
+    //     RaftNode raftNode = gossipNode.getRaftNode();
+        
+    //     // If reply shows a higher term, step down
+    //     if (reply.getTerm() > raftNode.getCurrentTerm()) {
+    //         System.out.println("[DEBUG]: INSIDE handleAppendEntriesReply STEPPING DOWN");
+    //         raftNode.stepDown(reply.getTerm());
+    //         return;
+    //     }
+
+    //     // If success, update indices for the follower
+    //     if (reply.isSuccess()) {
+    //         System.out.println("[DEBUG]: INSIDE handleAppendEntriesReply SUCCESS");
+    //         raftNode.updateFollowerIndices(reply.getnodeID());
+    //     } else {
+    //         // If failed, decrement nextIndex and try again
+    //         System.out.println("[DEBUG]: INSIDE handleAppendEntriesReply FAILED");
+    //         raftNode.decrementNextIndex(reply.getnodeID());
+    //     }
+    // }
+
+
 
         /*
                                     ██████  ██    ██ ███████ ██████  ██       ██████   █████  ██████  ██ ███    ██  ██████      
@@ -648,6 +705,14 @@ public class HeartbeatService extends Thread {
     @SuppressWarnings("deprecation")
     private void sendSyncAck(UUID targetNodeId, int target_port, String operationID) {
         Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() + ":" + operationID + ":" + 
+                                                    heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
+        sendUncompMessage(msg, targetNodeId, target_port);
+
+        System.out.println("ACK PACKET SENT FROM " + gossipNode.getNodeId() + " to " + targetNodeId + " with counter " + getHeartbeatCounter());
+    }
+    @SuppressWarnings("deprecation")
+    public void sendSyncAck(UUID targetNodeId, int target_port) {
+        Message msg = Message.replySyncMessage("ACK:" + gossipNode.getNodeId() +":" + 
                                                     heartbeatCounters.get(gossipNode.getNodeId()).getAndIncrement() + ":" + System.currentTimeMillis());
         sendUncompMessage(msg, targetNodeId, target_port);
 
@@ -1016,8 +1081,74 @@ public class HeartbeatService extends Thread {
         
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
     }
-    
+    /**
+     * Initiates a full sync process for a new node joining the cluster.
+     */
+    @SuppressWarnings("deprecation")
+    public void syncNewElementRaftCluster(){
+        // 1st prepare the message for multicast discovery
+        int port_for_syncing = 9999;
+        Message discoveryMessage = Message.discoveryMessage(this.gossipNode.getNodeId(), port_for_syncing);
+        //Function to send multicast asking who is the leader
+        String LeaderACK = broadcastDiscovery(port_for_syncing, discoveryMessage);
 
+        String[] parts = LeaderACK.split(":");
+        String leaderID = parts[0];
+        String leader_port = parts[1];
+        
+        initializeRaftState(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing);
+    }
+    @SuppressWarnings("deprecation")
+    private void initializeRaftState(UUID leaderID, int leader_port, int sync_port) {
+        try (DatagramSocket syncSocket = new DatagramSocket(sync_port)) {
+            syncSocket.setSoTimeout(50000);
+            
+            // Request full state from leader
+            fullSyncRequest(leaderID, leader_port, sync_port);
+            Message response = waitFullSync(syncSocket);
+            
+            if (response != null) {
+                String payload = (String) response.getPayload();
+                System.out.println("PAYLOAD INITIALIZE RAFT STATE : " + payload);
+                String[] sections = payload.split(";");
+                
+                // Update term
+                int leaderTerm = Integer.parseInt(sections[2]);
+                RaftNode raftNode = gossipNode.getRaftNode();
+                raftNode.setCurrentTerm(leaderTerm);
+                
+                // Initialize log from leader's log
+                String logSection = sections[3].substring(5); // Skip "LOGS:" prefix
+                initializeLog(logSection);
+                
+                // Apply document state
+                String docsSection = sections[4].substring(5); // Skip "DOCS:" prefix
+                processDocumentList(docsSection);
+                
+                // Send acknowledgment
+                Message ackMsg = Message.replyFullSyncMessage(
+                    "[OPERATION]:" + sections[0]
+                );
+                sendUncompMessage(ackMsg, leaderID, leader_port);
+                
+                // Start as follower
+                raftNode.stepDown(leaderTerm);
+            }
+        } catch (SocketException e) {
+            System.err.println("Error during Raft state initialization: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    private void initializeLog(String logSection) {
+        if (logSection.trim().isEmpty()) return;
+        
+        String[] entries = logSection.split("\n");
+        for (String entry : entries) {
+            LogEntry logEntry = LogEntry.fromString(entry);
+            gossipNode.getRaftNode().appendLogEntry(logEntry);
+        }
+    
+    }
 
 
 
@@ -1111,7 +1242,7 @@ public class HeartbeatService extends Thread {
      * @param targetNodeId The UUID of the target node.
      * @param target_port The port of the target node.
      */
-    private void sendCompMessage(Message msg, UUID targetNodeId, int target_port){
+    public void sendCompMessage(Message msg, UUID targetNodeId, int target_port){
         try{
             byte[] serializedData = network.serialize(msg);
             byte[] compressedData = CompressionUtils.compress(serializedData);

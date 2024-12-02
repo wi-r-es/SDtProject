@@ -1,6 +1,7 @@
 package Nodes.Raft;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * Represents the reply for the AppendEntries RPC in the Raft consensus algorithm.
@@ -8,6 +9,7 @@ import java.io.Serializable;
 public class AppendEntriesReply  implements Serializable {
     private final int term;        // Current term of the responding node
     private final boolean success; // Whether the entries were appended successfully
+    private final UUID nodeID; // follower node ID
 
     /**
      * Constructs an instance of AppendEntriesReply.
@@ -15,9 +17,10 @@ public class AppendEntriesReply  implements Serializable {
      * @param term    The current term of the responding node.
      * @param success Whether the entries were appended successfully.
      */
-    public AppendEntriesReply(int term, boolean success) {
+    public AppendEntriesReply(int term, boolean success, UUID id) {
         this.term = term;
         this.success = success;
+        this.nodeID = id;
     }
     
     // Getters for the fields
@@ -26,6 +29,18 @@ public class AppendEntriesReply  implements Serializable {
     }
     public boolean isSuccess() {
         return success;
+    }
+    public UUID getnodeID() {
+        return nodeID;
+    }
+
+    @Override
+    public String toString() {
+        return "AppendEntriesReply{" +
+                "term=" + term +
+                ", success=" + success +
+                ", nodeID=" + nodeID +
+                '}';
     }
 }
 

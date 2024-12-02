@@ -1,16 +1,26 @@
 package Nodes.Raft;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.*;
+
 
 
 import shared.Message;
+import shared.MessageQueue;
 import shared.OPERATION;
+import utils.UniqueIdGenerator;
 import Nodes.Node;
+import Resources.Document;
+import remote.LeaderAwareMessageQueueServer;
+import remote.messageQueueServer;
 
 /**
  * The RaftNode class represents a node in a Raft consensus cluster.
@@ -18,13 +28,21 @@ import Nodes.Node;
  */
 public class RaftNode extends Node {
     //FOR LOGS
-    //private static final Logger LOGGER = Logger.getLogger(RaftNode.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RaftNode.class.getName());
+    private static FileHandler fh;
+    //fields for log replication
     private List<LogEntry> log;
+    private Map<UUID, Integer> nextIndex;  // Index of next log entry to send to each node
+    private Map<UUID, Integer> matchIndex; // Index of highest log entry known to be replicated
+    private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
+    private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
     //CONSTANTS
-    private static final int ELECTION_TIMEOUT_MIN = 150;  
-    private static final int ELECTION_TIMEOUT_MAX = 300;  
-    private static final int HEARTBEAT_INTERVAL = 1000;     
+    private static final int ELECTION_TIMEOUT_MIN = 1500;//500;//150;  
+    private static final int ELECTION_TIMEOUT_MAX = 3000;//1000;//300;  
+    private static final int HEARTBEAT_INTERVAL = 1000;   
+    private static final long REPLICATION_TIMEOUT = 5000;  
 
+    private boolean isQueueOwner = false; // Track if this node owns the queue
 
     private AtomicInteger currentTerm;
     //private UUID votedFor;
@@ -35,7 +53,7 @@ public class RaftNode extends Node {
     private Set<UUID> votesReceived;
     //private Timer electionTimer;
     
-    private final ScheduledExecutorService scheduler;
+    private ScheduledExecutorService scheduler;
     private volatile ScheduledFuture<?> electionMonitor;  // For leader election
     private volatile ScheduledFuture<?> heartbeatTimer;
     // For leader election
@@ -54,6 +72,10 @@ public class RaftNode extends Node {
         super(nodeId, isLeader);
         this.currentTerm = new AtomicInteger(0);;
         this.log = new ArrayList<>();
+        this.nextIndex = new ConcurrentHashMap<>();     // for log replication
+        this.matchIndex = new ConcurrentHashMap<>();    // for log replication
+        this.commitIndex = 0;                           // log replication
+        this.lastApplied = 0;                           // for log replication
         this.state = new AtomicReference<>(NodeState.FOLLOWER);
         this.leaderId = null;
         this.votedFor = new AtomicReference<>(null);
@@ -62,7 +84,29 @@ public class RaftNode extends Node {
         this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
         this.random = new Random();
         this.electionTimeout = new AtomicLong(0);
+        
         startElectionMonitor();
+        initializeIndices(); // for log replication
+    }
+    public RaftNode(String nodeId, boolean isLeader, boolean r) throws RemoteException {
+        super(nodeId, isLeader,r);
+        this.currentTerm = new AtomicInteger(0);;
+        this.log = new ArrayList<>();
+        this.nextIndex = new ConcurrentHashMap<>();     // for log replication
+        this.matchIndex = new ConcurrentHashMap<>();    // for log replication
+        this.commitIndex = 0;                           // log replication
+        this.lastApplied = 0;                           // for log replication
+        this.state = new AtomicReference<>(NodeState.FOLLOWER);
+        this.leaderId = null;
+        this.votedFor = new AtomicReference<>(null);
+        this.votesReceived = ConcurrentHashMap.newKeySet();
+        //this.electionTimer = new Timer(true);
+        this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
+        this.random = new Random();
+        this.electionTimeout = new AtomicLong(0);
+
+        startElectionMonitor();
+        initializeIndices(); // for log replication
     }
 
     /**
@@ -81,54 +125,110 @@ public class RaftNode extends Node {
     public int getCurrentTerm() {
         return currentTerm.get();
     }
+    public void setCurrentTerm(int newTerm) {
+        currentTerm.set(newTerm);
+    }
+
+    public void appendLogEntry(LogEntry log){
+        this.log.add(log);
+    }
+    /**
+     * Returns the current commited index.
+     *
+     * @return The current commited index of the leader.
+     */
+    public int getCommitIndex() {
+        return commitIndex;
+    }
 
     /**
      * Shuts down the node.
      */
     public void shutdown() {
-        scheduler.shutdownNow();
+        if (heartbeatTimer != null) {
+            heartbeatTimer.cancel(false);
+        }
+        if (electionMonitor != null) {
+            electionMonitor.cancel(false);
+        }
+        if (!scheduler.isShutdown()) {
+            scheduler.shutdown();
+        }
     }
 
     /**
-     * Adds a new log entry.
+     * Adds a new loggger entry.
      *
-     * @param logType The type of the log entry.
-     * @param vars    The variables associated with the log entry.
+     * @param logType The type of the loggger entry to be logged.
+     * @param vars    The variables associated with the logger entry.
      */
     private void addNewLog(String logType, Object... vars){
-        LogEntry newLog = null ;
         switch(logType){
             case "ELECTION":
-                newLog = new LogEntry(currentTerm.get(), log.size(), 
-                String.format("Node [%s]:[%s] starting election for term %d", this.getNodeName(), this.getNodeId().toString(), currentTerm.get()));
+                LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] starting election.", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString()));
+                
                 break;
             case "VOTE_RESPONSE":
             if(vars.length == 1)
-                {newLog = new LogEntry(currentTerm.get(), log.size(), 
-                String.format("Node [%s]:[%s] Handling Vote request: %s", this.getNodeName(), this.getNodeId().toString(), vars));
-                break;}
+                System.out.println(vars);
+                System.out.println(vars[0]);
+                RequestVoteArgs rvargs = (RequestVoteArgs) vars[0];
+                LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] Handling Vote request: %s", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString(), rvargs));
+                break;
             case "BECOMING_LEADER":
-                newLog = new LogEntry(currentTerm.get(), log.size(), 
-                String.format("Node [%s]:[%s] becoming leader for term %d", this.getNodeName(), this.getNodeId().toString(), currentTerm.get()));
+                LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] becoming leader.", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString())); 
                 break;
             case "RESET":
                 if(vars.length == 1){
                     //System.out.println("Class:"+ vars[0].getClass());
                     if(vars[0] instanceof Integer ) {
                         int  timeout = (int)vars[0];
-                        
-                        newLog = new LogEntry(currentTerm.get(), log.size(), 
-                        String.format("Node [%s]:[%s] reset election timeout to %dms from now", this.getNodeName(), this.getNodeId().toString(), timeout));
-                            
-                        break;
+                        LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] reset election timeout to %dms from now.", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString(), timeout)); 
+                    }
+                    break;
+                }
+            case "REPLICATION":
+                if(vars[0] instanceof LogEntry ) {
+                    LogEntry  args = (LogEntry)vars[0];
+                    LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] Log Entry. Content: [%s]", 
+                            currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString(), args)); 
+                }
+                break;
+            case "APPEND_ENTRIES":
+                LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] HANDLING HAPPEND ENTRIES.", 
+                    currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString())); 
+                break;
+            case "APPEND_ENTRIES_CONTENT":
+                if(vars.length == 1){
+                    //System.out.println("Class:"+ vars[0].getClass());
+                    if(vars[0] instanceof AppendEntriesArgs ) {
+                        AppendEntriesArgs  args = (AppendEntriesArgs)vars[0];
+                        LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] HANDLING HAPPEND ENTRIES. Content: [%s]", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString(), args.toString())); 
                     }
                 }
-            
+                break;
+            case "APPEND_ENTRIES_REPLY":
+                LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] HANDLING HAPPEND ENTRIES REPLY.", 
+                    currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString())); 
+                break;
+            case "APPEND_ENTRIES_REPLY_CONTENT":
+                if(vars.length == 1){
+                    //System.out.println("Class:"+ vars[0].getClass());
+                    if(vars[0] instanceof AppendEntriesReply ) {
+                        AppendEntriesReply  args = (AppendEntriesReply)vars[0];
+                        LOGGER.info(String.format("[Current Term]: %d -- [Log size]: %d;Node [%s]:[%s] HANDLING HAPPEND ENTRIES REPLY. Content: [%s]", 
+                                currentTerm.get(), log.size() ,this.getNodeName(), this.getNodeId().toString(), args.toString())); 
+                    }
+                }
+                break;
             default:
                 return ;
         }
-        if(newLog != null)
-            {log.add(newLog);}
     }
 
     /**
@@ -144,7 +244,12 @@ public class RaftNode extends Node {
             startElectionMonitor();  // Starts the continuous election timeout checking
             resetElectionTimeout();  // Sets initial random timeout
 
-            
+            RaftNode.fh = new FileHandler("mylog.txt");
+            LOGGER.addHandler(fh); //Adds file handler to the logger
+            LOGGER.setLevel(Level.ALL); // Request that every detail gets logged.
+            //// Log a simple INFO message.  -> logger.info("doing stuff");
+            /// logger.log(Level.WARNING, "trouble sneezing", ex); 
+            /// logger.fine("done");
             super.run(); // The parent run method  will use overridden methods due to polymorphism aint that F'ing neat bruh
         } catch (Exception e) {
             e.printStackTrace();
@@ -159,45 +264,8 @@ public class RaftNode extends Node {
             scheduler.shutdownNow();
         }
     }
-    /**
-     * Starts the leader services when the node becomes the leader.
-     */  
-    @Override
-    protected void startLeaderServices() {
-        // Called when node becomes leader
-        if (state.get() == NodeState.LEADER) {
-            try {
-                super.startLeaderServices();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        
-        }
-    }
-     /**
-     * Checks the message queue when the node is the leader.
-     *
-     * @return true if there are messages in the queue, false otherwise.
-     * @throws RemoteException If a remote exception occurs.
-     */
-    @Override
-    protected boolean checkQueue() throws RemoteException {
-        // Your queue checking logic that's Raft-aware
-        if (state.get() == NodeState.LEADER) {
-            return super.checkQueue();
-        }
-        return false;
-    }
-    /**
-     * Processes and commits messages when the node is the leader.
-     */
-    @Override
-    protected void processAndCommit() {
-        // Your processing logic that's Raft-aware
-        if (state.get() == NodeState.LEADER) {
-            super.processAndCommit();
-        }
-    }
+
+    
     /**
      * Returns the log entries as a string.
      *
@@ -236,6 +304,32 @@ public class RaftNode extends Node {
         else return false;
     }
     /**
+     * Initializes two important tracking mechanisms
+     * 
+     * nexIndex: For each follower node, it tracks the index of the next log entry that the leader should send to that follower.
+     * Initially set to the leader's log.size() (meaning start from the end of the leader's log. 
+     * This optimistic approach assumes followers are up-to-date initially.
+     * 
+     * matchIndex: Tracks the highest log entry known to be replicated on each follower.
+     * Initially set to 0 because we don't know what entries followers have replicated yet.
+     * Gets updated as followers confirm they've replicated entries
+     */
+    private void initializeIndices() {
+        for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
+            nextIndex.put(peer.getKey(), 0);
+            matchIndex.put(peer.getKey(), 0);
+        }
+    }
+/*
+███████ ██      ███████  ██████ ████████ ██  ██████  ███    ██ 
+██      ██      ██      ██         ██    ██ ██    ██ ████   ██ 
+█████   ██      █████   ██         ██    ██ ██    ██ ██ ██  ██ 
+██      ██      ██      ██         ██    ██ ██    ██ ██  ██ ██ 
+███████ ███████ ███████  ██████    ██    ██  ██████  ██   ████ 
+                                                               
+ */
+
+    /**
      * Starts the election monitor.
      * 
      * The election monitor is responsible for continuously checking if the election timeout has been reached.
@@ -249,13 +343,22 @@ public class RaftNode extends Node {
      * The actual timeout value is randomly generated within this range.
      */
     private void startElectionMonitor() {
+        if (electionMonitor != null && !electionMonitor.isCancelled()) {
+            electionMonitor.cancel(false);
+        }
         int initialDelay = random.nextInt(ELECTION_TIMEOUT_MAX);
         // Start a single timer that checks election timeout continuously
         electionMonitor = scheduler.scheduleAtFixedRate(() -> {
-            if (System.currentTimeMillis() >= electionTimeout.get() && 
-                state.get() != NodeState.LEADER) {
-                startElection();
+            try{
+                if (System.currentTimeMillis() >= electionTimeout.get() && 
+                    state.get() != NodeState.LEADER) {
+                    startElection();
+                }
+            } catch (Exception e) {
+                System.err.println("Error in election monitor: " + e.getMessage());
+                e.printStackTrace();
             }
+          
         }, initialDelay, 10, TimeUnit.MILLISECONDS);  // Start with random delay
     }
     /**
@@ -263,13 +366,19 @@ public class RaftNode extends Node {
      */
     private void resetElectionTimeout() {
          // Make timeout more random by using different ranges for different nodes
-        String[] parts = this.getNodeName().split("-");
-        int nodeNum = Integer.parseInt(parts[1]);
+        int nodeNum;
+        try {
+            String[] parts = this.getNodeName().split("-");
+            nodeNum = parts.length > 1 ? Integer.parseInt(parts[1]) : 
+                     Math.abs(this.getNodeId().hashCode() % 100);  // Use node ID hash as fallback
+        } catch (NumberFormatException e) {
+            // If parse fails, use hash of node ID
+            nodeNum = Math.abs(this.getNodeId().hashCode() % 100);
+        }
         
         // Use node number to create different ranges for different nodes
         int minTimeout = ELECTION_TIMEOUT_MIN + (nodeNum * 50);  // Spread out the minimum times
         int maxTimeout = minTimeout + (ELECTION_TIMEOUT_MAX - ELECTION_TIMEOUT_MIN);
-        
         int randomTimeout = minTimeout + random.nextInt(maxTimeout - minTimeout + 1);
         
         electionTimeout.set(System.currentTimeMillis() + randomTimeout);
@@ -388,7 +497,14 @@ public class RaftNode extends Node {
             startElection();
         }
     }
-
+/*
+██    ██  ██████  ████████ ███████     ██   ██  █████  ███    ██ ██████  ██      ███████ ██████  ███████ 
+██    ██ ██    ██    ██    ██          ██   ██ ██   ██ ████   ██ ██   ██ ██      ██      ██   ██ ██      
+██    ██ ██    ██    ██    █████       ███████ ███████ ██ ██  ██ ██   ██ ██      █████   ██████  ███████ 
+ ██  ██  ██    ██    ██    ██          ██   ██ ██   ██ ██  ██ ██ ██   ██ ██      ██      ██   ██      ██ 
+  ████    ██████     ██    ███████     ██   ██ ██   ██ ██   ████ ██████  ███████ ███████ ██   ██ ███████ 
+                                                                                                        
+ */
 
     /**
      * Sends a vote request to all known nodes.
@@ -535,7 +651,14 @@ public class RaftNode extends Node {
             retryElection(); // Retry election
         }
     }
-
+/*
+██      ███████  █████  ██████  ███████ ██████  
+██      ██      ██   ██ ██   ██ ██      ██   ██ 
+██      █████   ███████ ██   ██ █████   ██████  
+██      ██      ██   ██ ██   ██ ██      ██   ██ 
+███████ ███████ ██   ██ ██████  ███████ ██   ██ 
+                                                
+ */
     /**
      * Transitions the node to the leader state.
      * 
@@ -549,13 +672,16 @@ public class RaftNode extends Node {
      */
     @Override
     protected void becomeLeader() {
+        System.out.println("[DEBUG] Attempting to become leader...");
         if (state.get() != NodeState.CANDIDATE) {
+            System.out.println("[DEBUG] Cannot become leader - not a candidate");
             return;
         }
         addNewLog("BECOMING_LEADER");
         
         System.out.println("[DEBUG]: The following node is the new leader: " + getNodeName());
         state.set(NodeState.LEADER);
+        
         
         synchronized (timerLock) {
             // Stop checking election timeout since we're now leader
@@ -571,7 +697,10 @@ public class RaftNode extends Node {
                 TimeUnit.MILLISECONDS
             );
         }
+        System.out.println("[DEBUG] Starting leader services");
         super.becomeLeader();
+        startLeaderServices();
+        System.out.println("[DEBUG] Leader transition complete");
         
     }
     /**
@@ -580,27 +709,176 @@ public class RaftNode extends Node {
      * @param newTerm The new term.
      */
     public void stepDown(int newTerm) {
-        System.out.println("[DEBUG] Stepping down: current term=" + currentTerm.get() + ", new term=" + newTerm);
-        // Called when we discover a higher term or need to step down
+        if (state.get() == NodeState.LEADER) {
+            // Transfer queue contents before stopping service
+            transferMessageQueue(leaderId, getPeerPort(leaderId));
+            stopQueueService();
+        }
+        
+        System.out.println("[DEBUG] Stepping down: current term=" + currentTerm.get() + 
+                          ", new term=" + newTerm);
         currentTerm.set(newTerm);
         state.set(NodeState.FOLLOWER);
         votedFor.set(null);
         
         synchronized (timerLock) {
-            
-            // Stop heartbeat timer if it exists
             if (heartbeatTimer != null) {
                 heartbeatTimer.cancel(false);
                 heartbeatTimer = null;
             }
             
-            // Restart election monitoring
-            if (electionMonitor == null || electionMonitor.isCancelled()) {
-                startElectionMonitor();
+            if (scheduler.isShutdown()) {
+                scheduler = Executors.newScheduledThreadPool(2);
             }
             
-            // Reset the election timeout
+            startElectionMonitor();
             resetElectionTimeout();
+        }
+    }
+
+    /*
+ ██████  ██    ██ ███████ ██    ██ ███████ 
+██    ██ ██    ██ ██      ██    ██ ██      
+██    ██ ██    ██ █████   ██    ██ █████   
+██ ▄▄ ██ ██    ██ ██      ██    ██ ██      
+ ██████   ██████  ███████  ██████  ███████ 
+    ▀▀                                    
+     */
+        /**
+     * Starts the leader services when the node becomes the leader.
+     */  
+    @Override
+protected void startLeaderServices() {
+    if (state.get() == NodeState.LEADER) {
+        try {
+            // Stop any existing service
+            if (messageQueue != null) {
+                messageQueue.unreg();
+            }
+            
+            System.setProperty("java.rmi.server.hostname", "localhost");
+            
+            // Create and start new message queue server
+            messageQueue = new LeaderAwareMessageQueueServer(
+                getNodeName(), 
+                2323, 
+                getNodeId(),
+                this
+            );
+            messageQueue.start();
+            
+            // Wait for the server to start
+            Thread.sleep(1000);
+            
+            System.out.println("[DEBUG] Leader services started successfully on port 2323");
+        } catch (Exception e) {
+            LOGGER.severe("Failed to start leader services: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
+
+
+     /**
+     * Checks the message queue when the node is the leader.
+     *
+     * @return true if there are messages in the queue, false otherwise.
+     * @throws RemoteException If a remote exception occurs.
+     */
+    @Override
+    protected boolean checkQueue() throws RemoteException {
+        // Your queue checking logic that's Raft-aware
+        if (state.get() == NodeState.LEADER) {
+            return super.checkQueue();
+        }
+        return false;
+    }
+    public MessageQueue getLeaderQueue() throws RemoteException {
+        try {
+            if (state.get() == NodeState.LEADER) {
+                return messageQueue.getQueue();
+            } else if (leaderId != null) {
+                // Try to connect to leader's queue
+                Registry registry = LocateRegistry.getRegistry(getPeerPort(leaderId));
+                LeaderAwareMessageQueueServer leaderQueue = 
+                    (LeaderAwareMessageQueueServer) registry.lookup("MessageQueue");
+                return leaderQueue.getQueue();
+            }
+            throw new RemoteException("No leader available");
+        } catch (NotBoundException | RemoteException e) {
+            throw new RemoteException("Failed to access message queue", e);
+        }
+    }
+    // /**
+    //  * Transfers the message queue contents from the current leader to the new leader.
+    //  * This method should be called by the stepping down leader before stopping its RMI service.
+    //  * 
+    //  * @param newLeaderId The ID of the new leader
+    //  * @param newLeaderPort The port of the new leader
+    //  */
+    private void transferMessageQueue(UUID newLeaderId, int newLeaderPort) {
+        try {
+            if (messageQueue != null && messageQueue.getQueue() != null) {
+                List<Message> messages = new ArrayList<>();
+                
+                // Drain the current queue atomically
+                synchronized (messageQueue.getQueue()) {
+                    while (!messageQueue.getQueue().isEmpty()) {
+                        Message msg = messageQueue.getQueue().dequeue();
+                        if (msg != null) {
+                            messages.add(msg);
+                        }
+                    }
+                }
+    
+                if (!messages.isEmpty()) {
+                    Message transferMsg = new Message(
+                        OPERATION.QUEUE_TRANSFER,
+                        messages,
+                        getNodeName(),
+                        getNodeId(),
+                        getGossipNode().getHeartbeatService().getUDPport()
+                    );
+    
+                    // Send queue contents to new leader
+                    getGossipNode().getHeartbeatService().sendCompMessage(
+                        transferMsg,
+                        newLeaderId,
+                        newLeaderPort
+                    );
+                }
+            }
+        } catch (RemoteException e) {
+            LOGGER.severe("Error transferring message queue: " + e.getMessage());
+        }
+    }
+    public void sendMessageToLeader(Message message) throws RemoteException {
+        try {
+            if (isLeader()) {
+                messageQueue.getQueue().enqueue(message);
+            } else if (leaderId != null) {
+                Registry registry = LocateRegistry.getRegistry(getPeerPort(leaderId));
+                LeaderAwareMessageQueueServer leaderQueue = 
+                    (LeaderAwareMessageQueueServer) registry.lookup("MessageQueue");
+                leaderQueue.getQueue().enqueue(message);
+            } else {
+                throw new RemoteException("No leader available");
+            }
+        } catch (NotBoundException | RemoteException e) {
+            throw new RemoteException("Failed to send message to leader", e);
+        }
+    }
+
+
+
+    protected void stopQueueService() {
+        if (messageQueue != null) {
+            try {
+                messageQueue.unreg();
+                messageQueue = null;
+            } catch (Exception e) {
+                LOGGER.severe("Error stopping queue service: " + e.getMessage());
+            }
         }
     }
     /**
@@ -687,6 +965,7 @@ public class RaftNode extends Node {
             
             if (leaderTerm > currentTerm.get()) {
                 System.out.println("[DEBUG] Updating to higher term: " + leaderTerm);
+                //transferQueueOwnership(leaderNodeId);
                 stepDown(leaderTerm);
                 return;
             }
@@ -704,6 +983,7 @@ public class RaftNode extends Node {
                     // In this case, highest node ID wins to break tie
                     if (leaderNodeId.compareTo(getNodeId()) > 0) {
                         System.out.println("[DEBUG] Stepping down due to higher node ID");
+                        //transferQueueOwnership(leaderNodeId);
                         stepDown(leaderTerm);
                     }
                 }
@@ -714,9 +994,564 @@ public class RaftNode extends Node {
             ex.printStackTrace();
         }
     }
+
+/*
+██████  ███████ ██████  ██      ██  ██████  █████  ████████ ██  ██████  ███    ██ 
+██   ██ ██      ██   ██ ██      ██ ██      ██   ██    ██    ██ ██    ██ ████   ██ 
+██████  █████   ██████  ██      ██ ██      ███████    ██    ██ ██    ██ ██ ██  ██ 
+██   ██ ██      ██      ██      ██ ██      ██   ██    ██    ██ ██    ██ ██  ██ ██ 
+██   ██ ███████ ██      ███████ ██  ██████ ██   ██    ██    ██  ██████  ██   ████ 
+                                                                                  
+ 
+ */
+
+
+
     //WIP
-    public synchronized void handleAppendEntries(AppendEntriesArgs args) {
-        // Implementation for AppendEntries RPC/UDP (leader to followers)
+
+    private void sendAppendEntries(UUID peerId, int prevLogIndex, List<LogEntry> entries) {
+        int prevLogTerm = prevLogIndex >= 0 ? log.get(prevLogIndex).getTerm() : 0;
+        
+        AppendEntriesArgs args = new AppendEntriesArgs(
+            currentTerm.get(),
+            getNodeId(),
+            prevLogIndex,
+            prevLogTerm,
+            new ArrayList<>(entries),
+            commitIndex
+        );
+
+        Message appendMsg = new Message(
+            OPERATION.APPEND_ENTRIES,
+            args,
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
+        );
+        System.out.println("[DEBUG]->SENDING REPLICATING LOG");
+        System.out.println("[DEBUG]->SENDING REPLICATING LOG CONTENT->" + args.toString());
+        this.getGossipNode().getHeartbeatService().sendCompMessage(
+            appendMsg,
+            peerId,
+            getPeerPort(peerId)
+        );
+    }
+
+    public synchronized void handleAppendEntries(AppendEntriesArgs args, int destination_port) {
+        addNewLog("APPEND_ENTRIES");
+        addNewLog("APPEND_ENTRIES_CONTENT", args);
+        System.out.println("[DEBUGGING] handleAppendEntries");
+        System.out.println("Received AppendEntriesArgs: " + args.toString());
+        //Basic term check
+        if (args.getTerm() < currentTerm.get()) {
+            System.out.println("[DEBUGGING] handleAppendEntries:    1ST IF");
+            sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
+            return;
+            
+        }
+
+        // Update term if needed
+        if (args.getTerm() > currentTerm.get()) {
+            System.out.println("[DEBUGGING] handleAppendEntries:    2ND IF");
+            currentTerm.set(args.getTerm());
+            state.set(NodeState.FOLLOWER);
+            votedFor.set(null);
+        }
+
+        // Reset election timeout as we've heard from current leader
+        resetElectionTimeout();
+        
+        // Verify previous log entry
+        if (args.getPrevLogIndex() >= 0) {
+            System.out.println("[DEBUGGING] handleAppendEntries:    3RD IF");
+            if (args.getPrevLogIndex() >= log.size()) {
+                System.out.println("[DEBUGGING] handleAppendEntries:    3RD-1ST IF");
+                // Don't have the previous entry - reply false
+                sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
+                return;
+            }
+
+            LogEntry prevLogEntry = log.get(args.getPrevLogIndex());
+            if (prevLogEntry.getTerm() != args.getPrevLogTerm()) {
+                System.out.println("[DEBUGGING] handleAppendEntries:    3RD-2ND IF");
+                // Term mismatch in previous entry - reply false
+                // Delete this entry and all that follow it 
+                log = new ArrayList<>(log.subList(0, args.getPrevLogIndex()));
+                sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
+                return;
+            }
+        }
+
+        // Process new entries
+        for (int i = 0; i < args.getEntries().size(); i++) {
+            LogEntry newEntry = args.getEntries().get(i);
+            int entryIndex = args.getPrevLogIndex() + 1 + i;
+
+            if (entryIndex < log.size()) {
+                System.out.println("[DEBUGGING] handleAppendEntries:    IF-INSIDEFOR");
+                // Check if existing entry conflicts with new one
+                if (log.get(entryIndex).getTerm() != newEntry.getTerm()) {
+                    System.out.println("[DEBUGGING] handleAppendEntries:    2ND IF-INSIDEFOR IF");
+                    // Delete this and all following entries
+                    log = new ArrayList<>(log.subList(0, entryIndex));
+                    appendLogEntry(newEntry);
+                }
+                // If terms match, keep existing entry
+            } else {
+                System.out.println("[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR");
+                // Append new entry
+                appendLogEntry(newEntry);
+            }
+
+            // Process the command in the log entry
+            System.out.println("[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY");
+            processLogEntry(newEntry);
+        }
+
+        // Update commit index
+        if (args.getLeaderCommit() > commitIndex) {
+            commitIndex = Math.min(args.getLeaderCommit(), log.size() - 1);
+            applyCommittedEntries();
+        }
+
+        // Send successful reply
+        sendAppendEntriesReply(args.getLeaderId(), true, currentTerm.get(), destination_port);
+    }
+
+    private void applyCommittedEntries() {
+        // Apply all newly committed entries to state machine
+        while (lastApplied < commitIndex) {
+            lastApplied++;
+            LogEntry entry = log.get(lastApplied);
+            processLogEntry(entry);
+        }
+    }
+
+    private void processLogEntry(LogEntry entry) {    
+        try {
+            addNewLog("REPLICATION", entry);
+            String[] parts = entry.getCommand().split(":", 2);
+            if (parts.length != 2) return;
+            OPERATION op = OPERATION.valueOf(parts[0]);
+            Document doc = Document.fromString(parts[1]);
+            System.out.println("[DEBUG] Applying log entry: Operation=" + op + 
+                          ", Document=" + doc + ", Term=" + entry.getTerm() +
+                          ", Index=" + entry.getIndex());
+            System.out.println("[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;");
+            super.processOP(op, doc); // Process the document operation
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid operation in log entry: " + entry.getCommand());
+            e.printStackTrace();
+        }
+    }
+
+    private void sendAppendEntriesReply(UUID leaderId, boolean success, int term, int destination_port) {
+        AppendEntriesReply reply = new AppendEntriesReply(term, success, getNodeId());
+        Message replyMsg = new Message(
+            OPERATION.APPEND_ENTRIES_REPLY,
+            reply,
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
+        );
+        System.out.println("[DEBUG]: SENDING ENTRIES REPLY");
+        System.out.println("Contenent-> " + replyMsg.toString());
+        
+        System.out.println("Sending AppendEntriesReply: " + reply);
+        getGossipNode().getHeartbeatService().sendUncompMessage(
+            replyMsg,
+            leaderId,
+            destination_port
+        );
+    }
+    public synchronized void handleAppendEntriesReply(AppendEntriesReply reply) {
+        addNewLog("APPEND_ENTRIES_REPLY");
+        addNewLog("APPEND_ENTRIES_REPLY_CONTENT", reply);
+        System.out.println("[DEBUG]->handleAppendEntriesReply");
+        if (state.get() != NodeState.LEADER) {
+            return;
+        }
+    
+        if (reply.isSuccess()) {
+            // Update indices for the successful follower
+            updateFollowerIndices(reply.getnodeID());
+            
+            // Check if we have majority and can commit
+            int matchCount = 1; // Count self
+            int currentIndex = log.size() - 1;
+            
+            for (Integer matchIdx : matchIndex.values()) {
+                if (matchIdx >= currentIndex) {
+                    matchCount++;
+                }
+            }
+            
+            // If majority achieved, send commit message to followers
+            if (matchCount > getKnownNodes().size() / 2) {
+                System.out.println("[DEBUG]->handleAppendEntriesReply gonna send commit");
+                System.out.println("[DEBUG] Achieved majority for index " + currentIndex + 
+                ". Sending commit message.");
+                commitIndex = currentIndex;
+                System.out.println("Commit index for index: " + commitIndex);
+                // Send commit notification to followers
+                Message commitMsg = new Message(
+                    OPERATION.COMMIT_INDEX,
+                    commitIndex,
+                    getNodeName(),
+                    getNodeId(),
+                    getGossipNode().getHeartbeatService().getUDPport()
+                );
+                this.getGossipNode().getHeartbeatService().broadcast(commitMsg, true);
+            }
+        } else {
+            // If append failed, decrement nextIndex and retry
+            decrementNextIndex(reply.getnodeID());
+        }
+    }
+    public synchronized void handleCommitIndex(Message message) {
+        System.out.println("[DEBUG]->handleCommitIndex");
+        try {
+            int leaderCommitIndex = (Integer) message.getPayload();
+            System.out.println("[DEBUG] Received commit index: " + leaderCommitIndex + 
+                          ", current commit index: " + commitIndex);
+            // Update local commit index (take minimum of leader's commit index and our last log index)
+            commitIndex = Math.min(leaderCommitIndex, log.size() - 1);
+            System.out.println("[DEBUG] Updated commit index to: " + commitIndex + 
+                          ", applying entries...");
+            
+            // Apply any newly committed entries
+            applyCommittedEntries();
+            
+        } catch (Exception e) {
+            LOGGER.severe("Error handling commit index: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void replicateLogMULTICAST() {
+        System.out.println("[DEBUG]->REPLICATING LOG");
+        // Instead of unicasting to each peer, broadcast the latest entry
+        if (!log.isEmpty()) {
+            LogEntry latestEntry = log.get(log.size() - 1);
+            // The entry before our latest entry
+            int prevLogIndex = log.size() - 2;
+            int prevLogTerm = prevLogIndex >= 0 ? log.get(prevLogIndex).getTerm() : 0;
+            /*
+             If log is empty (size 0): prevLogIndex = -1, prevLogTerm = 0
+             If log has one entry (size 1): prevLogIndex = -1, prevLogTerm = 0
+             If log has multiple entries: prevLogIndex = second-to-last index, prevLogTerm = term of that entry
+             */
+            AppendEntriesArgs args = new AppendEntriesArgs(
+                currentTerm.get(),
+                getNodeId(),
+                prevLogIndex, // Index of the entry that should come before our new entry
+                prevLogTerm,  // Term of that previous entry
+                Collections.singletonList(latestEntry), // NEW ENTRY WE WANT TO ADD
+                commitIndex
+            );
+    
+            Message appendMsg = new Message(
+                OPERATION.APPEND_ENTRIES,
+                args,
+                getNodeName(),
+                getNodeId(),
+                getGossipNode().getHeartbeatService().getUDPport()
+            );
+    
+            this.getGossipNode().getHeartbeatService().broadcast(appendMsg, true);
+        }
+    }
+
+    private void replicateLogUNICAST() {
+        System.out.println("[DEBUG]->REPLICATING LOG");
+        for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
+            System.out.println("[DEBUG]->REPLICATING LOG--for");
+            UUID peerId = peer.getKey();
+            if (!peerId.equals(getNodeId())) {
+                System.out.println("[DEBUG]->REPLICATING LOG--if");
+                int nextIdx = nextIndex.getOrDefault(peerId, log.size()-1);
+                List<LogEntry> entries = log.subList(nextIdx, log.size());
+                
+                System.out.println("[DEBUG]->For peer " + peerId + ":");
+                System.out.println("[DEBUG]->nextIdx: " + nextIdx);
+                System.out.println("[DEBUG]->entries size: " + entries.size());
+
+
+                if (!entries.isEmpty()) {
+                    System.out.println("[DEBUG]->Sending " + entries.size() + " entries to peer: " + peerId);
+                    sendAppendEntries(peerId, nextIdx - 1, entries);
+                }else {
+                    System.out.println("[DEBUG]->No entries to send - nextIdx: " + nextIdx + ", log size: " + log.size());
+                }
+            }else {
+                System.out.println("[DEBUG]->Skipping self");
+            }
+        }
+    }
+    
+    public void handleSyncRequest(String payload, UUID senderId, int senderPort) {
+        String[] parts = payload.split(";");
+        int senderTerm = Integer.parseInt(parts[2]);
+
+        // Step down if we see a higher term
+        if (senderTerm > currentTerm.get()) {
+            stepDown(senderTerm);
+            return;
+        }
+
+        // Process logs
+        String logsSection = parts[3].substring(5); // Skip "LOGS:" prefix
+        updateLogsFromSync(logsSection);
+
+        // Process documents
+        String docsSection = parts[4];
+        processDocumentsFromSync(docsSection);
+
+        // Send acknowledgment
+        this.getGossipNode().getHeartbeatService().sendSyncAck(senderId, senderPort);
+    }
+    private void updateLogsFromSync(String logsSection) {
+        // Parse and update logs
+        String[] logEntries = logsSection.split("\n");
+        for (String logEntry : logEntries) {
+            // Parse log entry and add if newer
+            LogEntry entry = LogEntry.fromString(logEntry);
+            if (entry.getIndex() >= log.size()) {
+                appendLogEntry(entry);
+            }
+        }
+    }
+
+    private void processDocumentsFromSync(String docsSection) {
+        String[] docs = docsSection.split("\\$");
+        for (String doc : docs) {
+            if (!doc.isEmpty()) {
+                Document document = Document.fromString(doc);
+                getDocuments().updateOrAddDocument(document);
+            }
+        }
+    }
+
+
+    private boolean waitForLogReplication(int index) {
+        System.out.println("[DEBUG]: INSIDE waitForLogReplication");
+        System.out.println("[DEBUG]: INDEX: " + index);
+        long startTime = System.currentTimeMillis();
+        int requiredReplicas = (getKnownNodes().size() / 2) + 1;
+        
+        while (System.currentTimeMillis() - startTime < REPLICATION_TIMEOUT) {
+            int replicationCount = 1; // Count self
+            
+            // Count nodes that have replicated this index
+            for (Map.Entry<UUID, Integer> entry : matchIndex.entrySet()) {
+                if (entry.getValue() >= index) {
+                    System.out.println("Votes/ACKs received for node: " + entry.getValue()+" with index: "+index );
+
+                    replicationCount++;
+                }
+            }
+            
+            // Check if we have majority
+            if (replicationCount >= requiredReplicas) {
+                commitIndex = index;
+                applyCommittedEntries();
+                return true;
+            }
+            
+            try {
+                Thread.sleep(100); // Small delay before next check
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        
+        System.out.println("Log replication timed out for index: " + index);
+        return false;
+    }
+
+
+    /**
+     * Updates the indices tracking log replication progress for a follower.
+     * Called when a follower successfully acknowledges AppendEntries.
+     *
+     * @param followerId The UUID of the follower node
+     */
+    public void updateFollowerIndices(UUID followerId) {
+        // Get the last index sent to this follower
+        int lastSentIndex = nextIndex.getOrDefault(followerId, log.size()) - 1;
+        System.out.println("Updating followers indices");
+        System.out.println("nextIndex: " + nextIndex);
+        System.out.println("matchIndex: " + matchIndex);
+        // Update nextIndex for future sends
+        nextIndex.put(followerId, lastSentIndex + 1);
+        
+        // Update matchIndex since we know the follower has matched up to this point
+        matchIndex.put(followerId, lastSentIndex);
+        
+        // Check if we can advance the commit index
+        updateCommitIndex();
+    }
+
+    /**
+     * Decrements the nextIndex for a follower after a failed AppendEntries.
+     * This helps find the point of divergence in the logs.
+     *
+     * @param followerId The UUID of the follower node
+     */ 
+    public void decrementNextIndex(UUID followerId) {
+        int currentNext = nextIndex.getOrDefault(followerId, log.size());
+        if (currentNext > 1) {  // Don't decrement below 1
+            nextIndex.put(followerId, currentNext - 1);
+            
+            // Trigger a new AppendEntries with the decremented index
+            int prevIndex = currentNext - 2;
+            List<LogEntry> entries = log.subList(prevIndex + 1, log.size());
+            sendAppendEntries(followerId, prevIndex, entries);
+        }
+    }
+
+    /**
+     * Updates the commit index if a majority of followers have replicated entries.
+     * This is called after successful AppendEntries replies.
+     */
+    private void updateCommitIndex() {
+        // Sort matched indices to find the median (majority)
+        List<Integer> matchedIndices = new ArrayList<>(matchIndex.values());
+        Collections.sort(matchedIndices);
+        
+        // Get the index that has been replicated to a majority of nodes
+        int majorityIndex = matchedIndices.get(matchedIndices.size() / 2);
+        
+        // Only update commit index:
+        // 1. If the majority index is greater than our current commit index
+        // 2. If the entry at majority index is from our current term
+        if (majorityIndex > commitIndex && 
+            log.get(majorityIndex).getTerm() == currentTerm.get()) {
+            
+            commitIndex = majorityIndex;
+            applyCommittedEntries();
+        }
+    }
+
+    /*
+                                ██████  ██    ██ ███████ ██████  ██████  ██ ██████  ██ ███    ██  ██████  
+                                ██    ██ ██    ██ ██      ██   ██ ██   ██ ██ ██   ██ ██ ████   ██ ██       
+                                ██    ██ ██    ██ █████   ██████  ██████  ██ ██   ██ ██ ██ ██  ██ ██   ███ 
+                                ██    ██  ██  ██  ██      ██   ██ ██   ██ ██ ██   ██ ██ ██  ██ ██ ██    ██ 
+                                ██████    ████   ███████ ██   ██ ██   ██ ██ ██████  ██ ██   ████  ██████  
+                                                                                                                                       
+     */
+    
+    @Override
+    protected synchronized void processOP(OPERATION op, Document document) {
+        if (state.get() != NodeState.LEADER) {
+            // Forward to leader if we're not the leader would be implemented in case all nodes could receive an operation order from a client.
+            return;
+        }
+        // Don't directly process - create log entry first
+        LogEntry entry = new LogEntry(
+            currentTerm.get(),
+            log.size(),
+            String.format("%s:%s", op.toString(), document.toString())
+        );
+        appendLogEntry(entry);
+        
+
+        // Replicate to followers
+        //replicateLog();
+
+        // Only process after majority confirmation
+        if (waitForLogReplication(log.size() - 1)) {
+            super.processOP(op, document);
+        }
+    }
+
+    /**
+     * Processes and commits messages when the node is the leader.
+     */
+    @Override
+    public void processAndCommit() {
+        System.out.println("PROCESS AND COMMIT RAFTNODE");
+        if (!isLeader()) {
+            return;
+        }
+        // if (state.get() == NodeState.LEADER) { //already checked before the call of the method
+        //     super.processAndCommit();
+        // }
+        try {
+            MessageQueue queue = getLeaderQueue();
+            System.out.println("[DEBUG] Got leader queue: " + (queue != null));
+            if (queue != null) {
+                System.out.println("[DEBUG] Queue is empty: " + queue.isEmpty());
+            }
+            if (queue != null && !queue.isEmpty()) {
+                System.out.println("[DEBUG] TOstring queue: " + queue.toString());
+                Message message = queue.dequeue();
+                System.out.println("[DEBUG] Dequeued message: " + message);
+                if (message != null) {
+                    System.out.println("[DEBUG] Processing message: " + message.getOperation() + 
+                             " for document: " + message.getPayload());
+                    // Create log entry
+                    LogEntry entry = new LogEntry(
+                        currentTerm.get(),
+                        log.size(),
+                        String.format("%s:%s", message.getOperation().toString(), 
+                                    message.getPayload().toString())
+                    );
+                    System.out.println("[DEBUG]->Before adding entry - log size: " + log.size());
+                    System.out.println("[DEBUG]->Before adding entry - log: " + log.toString());
+
+                    System.out.println("Adding Logging entry from message queue");
+                    appendLogEntry(entry);
+                    System.out.println("[DEBUG]->After adding entry - log size: " + log.size());
+                    
+                    for (UUID peerId : nextIndex.keySet()) {
+                        if (!peerId.equals(getNodeId())) {
+                            nextIndex.put(peerId, 0);
+                        }
+                    }
+
+                    // Actively replicate to followers
+                    //replicateLogUNICAST();
+                    replicateLogMULTICAST();
+                    // Replicate and process
+                    if (waitForLogReplication(log.size() - 1)) {
+                        System.out.println("[DEBUG] Waiting for replication of index: " + (log.size() - 1));
+                        processMessage(message);
+                        System.out.println("[DEBUG] Finished processing message");
+                    } else {
+                        System.out.println("[DEBUG] Failed to replicate message");
+                    }
+                }
+            }
+        } catch (RemoteException e) {
+            LOGGER.severe("Error processing message queue: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+
+    @Override
+    public Message startFullSyncProcess() {
+        String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + 
+                                                                 Long.toString(System.currentTimeMillis()));
+        
+        StringBuilder payloadBuilder = new StringBuilder()
+            .append(operationID).append(";")
+            .append(getNodeId()).append(":")
+            .append(this.getGossipNode().getHeartbeatService().getUDPport()).append(";")
+            .append(currentTerm.get()).append(";"); // Include current term
+
+        // Add log entries
+        payloadBuilder.append("LOGS:").append(getLogsAsString()).append(";");
+
+        // Add documents
+        this.getDocuments().getDocuments().values().forEach(doc -> {
+            payloadBuilder.append(doc.toString()).append("$");
+        });
+
+        return new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
     }
     
 }

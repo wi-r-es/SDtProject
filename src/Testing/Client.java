@@ -21,7 +21,7 @@ public class Client {
 
 
             System.out.println(Naming.list("rmi://localhost:2323").toString());
-            messageRemoteInterface rq = (messageRemoteInterface) Naming.lookup("rmi://localhost:2323/Node-0/queue");
+            messageRemoteInterface rq = (messageRemoteInterface) Naming.lookup("rmi://localhost:2323/MessageQueue");
             System.out.println("Connected to MessageQueue");
 
 

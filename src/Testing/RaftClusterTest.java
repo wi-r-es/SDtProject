@@ -18,7 +18,6 @@ public class RaftClusterTest {
             try {
                 nodes.add(new RaftNode(nodeId, false));
             } catch (RemoteException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -27,14 +26,14 @@ public class RaftClusterTest {
         //nodes.forEach(node -> new Thread(node::startElection).start());
         //nodes.forEach(node -> new Thread(node::scheduleElectionTimeout).start());
         
-        // try {
-        //     File logFile = new File("output8.txt");
-        //     PrintStream fileOut = new PrintStream(logFile);
-        //     System.setOut(fileOut); // Redirects System.out to the file
-        // } catch (FileNotFoundException e) {
-        //     e.printStackTrace();
-        //     return; // Exit if the file can't be created
-        // }
+        try {
+            File logFile = new File("raftReplicationTestingAndDebugging.txt");
+            PrintStream fileOut = new PrintStream(logFile);
+            System.setOut(fileOut); // Redirects System.out to the file
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return; // Exit if the file can't be created
+        }
 
        
 

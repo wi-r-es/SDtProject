@@ -12,10 +12,12 @@ import shared.MessageQueue;
 
 public class messageQueueServer extends Thread {       
 
-    private Registry registry;
+    public Registry registry;
     private MessageQueue mq;
     private int registryPort;
     private String regName;
+    private messageRemoteInterface stub;
+
     //private volatile boolean running;
     
     public messageQueueServer(String NodeID, int port) throws RemoteException{
@@ -23,59 +25,80 @@ public class messageQueueServer extends Thread {
         registryPort = port;
         //running = true;
         mq = new MessageQueue();
+        stub = (messageRemoteInterface) UnicastRemoteObject.exportObject(mq, port);
     }
 
     @Override
     public void run() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::unreg));
         try {
-
+            System.setProperty("java.rmi.server.hostname", "localhost");
             
-            Registry reg = LocateRegistry.createRegistry(registryPort);
-            System.out.println("RMI registry created on port " + registryPort);
-            
-            
-            //String regURL = "rmi://localhost:" + registryPort + "/queue";
-            //reg.rebind(regURL, mq);
-            System.out.println(regName);
-            System.out.println(mq);
+            // Create or get registry
+            try {
+                registry = LocateRegistry.getRegistry(registryPort);
+                registry.list(); // Test if registry exists
+            } catch (RemoteException e) {
+                registry = LocateRegistry.createRegistry(registryPort);
+                System.out.println("Created new RMI registry on port " + registryPort);
+            }
 
-            reg.rebind(regName+"/queue", mq);
-            System.out.println("MessageQueue bound to registry as 'queue'");
+            // Bind the already exported stub
+            registry.rebind("MessageQueue", stub);
+            System.out.println("MessageQueue bound to registry as 'MessageQueue' on port " + registryPort);
 
-            // while(running){
-            //     System.out.println("RMI IS ALIVE");
-            //     Thread.sleep(1000);
-            // }
+            while (!Thread.currentThread().isInterrupted()) {
+                Thread.sleep(1000);
+            }
 
-
-
-        } 
-        catch (RemoteException e) {
+        } catch (RemoteException | InterruptedException e) {
             e.printStackTrace();
         }
-        // } catch (RemoteException | InterruptedException e) {
-        //     e.printStackTrace();
-        // }
+    }
+    public void unreg() {
+        try {
+            if (registry != null) {
+                try {
+                    registry.unbind("MessageQueue");
+                } catch (Exception e) {
+                    // Ignore if already unbound
+                }
+            }
+            if (stub != null) {
+                try {
+                    UnicastRemoteObject.unexportObject(mq, true);
+                } catch (Exception e) {
+                    // Ignore if already unexported
+                }
+            }
+            if (registry != null) {
+                try {
+                    UnicastRemoteObject.unexportObject(registry, true);
+                } catch (Exception e) {
+                    // Ignore if already unexported
+                }
+            }
+            System.out.println("MessageQueue server shutdown complete");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
    
 
-    public void unreg() {
+    public void transferOwnership(String newOwner) {
         try {
-            if (registry != null && mq != null) {
-                registry.unbind("queue"); 
-                UnicastRemoteObject.unexportObject(mq, true); 
-                System.out.println("MessageQueue unbound and unexported from RMI registry");
-
-                UnicastRemoteObject.unexportObject(registry, true); 
-                System.out.println("RMI registry unexported");
-            }
-        } catch (Exception e) {
+            System.out.println("Transferring MessageQueue ownership to " + newOwner);
+            registry.rebind("MessageQueue", mq);
+            System.out.println("MessageQueue successfully transferred to " + newOwner);
+        } catch (RemoteException e) {
             e.printStackTrace();
-            throw new RuntimeException("Failed to stop RMI server", e);
+            throw new RuntimeException("Failed to transfer ownership", e);
         }
     }
+
+    
+
     public boolean checkQueue() throws RemoteException{
         return !mq.isEmpty();
     }
