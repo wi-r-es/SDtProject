@@ -1094,11 +1094,13 @@ protected void startLeaderServices() {
                     System.out.println("[DEBUGGING] handleAppendEntries:    2ND IF-INSIDEFOR IF");
                     // Delete this and all following entries
                     log = new ArrayList<>(log.subList(0, entryIndex));
+                    System.out.println("[DEBUGGING] Appending Log entry handleAppendEntries:    2ND IF-INSIDEFOR IF");
                     appendLogEntry(newEntry);
                 }
                 // If terms match, keep existing entry
             } else {
                 System.out.println("[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR");
+                System.out.println("[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR");
                 // Append new entry
                 appendLogEntry(newEntry);
             }
@@ -1317,9 +1319,11 @@ protected void startLeaderServices() {
             // Parse log entry and add if newer
             LogEntry entry = LogEntry.fromString(logEntry);
             if (entry.getIndex() >= log.size()) {
+                System.out.println("[DEBUGGING] updateLogsFromSync");
                 appendLogEntry(entry);
             }
         }
+        System.out.println("[DEBUGGING]  after updateLogsFromSync. LOGS: " + log.toString());
     }
 
     private void processDocumentsFromSync(String docsSection) {
@@ -1388,6 +1392,9 @@ protected void startLeaderServices() {
         
         // Update matchIndex since we know the follower has matched up to this point
         matchIndex.put(followerId, lastSentIndex);
+        System.out.println("AFTER updating followers indices");
+        System.out.println("nextIndex: " + nextIndex);
+        System.out.println("matchIndex: " + matchIndex);
         
         // Check if we can advance the commit index
         updateCommitIndex();
@@ -1443,29 +1450,30 @@ protected void startLeaderServices() {
                                                                                                                                        
      */
     
-    @Override
-    protected synchronized void processOP(OPERATION op, Document document) {
-        if (state.get() != NodeState.LEADER) {
-            // Forward to leader if we're not the leader would be implemented in case all nodes could receive an operation order from a client.
-            return;
-        }
-        // Don't directly process - create log entry first
-        LogEntry entry = new LogEntry(
-            currentTerm.get(),
-            log.size(),
-            String.format("%s:%s", op.toString(), document.toString())
-        );
-        appendLogEntry(entry);
+    // @Override
+    // protected synchronized void processOP(OPERATION op, Document document) {
+    //     if (state.get() != NodeState.LEADER) {
+    //         // Forward to leader if we're not the leader would be implemented in case all nodes could receive an operation order from a client.
+    //         return;
+    //     }
+    //     // Don't directly process - create log entry first
+    //     LogEntry entry = new LogEntry(
+    //         currentTerm.get(),
+    //         log.size(),
+    //         String.format("%s:%s", op.toString(), document.toString())
+    //     );
+    //     System.out.println("[DEBUGGING] appendLogEntry processOP");
+    //     appendLogEntry(entry);
         
 
-        // Replicate to followers
-        //replicateLog();
+    //     // Replicate to followers
+    //     //replicateLog();
 
-        // Only process after majority confirmation
-        if (waitForLogReplication(log.size() - 1)) {
-            super.processOP(op, document);
-        }
-    }
+    //     // Only process after majority confirmation
+    //     if (waitForLogReplication(log.size() - 1)) {
+    //         super.processOP(op, document);
+    //     }
+    // }
 
     /**
      * Processes and commits messages when the node is the leader.
