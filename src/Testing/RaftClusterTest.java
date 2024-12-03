@@ -7,7 +7,6 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
-import Nodes.Node;
 import Nodes.Raft.RaftNode;
 public class RaftClusterTest {
     public static void main(String[] args) {

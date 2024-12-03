@@ -15,13 +15,13 @@ public class messageQueueServer extends Thread {
     public Registry registry;
     private MessageQueue mq;
     private int registryPort;
-    private String regName;
+    //private String regName;
     private messageRemoteInterface stub;
 
     //private volatile boolean running;
     
     public messageQueueServer(String NodeID, int port) throws RemoteException{
-        regName = NodeID;
+        //regName = NodeID;
         registryPort = port;
         //running = true;
         mq = new MessageQueue();

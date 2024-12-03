@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import Exception.LeaderRedirectException;
 import Nodes.Raft.RaftNode;
-import shared.MessageQueue;
 import shared.Message;
 import shared.OPERATION;
 
@@ -19,13 +18,13 @@ interface LeaderAwareMessageQueue extends messageRemoteInterface {
 
 // Leader-aware implementation of the message queue
 public class LeaderAwareMessageQueueServer extends messageQueueServer implements LeaderAwareMessageQueue {
-    private final UUID nodeId;
+    //private final UUID nodeId;
     private volatile UUID currentLeader;
     private final RaftNode raftNode;  // Reference to RaftNode
 
     public LeaderAwareMessageQueueServer(String NodeID, int port, UUID nodeId, RaftNode raftNode) throws RemoteException {
         super(NodeID, port);
-        this.nodeId = nodeId;
+        //this.nodeId = nodeId;
         this.raftNode = raftNode;
         this.currentLeader = nodeId; // Initially assume we're leader
     }
