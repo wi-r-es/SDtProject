@@ -1117,7 +1117,7 @@ public class HeartbeatService extends Thread {
         
         initializeRaftState(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing);
     }
-    @SuppressWarnings("deprecation")
+   
     private void initializeRaftState(UUID leaderID, int leader_port, int sync_port) {
         try (DatagramSocket syncSocket = new DatagramSocket(sync_port)) {
             syncSocket.setSoTimeout(50000);

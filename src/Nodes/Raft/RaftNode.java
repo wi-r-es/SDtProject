@@ -821,13 +821,13 @@ protected void startLeaderServices() {
             throw new RemoteException("Failed to access message queue", e);
         }
     }
-    // /**
-    //  * Transfers the message queue contents from the current leader to the new leader.
-    //  * This method should be called by the stepping down leader before stopping its RMI service.
-    //  * 
-    //  * @param newLeaderId The ID of the new leader
-    //  * @param newLeaderPort The port of the new leader
-    //  */
+    /**
+     * Transfers the message queue contents from the current leader to the new leader.
+     * This method will be called by the stepping down leader before stopping its RMI service.
+     * 
+     * @param newLeaderId The ID of the new leader
+     * @param newLeaderPort The port of the new leader
+     */
     private void transferMessageQueue(UUID newLeaderId, int newLeaderPort) {
         try {
             if (messageQueue != null && messageQueue.getQueue() != null) {
@@ -1316,7 +1316,7 @@ protected void startLeaderServices() {
         System.out.println("[DEBUGGING] handleSyncRequest");
         System.out.println("[DEBUGGING] handleSyncRequest->paylaod->" +payload);
         String[] parts = payload.split(";");
-        int senderTerm = Integer.parseInt(parts[2]);
+        //int senderTerm = Integer.parseInt(parts[2]);
 
         // Step down if we see a higher term
         // if (senderTerm > currentTerm.get()) {

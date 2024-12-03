@@ -71,8 +71,7 @@ public class LogEntry implements Serializable{
         return "LogEntry{" +
                 "term=" + term +
                 ", index=" + index +
-                ", command='" + command + '\'' +
-                "}";
+                ", command='" + command + "'}" ;
     }
 }
 
