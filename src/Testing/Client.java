@@ -3,12 +3,11 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
+
 
 import Nodes.Node;
 import Resources.Document;
 import remote.messageRemoteInterface;
-import shared.Message;
 import shared.OPERATION;
 
 public class Client {
@@ -28,7 +27,7 @@ public class Client {
             Document doc1 = new Document("This is a new document1");
             Document doc2 = new Document("This is a new document2");
             Document doc3 = new Document("This is a new document3");
-            //Message msg = new Message(OPERATION.CREATE, doc1);
+
             // Perform remote operations
             //rq.enqueue(msg);
 

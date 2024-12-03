@@ -1,0 +1,3 @@
+[DEBUG] Updated commit index to:
+
+[DEBUG]->updateFollowerIndices-> 

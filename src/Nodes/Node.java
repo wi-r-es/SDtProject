@@ -27,7 +27,7 @@ import Resources.Document;
 import Services.AckServiceServer;
 import remote.messageQueueServer;
 
-import java.rmi.Naming;
+
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;

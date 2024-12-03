@@ -1,19 +1,13 @@
 package Testing;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.net.MalformedURLException;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 
-import Nodes.Node;
-import Nodes.Raft.RaftNode;
+
+import java.rmi.Naming;
+
+import java.rmi.RemoteException;
+
 import Resources.Document;
 import remote.LeaderAwareMessageQueueServer;
-import remote.messageRemoteInterface;
-import shared.Message;
+
 import shared.OPERATION;
 
 public class RaftClient {
@@ -44,7 +38,7 @@ public class RaftClient {
             // Use the client
             try {
                 // Enqueue message
-                Message msg = new Message(OPERATION.CREATE, doc1);
+                
                 System.out.println("Attempting to enqueue message...");
                 // client.enqueue(msg);
                 // msg = new Message(OPERATION.CREATE, doc1);

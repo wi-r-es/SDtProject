@@ -20,7 +20,6 @@ import utils.UniqueIdGenerator;
 import Nodes.Node;
 import Resources.Document;
 import remote.LeaderAwareMessageQueueServer;
-import remote.messageQueueServer;
 
 /**
  * The RaftNode class represents a node in a Raft consensus cluster.
@@ -32,8 +31,8 @@ public class RaftNode extends Node {
     private static FileHandler fh;
     //fields for log replication
     private List<LogEntry> log;
-    private Map<UUID, Integer> nextIndex;  // Index of next log entry to send to each node
-    private Map<UUID, Integer> matchIndex; // Index of highest log entry known to be replicated
+    private Map<UUID, Integer> nextIndex = Collections.synchronizedMap(new HashMap<>());  // Index of next log entry to send to each node
+    private Map<UUID, Integer> matchIndex = Collections.synchronizedMap(new HashMap<>()); // Index of highest log entry known to be replicated
     private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
     private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
     //CONSTANTS
@@ -86,7 +85,7 @@ public class RaftNode extends Node {
         this.electionTimeout = new AtomicLong(0);
         
         startElectionMonitor();
-        initializeIndices(); // for log replication
+        //initializeIndices(); // for log replication
     }
     public RaftNode(String nodeId, boolean isLeader, boolean r) throws RemoteException {
         super(nodeId, isLeader,r);
@@ -106,7 +105,7 @@ public class RaftNode extends Node {
         this.electionTimeout = new AtomicLong(0);
 
         startElectionMonitor();
-        initializeIndices(); // for log replication
+        //initializeIndices(); // for log replication
     }
 
     /**
@@ -316,7 +315,7 @@ public class RaftNode extends Node {
      */
     private void initializeIndices() {
         for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
-            nextIndex.put(peer.getKey(), 0);
+            nextIndex.put(peer.getKey(), log.size());
             matchIndex.put(peer.getKey(), 0);
         }
     }
@@ -682,6 +681,15 @@ public class RaftNode extends Node {
         System.out.println("[DEBUG]: The following node is the new leader: " + getNodeName());
         state.set(NodeState.LEADER);
         
+        // Initialize tracking maps for all known nodes
+        nextIndex.clear();
+        matchIndex.clear();
+        for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
+            // Start by assuming followers are behind by one entry
+            initializeIndices();
+            
+        }
+
         
         synchronized (timerLock) {
             // Stop checking election timeout since we're now leader
@@ -713,6 +721,9 @@ public class RaftNode extends Node {
             // Transfer queue contents before stopping service
             transferMessageQueue(leaderId, getPeerPort(leaderId));
             stopQueueService();
+            // Clear tracking maps when stepping down
+            nextIndex.clear();
+            matchIndex.clear();
         }
         
         System.out.println("[DEBUG] Stepping down: current term=" + currentTerm.get() + 
@@ -1120,32 +1131,7 @@ protected void startLeaderServices() {
         sendAppendEntriesReply(args.getLeaderId(), true, currentTerm.get(), destination_port);
     }
 
-    private void applyCommittedEntries() {
-        // Apply all newly committed entries to state machine
-        while (lastApplied < commitIndex) {
-            lastApplied++;
-            LogEntry entry = log.get(lastApplied);
-            processLogEntry(entry);
-        }
-    }
 
-    private void processLogEntry(LogEntry entry) {    
-        try {
-            addNewLog("REPLICATION", entry);
-            String[] parts = entry.getCommand().split(":", 2);
-            if (parts.length != 2) return;
-            OPERATION op = OPERATION.valueOf(parts[0]);
-            Document doc = Document.fromString(parts[1]);
-            System.out.println("[DEBUG] Applying log entry: Operation=" + op + 
-                          ", Document=" + doc + ", Term=" + entry.getTerm() +
-                          ", Index=" + entry.getIndex());
-            System.out.println("[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;");
-            super.processOP(op, doc); // Process the document operation
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid operation in log entry: " + entry.getCommand());
-            e.printStackTrace();
-        }
-    }
 
     private void sendAppendEntriesReply(UUID leaderId, boolean success, int term, int destination_port) {
         AppendEntriesReply reply = new AppendEntriesReply(term, success, getNodeId());
@@ -1173,11 +1159,14 @@ protected void startLeaderServices() {
         if (state.get() != NodeState.LEADER) {
             return;
         }
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - nextIndex: " + nextIndex.toString());
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - matchIndex: " + matchIndex.toString());
     
         if (reply.isSuccess()) {
             // Update indices for the successful follower
             updateFollowerIndices(reply.getnodeID());
-            
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - nextIndex: " + nextIndex);
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - matchIndex: " + matchIndex);
             // Check if we have majority and can commit
             int matchCount = 1; // Count self
             int currentIndex = log.size() - 1;
@@ -1208,6 +1197,35 @@ protected void startLeaderServices() {
         } else {
             // If append failed, decrement nextIndex and retry
             decrementNextIndex(reply.getnodeID());
+        }
+    }
+
+
+
+    private void applyCommittedEntries() {
+        // Apply all newly committed entries to state machine
+        while (lastApplied < commitIndex) {
+            lastApplied++;
+            LogEntry entry = log.get(lastApplied);
+            processLogEntry(entry);
+        }
+    }
+
+    private void processLogEntry(LogEntry entry) {    
+        try {
+            addNewLog("REPLICATION", entry);
+            String[] parts = entry.getCommand().split(":", 2);
+            if (parts.length != 2) return;
+            OPERATION op = OPERATION.valueOf(parts[0]);
+            Document doc = Document.fromString(parts[1]);
+            System.out.println("[DEBUG] Applying log entry: Operation=" + op + 
+                          ", Document=" + doc + ", Term=" + entry.getTerm() +
+                          ", Index=" + entry.getIndex());
+            System.out.println("[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;");
+            super.processOP(op, doc); // Process the document operation
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid operation in log entry: " + entry.getCommand());
+            e.printStackTrace();
         }
     }
     public synchronized void handleCommitIndex(Message message) {
@@ -1264,32 +1282,32 @@ protected void startLeaderServices() {
         }
     }
 
-    private void replicateLogUNICAST() {
-        System.out.println("[DEBUG]->REPLICATING LOG");
-        for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
-            System.out.println("[DEBUG]->REPLICATING LOG--for");
-            UUID peerId = peer.getKey();
-            if (!peerId.equals(getNodeId())) {
-                System.out.println("[DEBUG]->REPLICATING LOG--if");
-                int nextIdx = nextIndex.getOrDefault(peerId, log.size()-1);
-                List<LogEntry> entries = log.subList(nextIdx, log.size());
+    // private void replicateLogUNICAST() {
+    //     System.out.println("[DEBUG]->REPLICATING LOG");
+    //     for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
+    //         System.out.println("[DEBUG]->REPLICATING LOG--for");
+    //         UUID peerId = peer.getKey();
+    //         if (!peerId.equals(getNodeId())) {
+    //             System.out.println("[DEBUG]->REPLICATING LOG--if");
+    //             // int nextIdx = nextIndex.getOrDefault(peerId, log.size()-1);
+    //             // List<LogEntry> entries = log.subList(nextIdx, log.size());
                 
-                System.out.println("[DEBUG]->For peer " + peerId + ":");
-                System.out.println("[DEBUG]->nextIdx: " + nextIdx);
-                System.out.println("[DEBUG]->entries size: " + entries.size());
+    //             System.out.println("[DEBUG]->For peer " + peerId + ":");
+    //             System.out.println("[DEBUG]->nextIdx: " + nextIdx);
+    //             System.out.println("[DEBUG]->entries size: " + entries.size());
 
 
-                if (!entries.isEmpty()) {
-                    System.out.println("[DEBUG]->Sending " + entries.size() + " entries to peer: " + peerId);
-                    sendAppendEntries(peerId, nextIdx - 1, entries);
-                }else {
-                    System.out.println("[DEBUG]->No entries to send - nextIdx: " + nextIdx + ", log size: " + log.size());
-                }
-            }else {
-                System.out.println("[DEBUG]->Skipping self");
-            }
-        }
-    }
+    //             if (!entries.isEmpty()) {
+    //                 System.out.println("[DEBUG]->Sending " + entries.size() + " entries to peer: " + peerId);
+    //                 sendAppendEntries(peerId, nextIdx - 1, entries);
+    //             }else {
+    //                 System.out.println("[DEBUG]->No entries to send - nextIdx: " + nextIdx + ", log size: " + log.size());
+    //             }
+    //         }else {
+    //             System.out.println("[DEBUG]->Skipping self");
+    //         }
+    //     }
+    // }
     
     public void handleSyncRequest(String payload, UUID senderId, int senderPort) {
         String[] parts = payload.split(";");
@@ -1381,20 +1399,27 @@ protected void startLeaderServices() {
      *
      * @param followerId The UUID of the follower node
      */
-    public void updateFollowerIndices(UUID followerId) {
+    public synchronized void updateFollowerIndices(UUID followerId) throws NullPointerException{
         // Get the last index sent to this follower
-        int lastSentIndex = nextIndex.getOrDefault(followerId, log.size()) - 1;
-        System.out.println("Updating followers indices");
-        System.out.println("nextIndex: " + nextIndex);
-        System.out.println("matchIndex: " + matchIndex);
-        // Update nextIndex for future sends
-        nextIndex.put(followerId, lastSentIndex + 1);
-        
+        Integer currentNextIndex  = nextIndex.get(followerId);
+        if(currentNextIndex == null){
+            throw new NullPointerException("There was no entry in the map for the following node: " + followerId);
+        }
+        System.out.println("[DEBUG]->updateFollowerIndices-> Updating indices for " + followerId);
+        System.out.println("[DEBUG]->updateFollowerIndices-> currentNextIndex: " + currentNextIndex );
+        System.out.println("[DEBUG]->updateFollowerIndices-> log.size(): " + log.size());
+        System.out.println("[DEBUG]->updateFollowerIndices-> log.content(): " + log.toString());
+        System.out.println("[DEBUG]->updateFollowerIndices-> matchIndex: " + matchIndex);
+
         // Update matchIndex since we know the follower has matched up to this point
-        matchIndex.put(followerId, lastSentIndex);
+        matchIndex.put(followerId, currentNextIndex );
+        // Update nextIndex for future sends
+        nextIndex.put(followerId, currentNextIndex+1 );
+        
+       
         System.out.println("AFTER updating followers indices");
-        System.out.println("nextIndex: " + nextIndex);
-        System.out.println("matchIndex: " + matchIndex);
+        System.out.println("[DEBUG]->updateFollowerIndices-> nextIndex: " + nextIndex.get(followerId));
+        System.out.println("[DEBUG]->updateFollowerIndices-> matchIndex: " + matchIndex.get(followerId));
         
         // Check if we can advance the commit index
         updateCommitIndex();
@@ -1408,11 +1433,13 @@ protected void startLeaderServices() {
      */ 
     public void decrementNextIndex(UUID followerId) {
         int currentNext = nextIndex.getOrDefault(followerId, log.size());
+        System.out.println("[DEBVUG]->decrementNextIndex-> current nextIndex: " + currentNext);
         if (currentNext > 1) {  // Don't decrement below 1
             nextIndex.put(followerId, currentNext - 1);
             
             // Trigger a new AppendEntries with the decremented index
             int prevIndex = currentNext - 2;
+            System.out.println("[DEBUG]->decrementNextIndex-> trigeering a new [AppendEntries] from index: " + prevIndex+1 +" to " + log.size());
             List<LogEntry> entries = log.subList(prevIndex + 1, log.size());
             sendAppendEntries(followerId, prevIndex, entries);
         }
@@ -1426,10 +1453,14 @@ protected void startLeaderServices() {
         // Sort matched indices to find the median (majority)
         List<Integer> matchedIndices = new ArrayList<>(matchIndex.values());
         Collections.sort(matchedIndices);
-        
+        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list: " + matchedIndices.toString()  );
+        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size: " + matchedIndices.size()  );
+        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
+        //System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
         // Get the index that has been replicated to a majority of nodes
         int majorityIndex = matchedIndices.get(matchedIndices.size() / 2);
-        
+        System.out.println("[DEBUG]updateCommitIndex-> majorityIndex: " + majorityIndex+ "; commitIndex: " + commitIndex +
+                              "; majorityIndexes term:  " +log.get(majorityIndex).getTerm() + "; current term: " + currentTerm.get() );
         // Only update commit index:
         // 1. If the majority index is greater than our current commit index
         // 2. If the entry at majority index is from our current term
@@ -1514,11 +1545,11 @@ protected void startLeaderServices() {
                     appendLogEntry(entry);
                     System.out.println("[DEBUG]->After adding entry - log size: " + log.size());
                     
-                    for (UUID peerId : nextIndex.keySet()) {
-                        if (!peerId.equals(getNodeId())) {
-                            nextIndex.put(peerId, 0);
-                        }
-                    }
+                    // for (UUID peerId : nextIndex.keySet()) {
+                    //     if (!peerId.equals(getNodeId())) {
+                    //         nextIndex.put(peerId, 0);
+                    //     }
+                    // }
 
                     // Actively replicate to followers
                     //replicateLogUNICAST();
