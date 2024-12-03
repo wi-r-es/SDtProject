@@ -108,6 +108,9 @@ public class GossipNode extends Thread {
     public Message startFullSyncProcess(){
        return node.startFullSyncProcess();
     }
+    public boolean isRaftNode(){
+        return node.isRaftNode();
+    }
 
 
         /*

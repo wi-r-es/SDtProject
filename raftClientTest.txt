@@ -1,0 +1,1862 @@
+Attempting to enqueue message...
+Successfully connected to MessageQueue on port 2323
+Ffull sync new node
+Thread-2
+Listening on multicast group: 230.0.0.0
+Waiting for response to discovery message...
+Received sync response: Message{header='DISCOVERY_ACK', payload=DISCOVERY_ACK:725cde79-4d97-4f74-a0d2-79627185e6c8:10199:1733215225109, nodeName='null', nodeId=null, udpPort=0}
+FULL_SYNC SENT FROM 70d44e32-aeb9-4000-aa19-78ac199320e8 to 10199
+MESSAGE: Message{header='FULL_SYNC_ANS', payload=b40c8599f43ff0f2671abdbb6352f0ce7ffeb55d4196e9c3fb56bba88921f80f;725cde79-4d97-4f74-a0d2-79627185e6c8:10199;3;LOGS:LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}#LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}#LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#;Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}$Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}$, nodeName='null', nodeId=null, udpPort=0}
+PAYLOAD INITIALIZE RAFT STATE : b40c8599f43ff0f2671abdbb6352f0ce7ffeb55d4196e9c3fb56bba88921f80f;725cde79-4d97-4f74-a0d2-79627185e6c8:10199;3;LOGS:LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}#LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}#LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#;Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}$Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}$
+[DEBUGGING] handleSyncRequest
+[DEBUGGING] handleSyncRequest->paylaod->b40c8599f43ff0f2671abdbb6352f0ce7ffeb55d4196e9c3fb56bba88921f80f;725cde79-4d97-4f74-a0d2-79627185e6c8:10199;3;LOGS:LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}#LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}#LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#;Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}$Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}$
+[DEBUGGING] handleSyncRequest gooing to updateLogsFromSync 
+[DEBUGGING] handleSyncRequest logsSection-> LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}#LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}#LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#
+[DEBUGGING] updateLogsFromSync-> logsize() -> 0
+[DEBUGGING] updateLogsFromSync-> logslogsSectionze() -> LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}#LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}#LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}#LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}#
+[DEBUGGING] updateLogsFromSync-> logEntries() -> [Ljava.lang.String;@643b1d11
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 0logsize() 0
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 1logsize() 1
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 2logsize() 2
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 3logsize() 3
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 4logsize() 4
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING] updateLogsFromSync-> logEntry() -> LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}'}
+[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> 5logsize() 5
+[DEBUGGING] updateLogsFromSync-> entry LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[DEBUGGING] updateLogsFromSync
+[DEBUGGING]  after updateLogsFromSync. LOGS: [LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}, LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}, LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}, LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}]
+[DEBUGGING] handleSyncRequest back from updateLogsFromSync 
+[DEBUGGING] handleSyncRequest gooing to processDocumentsFromSync 
+[DEBUGGING] handleSyncRequest docsSection-> Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}$Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}$
+[DEBUGGING]  processDocumentsFromSync. doc: Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+Document added: Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[DEBUGGING]  processDocumentsFromSync. doc: Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+Document added: Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[DEBUGGING] handleSyncRequest back from processDocumentsFromSync logsSize()-> 6
+[DEBUG] Stepping down: current term=0, new term=3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
+Message enqueued successfully
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Received compressed message
+[DEBUG]->APPEND ENTRIES RECIEVED
+[DEBUGGING] handleAppendEntries
+Received AppendEntriesArgs: AppendEntriesArgs{term=3, leaderId=725cde79-4d97-4f74-a0d2-79627185e6c8, prevLogIndex=5, prevLogTerm=3, leaderCommit=5, entries=[LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}]}
+[DEBUGGING] handleAppendEntries:    3RD IF
+[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, Term=3, Index=6
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document added: Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}
+Document created: Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}
+[DEBUG]: SENDING ENTRIES REPLY
+Contenent-> Message{header='APPEND_ENTRIES_REPLY', payload=AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}, nodeName='Node-66', nodeId=70d44e32-aeb9-4000-aa19-78ac199320e8, udpPort=10172}
+Sending AppendEntriesReply: AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 6, current commit index: 5
+[DEBUG] Updated commit index to: 6, applying entries...
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, Term=3, Index=6
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document already up-to-date: Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 6, current commit index: 6
+[DEBUG] Updated commit index to: 6, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 6, current commit index: 6
+[DEBUG] Updated commit index to: 6, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 6, current commit index: 6
+[DEBUG] Updated commit index to: 6, applying entries...
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Received compressed message
+[DEBUG]->APPEND ENTRIES RECIEVED
+[DEBUGGING] handleAppendEntries
+Received AppendEntriesArgs: AppendEntriesArgs{term=3, leaderId=725cde79-4d97-4f74-a0d2-79627185e6c8, prevLogIndex=6, prevLogTerm=3, leaderCommit=6, entries=[LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}]}
+[DEBUGGING] handleAppendEntries:    3RD IF
+[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY
+[DEBUG] Applying log entry: Operation=UPDATE, Document=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, Term=3, Index=7
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document updated: Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}
+[DEBUG]: SENDING ENTRIES REPLY
+Contenent-> Message{header='APPEND_ENTRIES_REPLY', payload=AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}, nodeName='Node-66', nodeId=70d44e32-aeb9-4000-aa19-78ac199320e8, udpPort=10172}
+Sending AppendEntriesReply: AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 7, current commit index: 6
+[DEBUG] Updated commit index to: 7, applying entries...
+[DEBUG] Applying log entry: Operation=UPDATE, Document=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, Term=3, Index=7
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document already up-to-date: Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 7, current commit index: 7
+[DEBUG] Updated commit index to: 7, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 7, current commit index: 7
+[DEBUG] Updated commit index to: 7, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 7, current commit index: 7
+[DEBUG] Updated commit index to: 7, applying entries...
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Received compressed message
+[DEBUG]->APPEND ENTRIES RECIEVED
+[DEBUGGING] handleAppendEntries
+Received AppendEntriesArgs: AppendEntriesArgs{term=3, leaderId=725cde79-4d97-4f74-a0d2-79627185e6c8, prevLogIndex=7, prevLogTerm=3, leaderCommit=7, entries=[LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}]}
+[DEBUGGING] handleAppendEntries:    3RD IF
+[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}, Term=3, Index=8
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document added: Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}
+Document created: Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}
+[DEBUG]: SENDING ENTRIES REPLY
+Contenent-> Message{header='APPEND_ENTRIES_REPLY', payload=AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}, nodeName='Node-66', nodeId=70d44e32-aeb9-4000-aa19-78ac199320e8, udpPort=10172}
+Sending AppendEntriesReply: AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 8, current commit index: 7
+[DEBUG] Updated commit index to: 8, applying entries...
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}, Term=3, Index=8
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document already up-to-date: Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 8, current commit index: 8
+[DEBUG] Updated commit index to: 8, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 8, current commit index: 8
+[DEBUG] Updated commit index to: 8, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 8, current commit index: 8
+[DEBUG] Updated commit index to: 8, applying entries...
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Received compressed message
+[DEBUG]->APPEND ENTRIES RECIEVED
+[DEBUGGING] handleAppendEntries
+Received AppendEntriesArgs: AppendEntriesArgs{term=3, leaderId=725cde79-4d97-4f74-a0d2-79627185e6c8, prevLogIndex=8, prevLogTerm=3, leaderCommit=8, entries=[LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}]}
+[DEBUGGING] handleAppendEntries:    3RD IF
+[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, Term=3, Index=9
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document added: Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}
+Document created: Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}
+[DEBUG]: SENDING ENTRIES REPLY
+Contenent-> Message{header='APPEND_ENTRIES_REPLY', payload=AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}, nodeName='Node-66', nodeId=70d44e32-aeb9-4000-aa19-78ac199320e8, udpPort=10172}
+Sending AppendEntriesReply: AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 9, current commit index: 8
+[DEBUG] Updated commit index to: 9, applying entries...
+[DEBUG] Applying log entry: Operation=CREATE, Document=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, Term=3, Index=9
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document already up-to-date: Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 9, current commit index: 9
+[DEBUG] Updated commit index to: 9, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 9, current commit index: 9
+[DEBUG] Updated commit index to: 9, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 9, current commit index: 9
+[DEBUG] Updated commit index to: 9, applying entries...
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 63dc6e83-4094-40e8-a631-6177a5a2ca5f=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Received compressed message
+[DEBUG]->APPEND ENTRIES RECIEVED
+[DEBUGGING] handleAppendEntries
+Received AppendEntriesArgs: AppendEntriesArgs{term=3, leaderId=725cde79-4d97-4f74-a0d2-79627185e6c8, prevLogIndex=9, prevLogTerm=3, leaderCommit=9, entries=[LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}]}
+[DEBUGGING] handleAppendEntries:    3RD IF
+[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR
+[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY
+[DEBUG] Applying log entry: Operation=DELETE, Document=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, Term=3, Index=10
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document deleted: Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[DEBUG]: SENDING ENTRIES REPLY
+Contenent-> Message{header='APPEND_ENTRIES_REPLY', payload=AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}, nodeName='Node-66', nodeId=70d44e32-aeb9-4000-aa19-78ac199320e8, udpPort=10172}
+Sending AppendEntriesReply: AppendEntriesReply{term=3, success=true, nodeID=70d44e32-aeb9-4000-aa19-78ac199320e8}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 10, current commit index: 9
+[DEBUG] Updated commit index to: 10, applying entries...
+[DEBUG] Applying log entry: Operation=DELETE, Document=Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}, Term=3, Index=10
+[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;
+Document not found for deletion: Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 10, current commit index: 10
+[DEBUG] Updated commit index to: 10, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 10, current commit index: 10
+[DEBUG] Updated commit index to: 10, applying entries...
+Received compressed message
+[DEBUG]->handleCommitIndex
+[DEBUG] Received commit index: 10, current commit index: 10
+[DEBUG] Updated commit index to: 10, applying entries...
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false
+Handliong Heartbeat RAFT NODE
+Heartbeat from leader:725cde79-4d97-4f74-a0d2-79627185e6c8:3
+[DEBUG] Received heartbeat from leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3, current term: 3
+[DEBUG] Acknowledged leader 725cde79-4d97-4f74-a0d2-79627185e6c8 for term 3
+Thread-2
+Socket timeout; no message received.
+Leader thread is running: false
+Node{id='Node-66', port='10172'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET NODES LIST: 
+
++--------------------------------------+-------+
+| UUID                                 | Value |
++--------------------------------------+-------+
+| fe43a10f-acea-49f5-865e-21649edb36d3 | 10603 |
+| da811848-0c0d-4a2c-a863-1b735426f73c | 10169 |
+| f8d7a6fa-6eca-48a6-a5cb-0d853646ac3f | 10396 |
+| 26e0b762-2faa-45bd-bd16-97414ae9168c | 10636 |
+| 725cde79-4d97-4f74-a0d2-79627185e6c8 | 10199 |
++--------------------------------------+-------+
+Current Raft[Node-66]State: FOLLOWER
+Current Term: 3
+Logs: 
+[debug full sync] LogEntry{term=3, index=0, command='CREATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='0'}
+[debug full sync] LogEntry{term=3, index=1, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='This is a new document1', version='1'}
+[debug full sync] LogEntry{term=3, index=2, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=3, command='CREATE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}
+[debug full sync] LogEntry{term=3, index=4, command='CREATE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=5, command='DELETE:Document{id='3bf2260c-744f-4cb3-b894-85699fa32fe9', content='This is a new document3', version='0'}
+[debug full sync] LogEntry{term=3, index=6, command='CREATE:Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}'}
+[debug full sync] LogEntry{term=3, index=7, command='UPDATE:Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}'}
+[debug full sync] LogEntry{term=3, index=8, command='CREATE:Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}'}
+[debug full sync] LogEntry{term=3, index=9, command='CREATE:Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}'}
+[debug full sync] LogEntry{term=3, index=10, command='DELETE:Document{id='63dc6e83-4094-40e8-a631-6177a5a2ca5f', content='This is a new document2', version='0'}'}
+
+
+
+Node{id='Node-66', port='10172'}
+	GET DOCUMENT LIST: 
+{c87eb2d3-21aa-40c7-b0fc-8821d05a7300=Document{id='c87eb2d3-21aa-40c7-b0fc-8821d05a7300', content='Updated doc 1', version='2'}, 9d60a88d-d5d0-4f01-ba63-798d0542e588=Document{id='9d60a88d-d5d0-4f01-ba63-798d0542e588', content='This is a new document6', version='0'}, d66fbc50-6e92-40dd-bb3f-d299ce68a567=Document{id='d66fbc50-6e92-40dd-bb3f-d299ce68a567', content='This is a new document4', version='0'}, 30140ecb-0a6c-4523-ab7c-4c0a6ca89482=Document{id='30140ecb-0a6c-4523-ab7c-4c0a6ca89482', content='This is a new document5', version='0'}}Node{id='Node-66', port='10172'}
+
+
+
+IS IT EMPTY: 
+false

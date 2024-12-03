@@ -1,3 +1,6 @@
 [DEBUG] Updated commit index to:
 
 [DEBUG]->updateFollowerIndices-> 
+
+
+FULL-SYNC-ACK RECEIVED 

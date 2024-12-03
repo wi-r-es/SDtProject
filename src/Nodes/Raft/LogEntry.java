@@ -30,9 +30,9 @@ public class LogEntry implements Serializable{
      * @param str    The String version of the LogEntry.
      */
     public static LogEntry fromString(String str) {
-        // Format: Term=1,Index=2,Command='CREATE:Document{...}'
+        // Format: LogEntry{term=4, index=0, command='CREATE:Document{id='777a834a-8be4-45a3-9ef8-893bbac78aa6', content='This is a new document1', version='0'}'}
         try {
-            Pattern pattern = Pattern.compile("Term=(\\d+),Index=(\\d+),Command='(.*?)'");
+            Pattern pattern = Pattern.compile("LogEntry\\{term=(\\d+), index=(\\d+), command='(.*?)'\\}");
             Matcher matcher = pattern.matcher(str);
             
             if (matcher.find()) {
@@ -72,7 +72,7 @@ public class LogEntry implements Serializable{
                 "term=" + term +
                 ", index=" + index +
                 ", command='" + command + '\'' +
-                '}';
+                "}";
     }
 }
 

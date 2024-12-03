@@ -1,10 +1,14 @@
 package Testing;
 
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.rmi.Naming;
 
 import java.rmi.RemoteException;
 
+import Nodes.Raft.RaftNode;
 import Resources.Document;
 import remote.LeaderAwareMessageQueueServer;
 
@@ -18,14 +22,14 @@ public class RaftClient {
         try {
            // printOptions();
 
-            // try {
-            //     File logFile = new File("raftClientTest.txt");
-            //     PrintStream fileOut = new PrintStream(logFile);
-            //     System.setOut(fileOut); // Redirects System.out to the file
-            // } catch (FileNotFoundException e) {
-            //     e.printStackTrace();
-            //     return; // Exit if the file can't be created
-            // }
+            try {
+                File logFile = new File("raftClientTest.txt");
+                PrintStream fileOut = new PrintStream(logFile);
+                System.setOut(fileOut); // Redirects System.out to the file
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                return; // Exit if the file can't be created
+            }
 
             LeaderAwareMessageQueueServer.MessageQueueClient client = new LeaderAwareMessageQueueServer.MessageQueueClient(2323);
 
@@ -40,17 +44,7 @@ public class RaftClient {
                 // Enqueue message
                 
                 System.out.println("Attempting to enqueue message...");
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc1);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.UPDATE, doc1);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc2);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc3);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.DELETE, doc3);
-                // client.enqueue(msg);
+
                 client.enqueue(OPERATION.CREATE, doc1);
                 client.enqueue(OPERATION.UPDATE, doc1);
                 client.enqueue(OPERATION.CREATE, doc2);
@@ -58,28 +52,24 @@ public class RaftClient {
                 client.enqueue(OPERATION.CREATE, doc3);
                 client.enqueue(OPERATION.DELETE, doc3);
 
-                // Thread.sleep(10000);
-                // RaftNode node = new RaftNode("Node-66", false);
-                // System.out.println("Ffull sync new node");
-                // node.start();
-                // node.getGossipNode().getHeartbeatService().syncNewElementRaftCluster();
+                Thread.sleep(10000);
+                RaftNode node = new RaftNode("Node-66", false, true);
+              
+                System.out.println("Ffull sync new node");
+                node.start();
+                node.getGossipNode().getHeartbeatService().syncNewElementRaftCluster();
 
-                // Document doc4 = new Document("This is a new document4");
-                // Document doc5 = new Document("This is a new document5");
-                // Document doc6 = new Document("This is a new document6");
-                // doc1.setContent("Updated doc 1");
+                Document doc4 = new Document("This is a new document4");
+                Document doc5 = new Document("This is a new document5");
+                Document doc6 = new Document("This is a new document6");
+                doc1.setContent("Updated doc 1");
                 // System.out.println("Second Batch of operations");
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc4);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.UPDATE, doc1);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc5);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.CREATE, doc6);
-                // client.enqueue(msg);
-                // msg = new Message(OPERATION.DELETE, doc2);
-                // client.enqueue(msg);
+
+                client.enqueue(OPERATION.CREATE, doc4);
+                client.enqueue(OPERATION.UPDATE, doc1);
+                client.enqueue(OPERATION.CREATE, doc5);
+                client.enqueue(OPERATION.CREATE, doc6);
+                client.enqueue(OPERATION.DELETE, doc2);
             
                 System.out.println("Message enqueued successfully");
                 
@@ -88,35 +78,6 @@ public class RaftClient {
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-
-            // System.out.println("First Batch of operations");
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
-            // rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc3));
-            // rq.enqueue(rq.performOperation(OPERATION.DELETE, doc3));
-            // System.out.println("End Batch of operations");
-            // Thread.sleep(10000);
-            // RaftNode node = new RaftNode("Node-66", false);
-            // System.out.println("Ffull sync new node");
-            // node.start();
-            // node.getGossipNode().getHeartbeatService().syncNewElementRaftCluster();
-
-            // System.out.println("END FULL sync new node");
-
-
-            // Document doc4 = new Document("This is a new document4");
-            // Document doc5 = new Document("This is a new document5");
-            // Document doc6 = new Document("This is a new document6");
-            // doc1.setContent("Updated doc 1");
-            // System.out.println("Second Batch of operations");
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc4));
-            // rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc5));
-            // rq.enqueue(rq.performOperation(OPERATION.CREATE, doc6));
-            // rq.enqueue(rq.performOperation(OPERATION.DELETE, doc2));
-            // System.out.println("END Batch of operations");
          
 
         } catch (Exception e) {

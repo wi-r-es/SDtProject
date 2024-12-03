@@ -497,13 +497,31 @@ public class HeartbeatService extends Thread {
                                 break;
                             case FULL_SYNC_ACK: 
                                 if (this.gossipNode.isLeader()){
-                                    System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED FOR OPERATION: " + message);
-                                    Object obj = message.getPayload();
-
-                                    String content = (String) obj;
-                                    String[] parts = content.split(":");
-                                    String opID = parts[1];
-                                    gossipNode.addFullSyncACK(opID);
+                                    
+                                    //FULL SYNC ACK RECEIVED-> Message{header='FULL_SYNC_ACK', payload=[OPERATION]
+                                    //:9ab092c14c916570643ac53d392ac21ae7db31cd671872c474c5d09380fd450f, 
+                                    //nodeName='Node-66', nodeId=406cc4eb-d340-4ada-be45-c6f1b219964b, udpPort=10627}
+                                    if (gossipNode.isRaftNode()){
+                                        System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED [message]: " + message);
+                                        RaftNode rn = gossipNode.getRaftNode();
+                                        //System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED logs: " + rn.getLogsAsString());
+                                        //payload=[index]:6, nodeName='Node-66', nodeId=e85abe9a-2862-41a6-a905-166ca8daaed9, udpPort=10157}
+                                        Object obj = message.getPayload();
+                                        String parts[] = ((String) obj).split(":");
+                                        int index = Integer.parseInt(parts[1]);
+                                        System.out.println("ADDING NEW NODE TO MAPS");
+                                        rn.addNewNodeToMaps(message.getNodeId(), index);
+                                        
+                                    }
+                                    else {
+                                        System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED FOR OPERATION: " + message);
+                                        Object obj = message.getPayload();
+                                        System.out.println("FULL SYNC ACK RECEIVED-> "+ message.toString());
+                                        String content = (String) obj;
+                                        String[] parts = content.split(":");
+                                        String opID = parts[1];
+                                        gossipNode.addFullSyncACK(opID);
+                                    }
                                 }
                                 break;
                             case VOTE_ACK:
@@ -790,8 +808,9 @@ public class HeartbeatService extends Thread {
         String senderNodeId = parts[1];
         int port = Integer.parseInt(parts[2]);
 
-        sendACKDiscovery(UUID.fromString(senderNodeId),port );
 
+
+        sendACKDiscovery(UUID.fromString(senderNodeId),port );
         gossipNode.addKnownNode(UUID.fromString(senderNodeId), port);
     }
     /**
@@ -1110,25 +1129,30 @@ public class HeartbeatService extends Thread {
             if (response != null) {
                 String payload = (String) response.getPayload();
                 System.out.println("PAYLOAD INITIALIZE RAFT STATE : " + payload);
+                RaftNode raftNode = gossipNode.getRaftNode();
+                int index = raftNode.handleSyncRequest(payload) ;
                 String[] sections = payload.split(";");
                 
-                // Update term
+                // // Update term
                 int leaderTerm = Integer.parseInt(sections[2]);
-                RaftNode raftNode = gossipNode.getRaftNode();
-                raftNode.setCurrentTerm(leaderTerm);
                 
-                // Initialize log from leader's log
-                String logSection = sections[3].substring(5); // Skip "LOGS:" prefix
-                initializeLog(logSection);
+                // raftNode.setCurrentTerm(leaderTerm);
                 
-                // Apply document state
-                String docsSection = sections[4].substring(5); // Skip "DOCS:" prefix
-                processDocumentList(docsSection);
+                // // Initialize log from leader's log
+                // String logSection = sections[3].substring(5); // Skip "LOGS:" prefix
+                // System.out.println("[DEBUG] InitializeRaftState -> logSection " + logSection);
+                // //gossipNode.getRaftNode().
+                // //initializeLog(logSection);
+                
+                // // Apply document state
+                // String docsSection = sections[4].substring(5); // Skip "DOCS:" prefix
+                // System.out.println("[DEBUG] InitializeRaftState -> docsSection " + docsSection);
+                // //processDocumentList(docsSection);
                 
                 // Send acknowledgment
-                Message ackMsg = Message.replyFullSyncMessage(
-                    "[OPERATION]:" + sections[0]
-                );
+                Message ackMsg = Message.replyFullSyncMessage("[index]:" + index, this.gossipNode.getNodeName(), this.gossipNode.getNodeId(), this.getUDPport());
+                
+
                 sendUncompMessage(ackMsg, leaderID, leader_port);
                 
                 // Start as follower
@@ -1139,6 +1163,7 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+    //not used
     private void initializeLog(String logSection) {
         if (logSection.trim().isEmpty()) return;
         

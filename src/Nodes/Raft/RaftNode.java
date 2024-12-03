@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.*;
 
-
+import javax.naming.NamingException;
 
 import shared.Message;
 import shared.MessageQueue;
@@ -67,26 +67,26 @@ public class RaftNode extends Node {
      * @param isLeader  Indicates if the node is the leader.
      * @throws RemoteException If a remote exception occurs.
      */
-    public RaftNode(String nodeId, boolean isLeader) throws RemoteException {
-        super(nodeId, isLeader);
-        this.currentTerm = new AtomicInteger(0);;
-        this.log = new ArrayList<>();
-        this.nextIndex = new ConcurrentHashMap<>();     // for log replication
-        this.matchIndex = new ConcurrentHashMap<>();    // for log replication
-        this.commitIndex = 0;                           // log replication
-        this.lastApplied = 0;                           // for log replication
-        this.state = new AtomicReference<>(NodeState.FOLLOWER);
-        this.leaderId = null;
-        this.votedFor = new AtomicReference<>(null);
-        this.votesReceived = ConcurrentHashMap.newKeySet();
-        //this.electionTimer = new Timer(true);
-        this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
-        this.random = new Random();
-        this.electionTimeout = new AtomicLong(0);
+    // public RaftNode(String nodeId, boolean isLeader) throws RemoteException {
+    //     super(nodeId, isLeader);
+    //     this.currentTerm = new AtomicInteger(0);;
+    //     this.log = new ArrayList<>();
+    //     this.nextIndex = new ConcurrentHashMap<>();     // for log replication
+    //     this.matchIndex = new ConcurrentHashMap<>();    // for log replication
+    //     this.commitIndex = 0;                           // log replication
+    //     this.lastApplied = 0;                           // for log replication
+    //     this.state = new AtomicReference<>(NodeState.FOLLOWER);
+    //     this.leaderId = null;
+    //     this.votedFor = new AtomicReference<>(null);
+    //     this.votesReceived = ConcurrentHashMap.newKeySet();
+    //     //this.electionTimer = new Timer(true);
+    //     this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
+    //     this.random = new Random();
+    //     this.electionTimeout = new AtomicLong(0);
         
-        startElectionMonitor();
-        //initializeIndices(); // for log replication
-    }
+    //     startElectionMonitor();
+    //     //initializeIndices(); // for log replication
+    // }
     public RaftNode(String nodeId, boolean isLeader, boolean r) throws RemoteException {
         super(nodeId, isLeader,r);
         this.currentTerm = new AtomicInteger(0);;
@@ -272,11 +272,16 @@ public class RaftNode extends Node {
      */
     public synchronized String getLogsAsString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Log Entries for Node ").append(getNodeName()).append(":\n");
         
-        new ArrayList<>(log).forEach(entry -> 
-            sb.append(String.format("Term: %d, Index: %d,Comand: %s%n", 
-                entry.getTerm(), entry.getIndex(), entry.getCommand())));
+        
+        new ArrayList<>(log).forEach(entry -> {
+            if (entry != null) {
+                sb.append(entry.toString());
+                sb.append("#");
+                System.out.println("[debug full sync] "+ entry.toString());
+            }
+        });
+                //System.out.println("[debug full sync] "+ entry.toString())
                 
         return sb.toString();
     }
@@ -288,7 +293,7 @@ public class RaftNode extends Node {
         super.printKnownNodes();
         System.out.println("Current Raft[" +getNodeName()+ "]State: " + state.get());
         System.out.println("Current Term: " + currentTerm.get());
-        
+        System.out.println("Logs: ");
         getLogsAsString();
     }
     /**
@@ -859,6 +864,8 @@ protected void startLeaderServices() {
             LOGGER.severe("Error transferring message queue: " + e.getMessage());
         }
     }
+
+    //not used yet 
     public void sendMessageToLeader(Message message) throws RemoteException {
         try {
             if (isLeader()) {
@@ -1304,34 +1311,49 @@ protected void startLeaderServices() {
     //         }
     //     }
     // }
-    
-    public void handleSyncRequest(String payload, UUID senderId, int senderPort) {
+    //not used
+    public int handleSyncRequest(String payload) {
+        System.out.println("[DEBUGGING] handleSyncRequest");
+        System.out.println("[DEBUGGING] handleSyncRequest->paylaod->" +payload);
         String[] parts = payload.split(";");
         int senderTerm = Integer.parseInt(parts[2]);
 
         // Step down if we see a higher term
-        if (senderTerm > currentTerm.get()) {
-            stepDown(senderTerm);
-            return;
-        }
+        // if (senderTerm > currentTerm.get()) {
+        //     //stepDown(senderTerm);
+        //     return;
+        // }
 
         // Process logs
         String logsSection = parts[3].substring(5); // Skip "LOGS:" prefix
+        System.out.println("[DEBUGGING] handleSyncRequest gooing to updateLogsFromSync ");
+        System.out.println("[DEBUGGING] handleSyncRequest logsSection-> "+logsSection);
         updateLogsFromSync(logsSection);
-
+        System.out.println("[DEBUGGING] handleSyncRequest back from updateLogsFromSync ");
         // Process documents
-        String docsSection = parts[4];
+        String docsSection = parts[4]; // Skip "DOCS:" prefix
+        System.out.println("[DEBUGGING] handleSyncRequest gooing to processDocumentsFromSync ");
+        System.out.println("[DEBUGGING] handleSyncRequest docsSection-> "+docsSection);
         processDocumentsFromSync(docsSection);
-
+        System.out.println("[DEBUGGING] handleSyncRequest back from processDocumentsFromSync logsSize()-> "+ log.size());
         // Send acknowledgment
-        this.getGossipNode().getHeartbeatService().sendSyncAck(senderId, senderPort);
+        //this.getGossipNode().getHeartbeatService().sendSyncAck(senderId, senderPort);
+        return log.size();
     }
+    //not used
     private void updateLogsFromSync(String logsSection) {
+        System.out.println("[DEBUGGING] updateLogsFromSync-> logsize() -> " + log.size());
+        System.out.println("[DEBUGGING] updateLogsFromSync-> logslogsSectionze() -> " + logsSection);
         // Parse and update logs
-        String[] logEntries = logsSection.split("\n");
+        String[] logEntries = logsSection.split("#");
+        System.out.println("[DEBUGGING] updateLogsFromSync-> logEntries() -> " +logEntries);
         for (String logEntry : logEntries) {
+            System.out.println("[DEBUGGING] updateLogsFromSync-> logEntry() -> " +logEntry);
             // Parse log entry and add if newer
             LogEntry entry = LogEntry.fromString(logEntry);
+            System.out.println("[DEBUGGING] updateLogsFromSync-> entry.getIndex()() -> " + entry.getIndex() + "logsize() " + log.size());
+            System.out.println("[DEBUGGING] updateLogsFromSync-> entry " + entry );
+
             if (entry.getIndex() >= log.size()) {
                 System.out.println("[DEBUGGING] updateLogsFromSync");
                 appendLogEntry(entry);
@@ -1344,6 +1366,7 @@ protected void startLeaderServices() {
         String[] docs = docsSection.split("\\$");
         for (String doc : docs) {
             if (!doc.isEmpty()) {
+                System.out.println("[DEBUGGING]  processDocumentsFromSync. doc: " + doc);
                 Document document = Document.fromString(doc);
                 getDocuments().updateOrAddDocument(document);
             }
@@ -1587,6 +1610,16 @@ protected void startLeaderServices() {
         });
 
         return new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
+    }
+
+    public void addNewNodeToMaps(UUID newNodeID, int index ){
+        // this.nextIndex = new ConcurrentHashMap<>();     // for log replication
+        // this.matchIndex = new ConcurrentHashMap<>();  
+        System.out.println("[DEBUG]:addNewNodeToMaps: " +newNodeID+":"+index);
+        nextIndex.putIfAbsent(newNodeID,index );
+        matchIndex.putIfAbsent(newNodeID,index-1);
+
+        System.out.println("[DEBUG]:addNewNodeToMaps: Nextindex:" +nextIndex.get(newNodeID)+" Matchindex: " +matchIndex.get(newNodeID) );
     }
     
 }

@@ -104,6 +104,9 @@ public class Node extends Thread {
                         System.out.println("Checking queue status: " + checkQueue());
                         if(raft){
                             ((RaftNode) (this)).processAndCommit();
+                            if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
+                                this.stopRunning();
+                            }
                         }
                         else {
                             if (checkQueue()) {
@@ -118,12 +121,12 @@ public class Node extends Thread {
                                 }
                                 
                             }
-                    }
-                        if (this.getClass() == RaftNode.class ){
-                            if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
-                                this.stopRunning();
-                            }
                         }
+                        // if (this.getClass() == RaftNode.class ){
+                        //     if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
+                        //         this.stopRunning();
+                        //     }
+                        // }
                         
                            
                       
@@ -240,6 +243,9 @@ public class Node extends Thread {
 
     public GossipNode getGossipNode() {
         return gossipNode;
+    }
+    public boolean isRaftNode(){
+        return raft;
     }
 
     public int getPeerPort(UUID peerId) {

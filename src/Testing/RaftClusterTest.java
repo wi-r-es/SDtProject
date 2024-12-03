@@ -15,7 +15,7 @@ public class RaftClusterTest {
         for (int i = 0; i < 5; i++) { 
             String nodeId = "Node-" + i;
             try {
-                nodes.add(new RaftNode(nodeId, false));
+                nodes.add(new RaftNode(nodeId, false, true));
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
