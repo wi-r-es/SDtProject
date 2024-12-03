@@ -41,7 +41,7 @@ public class RaftNode extends Node {
     private static final int HEARTBEAT_INTERVAL = 1000;   
     private static final long REPLICATION_TIMEOUT = 5000;  
 
-    private boolean isQueueOwner = false; // Track if this node owns the queue
+   // private boolean isQueueOwner = false; // Track if this node owns the queue
 
     private AtomicInteger currentTerm;
     //private UUID votedFor;
@@ -684,11 +684,7 @@ public class RaftNode extends Node {
         // Initialize tracking maps for all known nodes
         nextIndex.clear();
         matchIndex.clear();
-        for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
-            // Start by assuming followers are behind by one entry
-            initializeIndices();
-            
-        }
+        initializeIndices();
 
         
         synchronized (timerLock) {
