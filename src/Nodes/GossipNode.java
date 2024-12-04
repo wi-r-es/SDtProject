@@ -42,6 +42,9 @@ public class GossipNode extends Thread {
     public String getNodeName(){
         return node.getNodeName();
     }
+    public boolean isRunning(){
+        return node.isRunning();
+    }
     /**
      * Returns the RaftNode instance associated with this GossipNode.
      *

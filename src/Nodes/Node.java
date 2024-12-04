@@ -95,7 +95,7 @@ public class Node extends Thread {
                 
                 
             }
-
+            AtomicInteger count = new AtomicInteger(0);
             while(running){
                 try {
                     System.out.println("Leader thread is running: " + isLeader);
@@ -104,10 +104,10 @@ public class Node extends Thread {
                         System.out.println("Checking queue status: " + checkQueue());
                         if(raft){
                             ((RaftNode) (this)).processAndCommit();
-                            if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
-                                this.stopRunning();
+                            if (  /*((RaftNode) (this)).getCurrentTerm()==30 || */ count.getAndIncrement() == 30  ){
+                                ((RaftNode) (this)).simulateCrash();
                             }
-                        }
+                        }    
                         else {
                             if (checkQueue()) {
                                 System.out.println("there are messages in queue");
@@ -137,6 +137,7 @@ public class Node extends Thread {
                     
                     
                     System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
+                    System.out.println("COUNNT TO KILL LEADER: " + count.get());
                     System.out.println("\tGET DOCUMENT LIST: \n" + getDocuments().getDocumentsMap().toString() + this.getGossipNode().getHeartbeatService().toString());
                     System.out.println("\n\n\nIS IT EMPTY: \n" + getDocuments().getDocumentsMap().isEmpty());
                     Thread.sleep(1000);
@@ -221,13 +222,6 @@ public class Node extends Thread {
         if (messageQueue != null){return  messageQueue.checkQueue();}
         else return false;
     }
-    /**
-     * Stops the node from running. (By changing the running variable to false)
-     */
-    public void stopRunning() {
-        System.out.println("im gonna stop myself");
-        running = false; 
-    }
 
     private void cleanupOnShutdown() {
         System.out.println("Node " + this.nodeId + " shutting down.");
@@ -246,6 +240,12 @@ public class Node extends Thread {
     }
     public boolean isRaftNode(){
         return raft;
+    }
+    public boolean isRunning(){
+        return running;
+    }
+    public void setRunning( boolean value){
+        this.running = value;
     }
 
     public int getPeerPort(UUID peerId) {

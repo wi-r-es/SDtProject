@@ -36,8 +36,8 @@ public class RaftNode extends Node {
     private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
     private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
     //CONSTANTS
-    private static final int ELECTION_TIMEOUT_MIN = 1500;//500;//150;  
-    private static final int ELECTION_TIMEOUT_MAX = 3000;//1000;//300;  
+    private static final int ELECTION_TIMEOUT_MIN = 500;//1500;//500;//150;  
+    private static final int ELECTION_TIMEOUT_MAX = 1000;//3000;//1000;//300;  
     private static final int HEARTBEAT_INTERVAL = 1000;   
     private static final long REPLICATION_TIMEOUT = 5000;  
 
@@ -138,6 +138,14 @@ public class RaftNode extends Node {
      */
     public int getCommitIndex() {
         return commitIndex;
+    }
+    /**
+     * Returns the current Leader UUID.
+     *
+     * @return The UUID of the current leader.
+     */
+    public UUID getLeaderId() {
+        return leaderId;
     }
 
     /**
@@ -369,21 +377,52 @@ public class RaftNode extends Node {
      * Resets the election timeout.
      */
     private void resetElectionTimeout() {
-         // Make timeout more random by using different ranges for different nodes
+        //  // Make timeout more random by using different ranges for different nodes
+        // int nodeNum;
+        // try {
+        //     String[] parts = this.getNodeName().split("-");
+        //     nodeNum = parts.length > 1 ? Integer.parseInt(parts[1]) : 
+        //              Math.abs(this.getNodeId().hashCode() % 100);  // Use node ID hash as fallback
+        // } catch (NumberFormatException e) {
+        //     // If parse fails, use hash of node ID
+        //     nodeNum = Math.abs(this.getNodeId().hashCode() % 100);
+        // }
+        
+        // // Use node number to create different ranges for different nodes
+        // int minTimeout = ELECTION_TIMEOUT_MIN + (nodeNum * 50);  // Spread out the minimum times
+        // int maxTimeout = minTimeout + (ELECTION_TIMEOUT_MAX - ELECTION_TIMEOUT_MIN);
+        // int randomTimeout = minTimeout + random.nextInt(maxTimeout - minTimeout + 1);
+        
+        // electionTimeout.set(System.currentTimeMillis() + randomTimeout);
+        // addNewLog("RESET", randomTimeout);
+        resetElectionTimeout(false);
+    }
+
+    private void resetElectionTimeout(boolean afterFailure) {
         int nodeNum;
         try {
             String[] parts = this.getNodeName().split("-");
             nodeNum = parts.length > 1 ? Integer.parseInt(parts[1]) : 
-                     Math.abs(this.getNodeId().hashCode() % 100);  // Use node ID hash as fallback
+                     Math.abs(this.getNodeId().hashCode() % 100);
         } catch (NumberFormatException e) {
-            // If parse fails, use hash of node ID
             nodeNum = Math.abs(this.getNodeId().hashCode() % 100);
         }
+
+        int minTimeout, maxTimeout;
         
+        if (afterFailure) {
+            // Use shorter timeouts after failure
+            minTimeout = ELECTION_TIMEOUT_MIN / 2;
+            maxTimeout = ELECTION_TIMEOUT_MAX / 2;
+        } else {
+            // Use normal timeouts
+            minTimeout = ELECTION_TIMEOUT_MIN;
+            maxTimeout = ELECTION_TIMEOUT_MAX;
+        }
+
         // Use node number to create different ranges for different nodes
-        int minTimeout = ELECTION_TIMEOUT_MIN + (nodeNum * 50);  // Spread out the minimum times
-        int maxTimeout = minTimeout + (ELECTION_TIMEOUT_MAX - ELECTION_TIMEOUT_MIN);
-        int randomTimeout = minTimeout + random.nextInt(maxTimeout - minTimeout + 1);
+        int baseTimeout = minTimeout + (nodeNum * 50);
+        int randomTimeout = baseTimeout + random.nextInt(maxTimeout - minTimeout + 1);
         
         electionTimeout.set(System.currentTimeMillis() + randomTimeout);
         addNewLog("RESET", randomTimeout);
@@ -1589,6 +1628,14 @@ protected void startLeaderServices() {
         }
     }
     
+    /*
+███████ ██    ██ ██      ██          ███████ ██    ██ ███    ██  ██████ 
+██      ██    ██ ██      ██          ██       ██  ██  ████   ██ ██      
+█████   ██    ██ ██      ██          ███████   ████   ██ ██  ██ ██      
+██      ██    ██ ██      ██               ██    ██    ██  ██ ██ ██      
+██       ██████  ███████ ███████     ███████    ██    ██   ████  ██████ 
+                                                                       
+ */
 
     @Override
     public Message startFullSyncProcess() {
@@ -1613,13 +1660,106 @@ protected void startLeaderServices() {
     }
 
     public void addNewNodeToMaps(UUID newNodeID, int index ){
-        // this.nextIndex = new ConcurrentHashMap<>();     // for log replication
-        // this.matchIndex = new ConcurrentHashMap<>();  
         System.out.println("[DEBUG]:addNewNodeToMaps: " +newNodeID+":"+index);
         nextIndex.putIfAbsent(newNodeID,index );
         matchIndex.putIfAbsent(newNodeID,index-1);
 
         System.out.println("[DEBUG]:addNewNodeToMaps: Nextindex:" +nextIndex.get(newNodeID)+" Matchindex: " +matchIndex.get(newNodeID) );
+    }
+
+
+/*
+███████  █████  ██ ██      ██    ██ ██████  ███████ 
+██      ██   ██ ██ ██      ██    ██ ██   ██ ██      
+█████   ███████ ██ ██      ██    ██ ██████  █████   
+██      ██   ██ ██ ██      ██    ██ ██   ██ ██      
+██      ██   ██ ██ ███████  ██████  ██   ██ ███████ 
+
+
+ */
+
+
+    public void handleLeaderFailure() {
+        // Only handle if we're a follower
+        if (state.get() == NodeState.FOLLOWER) {
+            System.out.println("[DEBUG] Handling leader failure in node: " + getNodeName());
+            
+            // Clear leader state
+            leaderId = null;
+            
+            // Reset election timeout with a shorter duration to speed up recovery
+            //resetElectionTimeout();
+            
+            // Start election process
+            startElectionAfterFailure();
+        }
+    }
+    //Method to simulate sudden failure.
+    public synchronized void simulateCrash() {
+        if(getNodeState() != NodeState.LEADER) { return;}
+        System.out.println("[DEBUG] Simulating sudden crash of node: " + getNodeName());
+
+        // Force immediate termination of all node threads
+        try {
+            // Stop the heartbeat service
+            if (getGossipNode() != null && getGossipNode().getHeartbeatService() != null) {
+                // getGossipNode().getHeartbeatService().interrupt();
+                // Thread heartbeatThread = getGossipNode().getHeartbeatService();
+                // if (heartbeatThread != null) {
+                //     heartbeatThread.stop(); // Force stop the heartbeat thread
+                // }
+                getGossipNode().getHeartbeatService().shutdown();
+                
+            }
+
+            // Stop RMI services if they exist  // Not necessary to excecute? seems to be working both ways.
+            // if (messageQueue != null) {
+            //     messageQueue.unreg();
+            // }
+
+            // Stop scheduler threads
+            if (scheduler != null) {
+                scheduler.shutdownNow();
+
+            }
+
+            // Stop election monitor and heartbeat timer
+            if (electionMonitor != null) {
+                electionMonitor.cancel(false);
+            }
+            if (heartbeatTimer != null) {
+                heartbeatTimer.cancel(false);
+            }
+
+            // Set running flag to false
+            setRunning(false);
+            // Finally, stop the main node thread
+            //Thread.currentThread().stop();
+        } catch (Exception e) {
+            // In a real crash, we wouldn't even catch exceptions
+            // But for testing purposes, we might want to log them
+            System.err.println("Error during crash simulation: " + e.getMessage());
+        }
+
+    }
+
+    // Enhance election monitor to be more aggressive after suspected failure
+    private void startElectionAfterFailure() {
+
+        System.out.println("[DEBUG] Starting expedited election after failure detection");
+        // Reset timeout with shorter duration
+        resetElectionTimeout(true);
+        
+        // Reset election state
+        currentTerm.incrementAndGet();
+        state.set(NodeState.CANDIDATE);
+        votedFor.set(getNodeId());
+        votesReceived.clear();
+        votesReceived.add(getNodeId());
+        
+        // Broadcast vote requests immediately
+        sendVoteRequest();
+        
     }
     
 }

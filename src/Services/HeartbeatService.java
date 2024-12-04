@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 public class HeartbeatService extends Thread {
 
     private static final int HEARTBEAT_INTERVAL = 5000;  // Interval in milliseconds for sending heartbeats
-    private static final int FAILURE_TIMEOUT = 10000;  // Timeout to detect failure (ms)
+    private static final int FAILURE_TIMEOUT = 5000;  // Timeout to detect failure (ms)
     private static final int NODE_PORT_BASE = 9678;  // base port for UDP communication
     private static final int PORT = 9876;  // UDP communication multicast
     private static final String MULTICAST_GROUP = "230.0.0.0";  
@@ -104,19 +104,48 @@ public class HeartbeatService extends Thread {
         // Detection failure
         scheduler.scheduleAtFixedRate(this::detectFailures, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
 
-        // Start a separate thread for continuously receiving heartbeats
-        new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                //receiveHeartbeatsGossip();
-                //receiveHeartbeats();
-                receiveMulticast();
+        // // Start a separate thread for continuously receiving heartbeats
+        // new Thread(() -> {
+        //     while (!Thread.currentThread().isInterrupted()) {
+        //         //receiveHeartbeatsGossip();
+        //         //receiveHeartbeats();
+        //         receiveMulticast();
+        //     }
+        // }).start();
+        // new Thread(() -> {
+        //     while (!Thread.currentThread().isInterrupted()) {
+        //         receiveMessage();
+        //     }
+        // }).start();
+        // Start message receiving threads
+        Thread multicastThread = new Thread(() -> {
+            while (gossipNode.isRunning() && !Thread.currentThread().isInterrupted()) {
+                try {
+                    receiveMulticast();
+                } catch (Exception e) {
+                    if (!gossipNode.isRunning()) break; // Exit if service is stopping
+                    if (!(e instanceof SocketException)) { // Only log non-socket closure errors
+                        System.err.println("Error in multicast receive: " + e.getMessage());
+                    }
+                }
             }
-        }).start();
-        new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                receiveMessage();
+        });
+        
+        Thread messageThread = new Thread(() -> {
+            while (gossipNode.isRunning() && !Thread.currentThread().isInterrupted()) {
+                try {
+                    receiveMessage();
+                } catch (Exception e) {
+                    if (!gossipNode.isRunning()) break; // Exit if service is stopping
+                    if (!(e instanceof SocketException)) { // Only log non-socket closure errors
+                        System.err.println("Error in message receive: " + e.getMessage());
+                    }
+                }
             }
-        }).start();
+        });
+
+        multicastThread.start();
+        messageThread.start();
 
     }
     
@@ -358,7 +387,8 @@ public class HeartbeatService extends Thread {
                         case LHEARTBEAT: // reply to hearbeats from leader
                             //RaftNode rn = gossipNode.getRaftNode();
                             gossipNode.getRaftNode().handleHeartbeat(message);
-
+                            UUID senderId = message.getNodeId();
+                            lastReceivedHeartbeats.put(senderId.toString(), System.currentTimeMillis());
                             break;
                         case APPEND_ENTRIES_REPLY:
                             if(gossipNode.isLeader()) {
@@ -563,7 +593,13 @@ public class HeartbeatService extends Thread {
         }
          catch (IOException | ClassNotFoundException e) {
             System.err.println("Error receiving message: " + e.getMessage());
+            System.out.println("NODE: " + gossipNode.getNodeName() + "- STATE: " + gossipNode.getRaftNode().getNodeState());
             e.printStackTrace();
+        }
+        catch (Exception e) {
+            if (gossipNode.isRunning()) {
+                System.err.println("Error receiving message: " + e.getMessage());
+            }
         }
     }
 
@@ -1186,6 +1222,7 @@ public class HeartbeatService extends Thread {
         long currentTime = System.currentTimeMillis();
         System.out.println(getName());
         //System.out.println("detecting failures");
+        // First, handle general node failures
         // gets all the sets in the map of nodes timestamps
         for (Map.Entry<String, Long> entry : lastReceivedHeartbeats.entrySet()) {
             String nodeId = entry.getKey();
@@ -1194,6 +1231,18 @@ public class HeartbeatService extends Thread {
             if (currentTime - lastReceivedTime > FAILURE_TIMEOUT) {
                 System.out.println("Node " + nodeId + " is considered failed.");
                 gossipNode.removeKnownNode(UUID.fromString(nodeId));
+
+                // If this is a Raft node, handle Raft-specific failure detection
+                if (gossipNode.isRaftNode()) {
+                    // If the failed node was the leader
+                    RaftNode raftNode = gossipNode.getRaftNode();
+                    if (raftNode.getLeaderId() != null && 
+                        raftNode.getLeaderId().toString().equals(nodeId)) {
+                        
+                        System.out.println("[DEBUG] Failed node was the leader. Starting election process.");
+                        raftNode.handleLeaderFailure();
+                    }
+                }
             }
         }
     }
@@ -1291,7 +1340,25 @@ public class HeartbeatService extends Thread {
         return "localhost";
     }
 
- 
+    public void shutdown() {
+        gossipNode.getRaftNode().setRunning(false);
+        
+        // Shutdown scheduler
+        if (scheduler != null) {
+            scheduler.shutdown();
+            try {
+                scheduler.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            scheduler.shutdownNow();
+        }
+        
+        // Close socket
+        if (socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+    }
     
 }
 
