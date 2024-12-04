@@ -11,6 +11,9 @@ import remote.messageRemoteInterface;
  */
 public class MessageQueue implements messageRemoteInterface{
 
+    // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue //
+    private final ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
+
     /**
      * Constructs a new message queue.
      *
@@ -21,8 +24,7 @@ public class MessageQueue implements messageRemoteInterface{
     
     }
 
-    // or BlockingQueue = ArrayBlockingQueue / LinkedBlockingQueue //
-    private final ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
+    
 
     /**
      * Enqueues a message into the queue.
@@ -116,6 +118,18 @@ public class MessageQueue implements messageRemoteInterface{
         }
         System.err.println("Invalid data for DELETE operation.");
         return null ;
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        sb.append("{MESSAGE QUEUE: ");
+        for (Message msg : queue){
+            sb.append("[MESSAGE]: " + msg.toString());
+            sb.append("##");
+        }
+        sb.append("}");
+        return sb.toString();
     }
     
 

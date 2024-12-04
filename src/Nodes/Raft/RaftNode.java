@@ -36,8 +36,8 @@ public class RaftNode extends Node {
     private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
     private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
     //CONSTANTS
-    private static final int ELECTION_TIMEOUT_MIN = 500;//1500;//500;//150;  
-    private static final int ELECTION_TIMEOUT_MAX = 1000;//3000;//1000;//300;  
+    private static final int ELECTION_TIMEOUT_MIN = 1000;//1500;//500;//150;  
+    private static final int ELECTION_TIMEOUT_MAX = 1500;//3000;//1000;//300;  
     private static final int HEARTBEAT_INTERVAL = 1000;   
     private static final long REPLICATION_TIMEOUT = 5000;  
 
@@ -59,6 +59,9 @@ public class RaftNode extends Node {
     private final AtomicLong electionTimeout;  // Track when election should happen
     private final Random random;
     private final Object timerLock = new Object();
+
+    // For log replication fail for testing purposes
+    private volatile boolean isSleeping = false;
 
     /**
      * Constructor for the RaftNode class.
@@ -286,7 +289,7 @@ public class RaftNode extends Node {
             if (entry != null) {
                 sb.append(entry.toString());
                 sb.append("#");
-                System.out.println("[debug full sync] "+ entry.toString());
+                System.out.println("[LOGS IN MACHINE -"+getNodeName()+"] "+ entry.toString());
             }
         });
                 //System.out.println("[debug full sync] "+ entry.toString())
@@ -934,6 +937,16 @@ protected void startLeaderServices() {
             }
         }
     }
+
+
+    
+    /*
+                                    ██   ██ ███████  █████  ██████  ████████ ██████  ███████  █████  ████████ 
+                                    ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
+                                    ███████ █████   ███████ ██████     ██    ██████  █████   ███████    ██    
+                                    ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
+                                    ██   ██ ███████ ██   ██ ██   ██    ██    ██████  ███████ ██   ██    ██                                                                                                                                                                                
+     */
     /**
      * Broadcasts a heartbeat to all known nodes.
      */
@@ -1091,11 +1104,15 @@ protected void startLeaderServices() {
     }
 
     public synchronized void handleAppendEntries(AppendEntriesArgs args, int destination_port) {
+        if (isSleeping) {
+            System.out.println("[DEBUG] Node " + getNodeName() + " is sleeping, ignoring AppendEntries");
+            return;
+        }
         addNewLog("APPEND_ENTRIES");
         addNewLog("APPEND_ENTRIES_CONTENT", args);
         System.out.println("[DEBUGGING] handleAppendEntries");
         System.out.println("Received AppendEntriesArgs: " + args.toString());
-        //Basic term check
+        //Basic term check --  If the leader's term is less than ours, reject
         if (args.getTerm() < currentTerm.get()) {
             System.out.println("[DEBUGGING] handleAppendEntries:    1ST IF");
             sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
@@ -1103,7 +1120,7 @@ protected void startLeaderServices() {
             
         }
 
-        // Update term if needed
+        // Update term if needed. (If we receive a higher term)
         if (args.getTerm() > currentTerm.get()) {
             System.out.println("[DEBUGGING] handleAppendEntries:    2ND IF");
             currentTerm.set(args.getTerm());
@@ -1119,15 +1136,21 @@ protected void startLeaderServices() {
             System.out.println("[DEBUGGING] handleAppendEntries:    3RD IF");
             if (args.getPrevLogIndex() >= log.size()) {
                 System.out.println("[DEBUGGING] handleAppendEntries:    3RD-1ST IF");
-                // Don't have the previous entry - reply false
-                sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
+                // Don't have the previous entry - ask for retransmission - reply false 
+                System.out.println("[DEBUG] Missing previous log entry. Our log size: " + 
+                                    log.size() + ", requested prev index: " + args.getPrevLogIndex());
+                int index = log.size()==0 ? -1 : log.size() -1; // IF log is empty it has none, if log isnt empty will return the last index (size - 1)
+                sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port, index);
                 return;
             }
-
+            // Check if terms match at prevLogIndex
             LogEntry prevLogEntry = log.get(args.getPrevLogIndex());
             if (prevLogEntry.getTerm() != args.getPrevLogTerm()) {
                 System.out.println("[DEBUGGING] handleAppendEntries:    3RD-2ND IF");
-                // Term mismatch in previous entry - reply false
+                System.out.println("[DEBUG] Term mismatch at index " + args.getPrevLogIndex() + 
+                                    ". Our term: " + prevLogEntry.getTerm() + 
+                                    ", leader's term: " + args.getPrevLogTerm());
+                // Term mismatch in previous entry - remove this and all subsequent entries - reply false
                 // Delete this entry and all that follow it 
                 log = new ArrayList<>(log.subList(0, args.getPrevLogIndex()));
                 sendAppendEntriesReply(args.getLeaderId(), false, currentTerm.get(), destination_port);
@@ -1194,6 +1217,26 @@ protected void startLeaderServices() {
             destination_port
         );
     }
+    // For missing logs
+    private void sendAppendEntriesReply(UUID leaderId, boolean success, int term, int destination_port, int lastLogIndex) {
+        AppendEntriesReply reply = new AppendEntriesReply(term, success, getNodeId(), lastLogIndex);
+        Message replyMsg = new Message(
+            OPERATION.APPEND_ENTRIES_REPLY,
+            reply,
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
+        );
+        System.out.println("[DEBUG]: SENDING ENTRIES REPLY");
+        System.out.println("Contenent-> " + replyMsg.toString());
+        
+        System.out.println("Sending AppendEntriesReply: " + reply);
+        getGossipNode().getHeartbeatService().sendUncompMessage(
+            replyMsg,
+            leaderId,
+            destination_port
+        );
+    }
     public synchronized void handleAppendEntriesReply(AppendEntriesReply reply) {
         addNewLog("APPEND_ENTRIES_REPLY");
         addNewLog("APPEND_ENTRIES_REPLY_CONTENT", reply);
@@ -1201,6 +1244,9 @@ protected void startLeaderServices() {
         if (state.get() != NodeState.LEADER) {
             return;
         }
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> reply content: " + reply.toString());
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> reply LASTLOGCONDITION: " + reply.getlastLogIndex()!=  null);
+
         System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - nextIndex: " + nextIndex.toString());
         System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - matchIndex: " + matchIndex.toString());
     
@@ -1236,9 +1282,22 @@ protected void startLeaderServices() {
                 );
                 this.getGossipNode().getHeartbeatService().broadcast(commitMsg, true);
             }
+        } else if(!reply.isSuccess() && reply.getlastLogIndex()!= null){
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null");
+            Integer index= reply.getlastLogIndex();
+            System.out.println("the lastlog index is: " + reply.getlastLogIndex());
+            switch (index){
+                case -1:
+                default:
+            }
         } else {
             // If append failed, decrement nextIndex and retry
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull");
+            System.out.println("[DEBUG]->handleAppendEntriesReply->  - nextIndex: "  + nextIndex.get(reply.getnodeID()));
+            System.out.println("[DEBUG]->handleAppendEntriesReply->  - matchIndex: " + matchIndex.get(reply.getnodeID()));
             decrementNextIndex(reply.getnodeID());
+            
+
         }
     }
 
@@ -1737,7 +1796,7 @@ protected void startLeaderServices() {
             //Thread.currentThread().stop();
         } catch (Exception e) {
             // In a real crash, we wouldn't even catch exceptions
-            // But for testing purposes, we might want to log them
+            // But for testing purposes...
             System.err.println("Error during crash simulation: " + e.getMessage());
         }
 
@@ -1761,6 +1820,41 @@ protected void startLeaderServices() {
         sendVoteRequest();
         
     }
+
+
+
+
+
+
+    public void simulateSleep() {
+        System.out.println("[DEBUG] Putting node " + getNodeName() + " to sleep");
+        this.isSleeping = true;
+        
+        // Suspend heartbeat service and message processing
+        if (getGossipNode() != null && getGossipNode().getHeartbeatService() != null) {
+            getGossipNode().getHeartbeatService().HBsuspend();
+        }
+    }
+    
+    public void simulateWakeup() {
+        System.out.println("[DEBUG] Waking up node " + getNodeName());
+        this.isSleeping = false;
+        
+        // Resume heartbeat service and message processing
+        if (getGossipNode() != null && getGossipNode().getHeartbeatService() != null) {
+            getGossipNode().getHeartbeatService().HBresume();
+        }
+        
+        // Reset election timeout
+        resetElectionTimeout();
+    }
+    public int getLogSize() {
+        return log.size();
+    }
+
+
+
+
     
 }
 

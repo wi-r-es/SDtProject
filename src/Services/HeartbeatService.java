@@ -44,7 +44,18 @@ public class HeartbeatService extends Thread {
     private final ScheduledExecutorService scheduler; // for running heartbeats regularly [and fail detection in the future]
     private DatagramSocket socket;
     private int udpPort;
+
+    // For log replication fail for testing purposes
+    private volatile boolean isSuspended = false;
+    public void HBsuspend() {
+        this.isSuspended = true;
+        System.out.println("[DEBUG] HeartbeatService suspended for node " + gossipNode.getNodeName());
+    }
     
+    public void HBresume() {
+        this.isSuspended = false;
+        System.out.println("[DEBUG] HeartbeatService resumed for node " + gossipNode.getNodeName());
+    }
     // private long tempListTimestamp;
     // private final long TEMP_LIST_TIMEOUT = 300000; // 2.5 mins in milli
 
@@ -319,6 +330,15 @@ public class HeartbeatService extends Thread {
      */
     @SuppressWarnings("deprecation")
     private void receiveMulticast() { 
+        if (isSuspended) {
+            try {
+                Thread.sleep(1000);
+                return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
         try (MulticastSocket multicastSocket = new MulticastSocket(PORT)) {
             InetAddress group = InetAddress.getByName(MULTICAST_GROUP);
             multicastSocket.joinGroup(group);
@@ -454,6 +474,15 @@ public class HeartbeatService extends Thread {
     * Unsupported operations are logged as errors.
     */
     private void receiveMessage() {
+        if (isSuspended) {
+            try {
+                Thread.sleep(1000);
+                return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
         byte[] buffer = new byte[2048]; 
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         

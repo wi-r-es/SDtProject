@@ -11,6 +11,8 @@ public class AppendEntriesReply  implements Serializable {
     private final boolean success; // Whether the entries were appended successfully
     private final UUID nodeID; // follower node ID
 
+    private final Integer lastLogIndex;
+
     /**
      * Constructs an instance of AppendEntriesReply.
      *
@@ -21,6 +23,14 @@ public class AppendEntriesReply  implements Serializable {
         this.term = term;
         this.success = success;
         this.nodeID = id;
+
+        this.lastLogIndex = (Integer) null;
+    }
+    public AppendEntriesReply(int term, boolean success, UUID id, int lastLogIndex) {
+        this.term = term;
+        this.success = success;
+        this.nodeID = id;
+        this.lastLogIndex = lastLogIndex;
     }
     
     // Getters for the fields
@@ -33,6 +43,9 @@ public class AppendEntriesReply  implements Serializable {
     public UUID getnodeID() {
         return nodeID;
     }
+    public Integer getlastLogIndex() {
+        return lastLogIndex;
+    }
 
     @Override
     public String toString() {
@@ -40,6 +53,7 @@ public class AppendEntriesReply  implements Serializable {
                 "term=" + term +
                 ", success=" + success +
                 ", nodeID=" + nodeID +
+                ", lastLogIndex=" + lastLogIndex!=null ? Integer.toString(lastLogIndex) : "not defined" +
                 '}';
     }
 }

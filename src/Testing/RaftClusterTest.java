@@ -26,8 +26,8 @@ public class RaftClusterTest {
         //nodes.forEach(node -> new Thread(node::scheduleElectionTimeout).start());
         
         try {
-            //File logFile = new File("raftReplicationTestingAndDebugging.txt");
-            File logFile = new File("raftReplicationTestingAndDebuggingnunnREg.txt");
+            File logFile = new File("raftReplicationTestingAndDebugging.txt");
+            //File logFile = new File("raftReplicationTestingAndDebuggingnunnREg.txt");
             PrintStream fileOut = new PrintStream(logFile);
             System.setOut(fileOut); // Redirects System.out to the file
         } catch (FileNotFoundException e) {
@@ -39,8 +39,6 @@ public class RaftClusterTest {
 
         
         nodes.forEach(node -> new Thread(node).start());
-
-       
         //System.out.println("Program finished.");
     }
 }

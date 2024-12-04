@@ -4,3 +4,12 @@
 
 
 FULL-SYNC-ACK RECEIVED 
+
+
+[DEBUG] Starting expedited election after failure detection
+
+ignoring AppendEntries
+[DEBUG] Missing previous log entry.
+
+[DEBUG] Putting node
+[DEBUG] Waking up node

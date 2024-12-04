@@ -70,6 +70,8 @@ public class RaftClient {
                 client.enqueue(OPERATION.CREATE, doc5);
                 client.enqueue(OPERATION.CREATE, doc6);
                 client.enqueue(OPERATION.DELETE, doc2);
+
+                
             
                 System.out.println("Message enqueued successfully");
                 
