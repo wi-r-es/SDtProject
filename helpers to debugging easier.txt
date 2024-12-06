@@ -10,6 +10,7 @@ FULL-SYNC-ACK RECEIVED
 
 ignoring AppendEntries
 [DEBUG] Missing previous log entry.
+[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null
 
 [DEBUG] Putting node
 [DEBUG] Waking up node
