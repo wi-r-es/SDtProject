@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.*;
 
-import javax.naming.NamingException;
+
 
 import shared.Message;
 import shared.MessageQueue;
@@ -24,52 +24,49 @@ import remote.LeaderAwareMessageQueueServer;
 /**
  * The RaftNode class represents a node in a Raft consensus cluster.
  * It extends the Node class and implements the Raft consensus algorithm and needed variables.
+ * 
+ * @see Logger
+ * @see FileHandler
+ * @see List
+ * @see Map
+ * @see AtomicInteger
+ * @see AtomicReference
+ * @see ScheduledExecutorService
+ * @see ScheduledFuture
+ * @see AtomicLong
  */
 public class RaftNode extends Node {
     //FOR LOGS
     private static final Logger LOGGER = Logger.getLogger(RaftNode.class.getName());
     private static FileHandler fh;
+    //CONSTANTS
+    private static final int ELECTION_TIMEOUT_MIN = 1000;//1500;//500;//150;  
+    private static final int ELECTION_TIMEOUT_MAX = 1500;//3000;//1000;//300;  
+    private static final int HEARTBEAT_INTERVAL = 1000;   
+    private static final long REPLICATION_TIMEOUT = 5000;  
     //fields for log replication
     private List<LogEntry> log;
     private Map<UUID, Integer> nextIndex = Collections.synchronizedMap(new HashMap<>());  // Index of next log entry to send to each node
     private Map<UUID, Integer> matchIndex = Collections.synchronizedMap(new HashMap<>()); // Index of highest log entry known to be replicated
     private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
     private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
-    //CONSTANTS
-    private static final int ELECTION_TIMEOUT_MIN = 1000;//1500;//500;//150;  
-    private static final int ELECTION_TIMEOUT_MAX = 1500;//3000;//1000;//300;  
-    private static final int HEARTBEAT_INTERVAL = 1000;   
-    private static final long REPLICATION_TIMEOUT = 5000;  
-
-   // private boolean isQueueOwner = false; // Track if this node owns the queue
-
+    //For Raft Node Control
     private AtomicInteger currentTerm;
-    //private UUID votedFor;
     private final AtomicReference<UUID> votedFor;
-    
     private final AtomicReference<NodeState> state;
     private UUID leaderId;
     private Set<UUID> votesReceived;
-    //private Timer electionTimer;
-    
-    private ScheduledExecutorService scheduler;
     private volatile ScheduledFuture<?> electionMonitor;  // For leader election
-    private volatile ScheduledFuture<?> heartbeatTimer;
-    // For leader election
     private final AtomicLong electionTimeout;  // Track when election should happen
     private final Random random;
     private final Object timerLock = new Object();
+    private volatile ScheduledFuture<?> heartbeatTimer;
+    private ScheduledExecutorService scheduler; //for thread scheduling
 
     // For log replication fail for testing purposes
     private volatile boolean isSleeping = false;
 
-    /**
-     * Constructor for the RaftNode class.
-     *
-     * @param nodeId    The ID of the node.
-     * @param isLeader  Indicates if the node is the leader.
-     * @throws RemoteException If a remote exception occurs.
-     */
+    
     // public RaftNode(String nodeId, boolean isLeader) throws RemoteException {
     //     super(nodeId, isLeader);
     //     this.currentTerm = new AtomicInteger(0);;
@@ -90,6 +87,15 @@ public class RaftNode extends Node {
     //     startElectionMonitor();
     //     //initializeIndices(); // for log replication
     // }
+    /**
+     * Constructor for the RaftNode class.
+     *
+     * @param nodeId    The ID of the node.
+     * @param isLeader  Indicates if the node is the leader.
+     * @throws RemoteException If a remote exception occurs.
+     * @see Nodes.Raft.RaftNode#startElectionMonitor()
+     * @see Executors#newScheduledThreadPool()
+     */
     public RaftNode(String nodeId, boolean isLeader, boolean r) throws RemoteException {
         super(nodeId, isLeader,r);
         this.currentTerm = new AtomicInteger(0);;
@@ -102,13 +108,11 @@ public class RaftNode extends Node {
         this.leaderId = null;
         this.votedFor = new AtomicReference<>(null);
         this.votesReceived = ConcurrentHashMap.newKeySet();
-        //this.electionTimer = new Timer(true);
         this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
         this.random = new Random();
         this.electionTimeout = new AtomicLong(0);
 
         startElectionMonitor();
-        //initializeIndices(); // for log replication
     }
 
     /**
@@ -149,6 +153,14 @@ public class RaftNode extends Node {
      */
     public UUID getLeaderId() {
         return leaderId;
+    }
+    /**
+     * Returns the current log entries size.
+     *
+     * @return The size of log.
+     */
+    public int getLogSize() {
+        return log.size();
     }
 
     /**
@@ -245,6 +257,11 @@ public class RaftNode extends Node {
      * The run method is executed when the thread starts.
      * It initializes the Raft state and starts the election monitor.
      * Then it calls the parent's method.
+     * 
+     * @see Nodes.Raft.RaftNode#startElectionMonitor();
+     * @see Nodes.Raft.RaftNode#resetElectionTimeout();
+     * @see Nodes.Node#run()
+     * 
      */
     @Override
     public void run() {
@@ -257,9 +274,6 @@ public class RaftNode extends Node {
             RaftNode.fh = new FileHandler("mylog.txt");
             LOGGER.addHandler(fh); //Adds file handler to the logger
             LOGGER.setLevel(Level.ALL); // Request that every detail gets logged.
-            //// Log a simple INFO message.  -> logger.info("doing stuff");
-            /// logger.log(Level.WARNING, "trouble sneezing", ex); 
-            /// logger.fine("done");
             super.run(); // The parent run method  will use overridden methods due to polymorphism aint that F'ing neat bruh
         } catch (Exception e) {
             e.printStackTrace();
@@ -380,27 +394,8 @@ public class RaftNode extends Node {
      * Resets the election timeout.
      */
     private void resetElectionTimeout() {
-        //  // Make timeout more random by using different ranges for different nodes
-        // int nodeNum;
-        // try {
-        //     String[] parts = this.getNodeName().split("-");
-        //     nodeNum = parts.length > 1 ? Integer.parseInt(parts[1]) : 
-        //              Math.abs(this.getNodeId().hashCode() % 100);  // Use node ID hash as fallback
-        // } catch (NumberFormatException e) {
-        //     // If parse fails, use hash of node ID
-        //     nodeNum = Math.abs(this.getNodeId().hashCode() % 100);
-        // }
-        
-        // // Use node number to create different ranges for different nodes
-        // int minTimeout = ELECTION_TIMEOUT_MIN + (nodeNum * 50);  // Spread out the minimum times
-        // int maxTimeout = minTimeout + (ELECTION_TIMEOUT_MAX - ELECTION_TIMEOUT_MIN);
-        // int randomTimeout = minTimeout + random.nextInt(maxTimeout - minTimeout + 1);
-        
-        // electionTimeout.set(System.currentTimeMillis() + randomTimeout);
-        // addNewLog("RESET", randomTimeout);
         resetElectionTimeout(false);
     }
-
     private void resetElectionTimeout(boolean afterFailure) {
         int nodeNum;
         try {
@@ -461,7 +456,9 @@ public class RaftNode extends Node {
      * 
      * The method uses a CountDownLatch to wait for the votes asynchronously.
      * It waits for a maximum of ELECTION_TIMEOUT_MIN milliseconds for the votes to arrive.
- */
+     * 
+     * @see Nodes.Raft.RaftNode#sendVoteRequest()
+     */
     private void startElection() {
         if (state.get() == NodeState.LEADER) {
             return;
@@ -477,12 +474,14 @@ public class RaftNode extends Node {
 
         addNewLog("ELECTION");
 
-        Set<Map.Entry<UUID, Integer>> peers = getKnownNodes();
-        CountDownLatch voteLatch = new CountDownLatch(peers.size());
+        
+        
         
 
         // Request votes from all peers
         /*
+                        Set<Map.Entry<UUID, Integer>> peers = getKnownNodes();
+                        CountDownLatch voteLatch = new CountDownLatch(peers.size());
                         
                         //AtomicInteger voteCount = new AtomicInteger(1); 
                         // Create vote request args
@@ -511,12 +510,12 @@ public class RaftNode extends Node {
         //or simply multicast
         sendVoteRequest();
 
-        try {
-            voteLatch.await(ELECTION_TIMEOUT_MIN, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return;
-        }
+        // try {
+        //     voteLatch.await(ELECTION_TIMEOUT_MIN, TimeUnit.MILLISECONDS);
+        // } catch (InterruptedException e) {
+        //     Thread.currentThread().interrupt();
+        //     return;
+        // }
     }
     /**
      * Retries the election.
@@ -554,6 +553,8 @@ public class RaftNode extends Node {
 
     /**
      * Sends a vote request to all known nodes.
+     * 
+     * @see Services.HeartbeatService#broadcast(Message, boolean);
      */
     private void sendVoteRequest() { // in a perfect world should send this via unicast to every other node instead of multicasting
         Message voteRequest = new Message( //public Message(OPERATION op, Object pl, String nodeName, UUID nodeId, int udpPort) {
@@ -606,6 +607,8 @@ public class RaftNode extends Node {
      *
      * @param args The arguments of the RequestVote RPC.
      * @param port The port of the candidate node.
+     * 
+     * @see Services.HeartbeatService#sendUncompMessage(Message, UUID, int)
      */
     public synchronized void handleVoteRequest(RequestVoteArgs args, int port) {
         System.out.println("[DEBUG] Hadnling Vote request." );
@@ -644,7 +647,6 @@ public class RaftNode extends Node {
             voteGranted,
             getNodeId()
         );
-
         Message voteResponse = new Message(
             OPERATION.VOTE_ACK,
             reply
@@ -672,6 +674,9 @@ public class RaftNode extends Node {
      * it retries the election.
      *
      * @param reply The RequestVoteReply received from the node.
+     * 
+     * @see Nodes.Raft.RaftNode#resetElectionTimeout()
+     * @see Nodes.Raft.RaftNode#retryElection()
      */
     public synchronized void handleVoteResponse(RequestVoteReply reply) {
         System.out.println("[DEBUG] [node: "+ this.getNodeName()+ "]Received vote response from " + reply.getVoterId() +
@@ -715,6 +720,10 @@ public class RaftNode extends Node {
      * 3. Starts sending periodic heartbeats to followers.
      * 4. Initializes the nextIndex and matchIndex for each follower.
      * 5. Starts the leader-specific services.
+     * 
+     * @see Nodes.Raft.RaftNode#startLeaderServices()
+     * @see Nodes.Raft.RaftNode#initializeIndices()
+     * @see Nodes.Raft.RaftNode#broadcastHeartbeat()
      */
     @Override
     protected void becomeLeader() {
@@ -758,6 +767,10 @@ public class RaftNode extends Node {
      * Steps down as the leader.
      *
      * @param newTerm The new term.
+     * @see Nodes.Raft.RaftNode#transferMessageQueue()
+     * @see Nodes.Raft.RaftNode#stopQueueService()
+     * @see Nodes.Raft.RaftNode#startElectionMonitor()
+     * @see Nodes.Raft.RaftNode#resetElectionTimeout()
      */
     public void stepDown(int newTerm) {
         if (state.get() == NodeState.LEADER) {
@@ -798,39 +811,41 @@ public class RaftNode extends Node {
  ██████   ██████  ███████  ██████  ███████ 
     ▀▀                                    
      */
-        /**
-     * Starts the leader services when the node becomes the leader.
-     */  
+    
+    /**
+    * Starts the leader services when the node becomes the leader.
+    * @see MessageQueueServer
+    */  
     @Override
-protected void startLeaderServices() {
-    if (state.get() == NodeState.LEADER) {
-        try {
-            // Stop any existing service
-            if (messageQueue != null) {
-                messageQueue.unreg();
+    protected void startLeaderServices() {
+        if (state.get() == NodeState.LEADER) {
+            try {
+                // Stop any existing service
+                if (messageQueue != null) {
+                    messageQueue.unreg();
+                }
+                
+                System.setProperty("java.rmi.server.hostname", "localhost");
+                
+                // Create and start new message queue server
+                messageQueue = new LeaderAwareMessageQueueServer(
+                    getNodeName(), 
+                    2323, 
+                    getNodeId(),
+                    this
+                );
+                messageQueue.start();
+                
+                // Wait for the server to start
+                Thread.sleep(1000);
+                
+                System.out.println("[DEBUG] Leader services started successfully on port 2323");
+            } catch (Exception e) {
+                LOGGER.severe("Failed to start leader services: " + e.getMessage());
+                e.printStackTrace();
             }
-            
-            System.setProperty("java.rmi.server.hostname", "localhost");
-            
-            // Create and start new message queue server
-            messageQueue = new LeaderAwareMessageQueueServer(
-                getNodeName(), 
-                2323, 
-                getNodeId(),
-                this
-            );
-            messageQueue.start();
-            
-            // Wait for the server to start
-            Thread.sleep(1000);
-            
-            System.out.println("[DEBUG] Leader services started successfully on port 2323");
-        } catch (Exception e) {
-            LOGGER.severe("Failed to start leader services: " + e.getMessage());
-            e.printStackTrace();
         }
     }
-}
 
 
      /**
@@ -847,6 +862,12 @@ protected void startLeaderServices() {
         }
         return false;
     }
+    /**
+     * Getter for thje leader Queue
+     * @return MessageQueue belonging to the leader instance.
+     * @throws RemoteException If a remote exception occurs.
+     * @see remote.LeaderAwareMessageQueueServer
+     */
     public MessageQueue getLeaderQueue() throws RemoteException {
         try {
             if (state.get() == NodeState.LEADER) {
@@ -869,6 +890,9 @@ protected void startLeaderServices() {
      * 
      * @param newLeaderId The ID of the new leader
      * @param newLeaderPort The port of the new leader
+     * 
+     * @see remote.messageQueueServer#getQueue()
+     * @see Services.HeartbeatService#sendCompMessage(Message, UUID, int)
      */
     private void transferMessageQueue(UUID newLeaderId, int newLeaderPort) {
         try {
@@ -907,26 +931,12 @@ protected void startLeaderServices() {
         }
     }
 
-    //not used yet 
-    public void sendMessageToLeader(Message message) throws RemoteException {
-        try {
-            if (isLeader()) {
-                messageQueue.getQueue().enqueue(message);
-            } else if (leaderId != null) {
-                Registry registry = LocateRegistry.getRegistry(getPeerPort(leaderId));
-                LeaderAwareMessageQueueServer leaderQueue = 
-                    (LeaderAwareMessageQueueServer) registry.lookup("MessageQueue");
-                leaderQueue.getQueue().enqueue(message);
-            } else {
-                throw new RemoteException("No leader available");
-            }
-        } catch (NotBoundException | RemoteException e) {
-            throw new RemoteException("Failed to send message to leader", e);
-        }
-    }
 
 
-
+    /**
+     * Stops queue service by callig the method to unregister and then setting the variable to null.
+     * @see remote.messageQueueServer#unreg()
+     */
     protected void stopQueueService() {
         if (messageQueue != null) {
             try {
@@ -947,8 +957,11 @@ protected void startLeaderServices() {
                                     ██   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██    ██    
                                     ██   ██ ███████ ██   ██ ██   ██    ██    ██████  ███████ ██   ██    ██                                                                                                                                                                                
      */
+
     /**
      * Broadcasts a heartbeat to all known nodes.
+     * 
+     * @see Services.HeartbeatService#broadcast(Message, boolean)
      */
     private void broadcastHeartbeat() { //public static Message LheartbeatMessage(String content, String nodeName, UUID nodeId, int udpPort) {
         if (state.get() != NodeState.LEADER) {
@@ -997,6 +1010,10 @@ protected void startLeaderServices() {
      * and transitions its state accordingly to maintain consistency with the rest of the cluster.
      *
      * @param message The heartbeat message received from the leader.
+     * 
+     * @see Nodes.Raft.RaftNode#stepDown(int)
+     * @see Nodes.Raft.RaftNode#resetElectionTimeout()
+     * @see shared.Message#getPayload()
      */
     public synchronized void handleHeartbeat(Message message) {
         Object payload = message.getPayload();
@@ -1073,8 +1090,17 @@ protected void startLeaderServices() {
 
 
 
-    //WIP
 
+    /**
+     * Sends an AppendEntries RPC to a peer node.
+     *
+     * @param peerId       The UUID of the peer node.
+     * @param prevLogIndex The index of the log entry preceding the new entries.
+     * @param entries      The list of log entries to append.
+     * 
+     * @see Services.HeartbeatService#sendCompMessage(Message, UUID, int)
+     * @see Nodes.Raft.AppendEntriesArgs
+    */
     private void sendAppendEntries(UUID peerId, int prevLogIndex, List<LogEntry> entries) {
         int prevLogTerm = prevLogIndex >= 0 ? log.get(prevLogIndex).getTerm() : 0;
         
@@ -1102,7 +1128,19 @@ protected void startLeaderServices() {
             getPeerPort(peerId)
         );
     }
-
+    /**
+     * Handles an incoming AppendEntries RPC from the leader.
+     *
+     * @param args            The AppendEntriesArgs object containing the RPC arguments.
+     * @param destination_port The destination port of the node sending the reply.
+     * 
+     * @see Nodes.Raft.RaftNode#sendAppendEntriesReply(UUID, boolean, int, int)
+     * @see Nodes.Raft.RaftNode#resetElectionTimeout()
+     * @see Nodes.Raft.RaftNode#appendLogEntry(LogEntry)
+     * @see Nodes.Raft.RaftNode#processLogEntry(LogEntry)     
+     * @see Nodes.Raft.RaftNode#applyCommittedEntries()
+     * @see Nodes.Raft.AppendEntriesArgs
+    */
     public synchronized void handleAppendEntries(AppendEntriesArgs args, int destination_port) {
         if (isSleeping) {
             System.out.println("[DEBUG] Node " + getNodeName() + " is sleeping, ignoring AppendEntries");
@@ -1173,7 +1211,7 @@ protected void startLeaderServices() {
                     System.out.println("[DEBUGGING] Appending Log entry handleAppendEntries:    2ND IF-INSIDEFOR IF");
                     appendLogEntry(newEntry);
                 }
-                // If terms match, keep existing entry
+            // If terms match, keep existing entry
             } else {
                 System.out.println("[DEBUGGING] handleAppendEntries:    ELSE INSIDE FOR");
                 System.out.println("[DEBUGGING] Appending Log entry handleAppendEntries:    ELSE INSIDE FOR");
@@ -1196,8 +1234,17 @@ protected void startLeaderServices() {
         sendAppendEntriesReply(args.getLeaderId(), true, currentTerm.get(), destination_port);
     }
 
-
-
+   /**
+    * Sends an AppendEntries reply to the leader.
+    *
+    * @param leaderId         The UUID of the leader node.
+    * @param success          Indicates whether the AppendEntries was successful.
+    * @param term             The current term of the node.
+    * @param destination_port The destination port of the leader.
+    *
+    * @see Services.HeartbeatService#sendUncompMessage(Message, int, int)
+    * @see Nodes.Raft.AppendEntriesReply
+    */
     private void sendAppendEntriesReply(UUID leaderId, boolean success, int term, int destination_port) {
         AppendEntriesReply reply = new AppendEntriesReply(term, success, getNodeId());
         Message replyMsg = new Message(
@@ -1217,7 +1264,18 @@ protected void startLeaderServices() {
             destination_port
         );
     }
-    // For missing logs
+   /**
+    * Sends an AppendEntries reply to the leader for missing log entries.
+    *
+    * @param leaderId         The UUID of the leader node.
+    * @param success          Indicates whether the AppendEntries was successful.
+    * @param term             The current term of the node.
+    * @param destination_port The destination port of the leader.
+    * @param lastLogIndex     The index of the last log entry.
+    *
+    * @see Services.HeartbeatService#sendUncompMessage(Message, int, int)
+    * @see Nodes.Raft.AppendEntriesReply
+    */
     private void sendAppendEntriesReply(UUID leaderId, boolean success, int term, int destination_port, int lastLogIndex) {
         AppendEntriesReply reply = new AppendEntriesReply(term, success, getNodeId(), lastLogIndex);
         Message replyMsg = new Message(
@@ -1239,6 +1297,17 @@ protected void startLeaderServices() {
     }
 
 
+   /**
+    * Handles an incoming AppendEntries reply from a follower.
+    *
+    * @param reply The AppendEntriesReply object containing the reply data.
+    *
+    * @see Nodes.Raft.AppendEntriesReply
+    * @see Nodes.Raft.RaftNode#updateFollowerIndices(UUID)
+    * @see Nodes.Raft.RaftNode#checkAndSendCommit()
+    * @see Nodes.Raft.RaftNode#handleFailedAppendEntries(AppendEntriesReply)
+    * @see Nodes.Raft.RaftNode#decrementNextIndex(UUID)
+    */
     public synchronized void handleAppendEntriesReply(AppendEntriesReply reply) {
         addNewLog("APPEND_ENTRIES_REPLY");
         addNewLog("APPEND_ENTRIES_REPLY_CONTENT", reply);
@@ -1250,19 +1319,19 @@ protected void startLeaderServices() {
 
         System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - nextIndex: " + nextIndex.toString());
         System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - matchIndex: " + matchIndex.toString());
-    
+        // The log replication was succesfull
         if (reply.isSuccess()) {
             updateFollowerIndices(reply.getnodeID());
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - nextIndex: " + nextIndex);
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - matchIndex: " + matchIndex);
             checkAndSendCommit();
-        } else {
+        } else { // The log replication wasn't succesfull, and the follower doesn't have the logs up-to-date
             if(!reply.isSuccess() && reply.getlastLogIndex()!= null){
                 System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null");
                 handleFailedAppendEntries(reply);
             }
             else{
-                 // If append failed, decrement nextIndex and retry
+                // The log replication wasn't succesfull, decrement nextIndex and retry
                 System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull");
                 System.out.println("[DEBUG]->handleAppendEntriesReply->  - nextIndex: "  + nextIndex.get(reply.getnodeID()));
                 System.out.println("[DEBUG]->handleAppendEntriesReply->  - matchIndex: " + matchIndex.get(reply.getnodeID()));
@@ -1270,7 +1339,14 @@ protected void startLeaderServices() {
             }
         }
     }
-    
+
+   /**
+    * Handles a failed AppendEntries request by sending missing entries to the follower.
+    *
+    * @param reply The AppendEntriesReply object containing the follower's last log index.
+    *
+    * @see Nodes.Raft.RaftNode#sendAppendEntries(UUID, int, List)
+    */
     private void handleFailedAppendEntries(AppendEntriesReply reply) {
         int lastLogIndex = reply.getlastLogIndex();
         UUID followerId = reply.getnodeID();
@@ -1286,6 +1362,13 @@ protected void startLeaderServices() {
             sendAppendEntries(followerId, lastLogIndex, entriesToSend);
         }
     }
+    
+   /**
+    * Checks if a majority of followers have replicated the current log index and sends a commit message if so.
+    *
+    * @see Nodes.Node#getKnownNodes()
+    * @see Services.HeartbeatService#broadcast(Message, boolean)
+    */
     private void checkAndSendCommit() {
         int matchCount = 1; // Count self
         int currentIndex = log.size() - 1;
@@ -1380,7 +1463,12 @@ protected void startLeaderServices() {
     */
 
 
-
+   /**
+    * Applies all committed entries to the state machine.
+    * Processes log entries with indexes greater than lastApplied up to the commitIndex.
+    *
+    * @see Nodes.Raft.RaftNode#processLogEntry(LogEntry)
+    */
     private void applyCommittedEntries() {
         // Apply all newly committed entries to state machine
         while (lastApplied < commitIndex) {
@@ -1390,6 +1478,13 @@ protected void startLeaderServices() {
         }
     }
 
+   /**
+    * Processes a single log entry by applying the corresponding operation to the document.
+    * Parses the log entry command, extracts the operation and document, and applies the operation.
+    *
+    * @param entry The log entry to process.
+    * @see Node#processOP(OPERATION, Document)
+    */
     private void processLogEntry(LogEntry entry) {    
         try {
             addNewLog("REPLICATION", entry);
@@ -1407,6 +1502,14 @@ protected void startLeaderServices() {
             e.printStackTrace();
         }
     }
+
+   /**
+    * Handles a commit index message from the leader.
+    * Updates the local commit index and applies newly committed entries to the state machine.
+    *
+    * @param message The commit index message.
+    * @see Nodes.Raft.RaftNode#applyCommittedEntries()
+    */
     public synchronized void handleCommitIndex(Message message) {
         System.out.println("[DEBUG]->handleCommitIndex");
         try {
@@ -1427,6 +1530,14 @@ protected void startLeaderServices() {
         }
     }
 
+   /**
+    * Replicates the latest log entry to all peers using multicast.
+    * Constructs an AppendEntriesArgs object with the latest log entry and its preceding entry's information.
+    * Broadcasts the AppendEntriesArgs to all peers for log replication.
+    *
+    * @see Nodes.Raft.AppendEntriesArgs
+    * @see Services.HeartbeatService#broadcast(Message, boolean)
+    */
     private void replicateLogMULTICAST() {
         System.out.println("[DEBUG]->REPLICATING LOG");
         // Instead of unicasting to each peer, broadcast the latest entry
@@ -1487,13 +1598,23 @@ protected void startLeaderServices() {
     //         }
     //     }
     // }
-    //not used
+
+   /**
+    * Handles a sync request from another node.
+    * Updates the logs and documents based on the received sync payload.
+    *
+    * @param payload The sync request payload.
+    * @return The updated size of the log after processing the sync request.
+    * 
+    * @see Nodes.Raft.RaftNode#updateLogsFromSync(String)
+    * @see Nodes.Raft.RaftNode#processDocumentsFromSync(String)
+    */
     public int handleSyncRequest(String payload) {
         System.out.println("[DEBUGGING] handleSyncRequest");
         System.out.println("[DEBUGGING] handleSyncRequest->paylaod->" +payload);
         String[] parts = payload.split(";");
+        
         //int senderTerm = Integer.parseInt(parts[2]);
-
         // Step down if we see a higher term
         // if (senderTerm > currentTerm.get()) {
         //     //stepDown(senderTerm);
@@ -1516,7 +1637,14 @@ protected void startLeaderServices() {
         //this.getGossipNode().getHeartbeatService().sendSyncAck(senderId, senderPort);
         return log.size();
     }
-    //not used
+
+   /**
+    * Updates the logs based on the received sync payload.
+    *
+    * @param logsSection The logs section of the sync payload.
+    *
+    * @see Nodes.Raft.RaftNode#appendLogEntry(LogEntry)
+    */
     private void updateLogsFromSync(String logsSection) {
         System.out.println("[DEBUGGING] updateLogsFromSync-> logsize() -> " + log.size());
         System.out.println("[DEBUGGING] updateLogsFromSync-> logslogsSectionze() -> " + logsSection);
@@ -1538,6 +1666,13 @@ protected void startLeaderServices() {
         System.out.println("[DEBUGGING]  after updateLogsFromSync. LOGS: " + log.toString());
     }
 
+   /**
+    * Processes the documents from the sync payload.
+    *
+    * @param docsSection The documents section of the sync payload.
+    *
+    * @see Nodes.DocumentsDB#updateOrAddDocument(Document)
+    */
     private void processDocumentsFromSync(String docsSection) {
         String[] docs = docsSection.split("\\$");
         for (String doc : docs) {
@@ -1549,7 +1684,13 @@ protected void startLeaderServices() {
         }
     }
 
-
+    /**
+    * Waits for log replication to reach a majority of nodes.
+    *
+    * @param index The index to wait for replication.
+    * @return true if replication is successful, false if it times out.
+    * @see Nodes.Raft.RaftNode#applyCommittedEntries()
+    */
     private boolean waitForLogReplication(int index) {
         System.out.println("[DEBUG]: INSIDE waitForLogReplication");
         System.out.println("[DEBUG]: INDEX: " + index);
@@ -1593,6 +1734,8 @@ protected void startLeaderServices() {
      * Called when a follower successfully acknowledges AppendEntries.
      *
      * @param followerId The UUID of the follower node
+     * 
+     * @see Nodes.Raft.RaftNode#updateCommitIndex()
      */
     public synchronized void updateFollowerIndices(UUID followerId) throws NullPointerException{
         // Get the last index sent to this follower
@@ -1625,6 +1768,8 @@ protected void startLeaderServices() {
      * This helps find the point of divergence in the logs.
      *
      * @param followerId The UUID of the follower node
+     * 
+     * @see Nodes.Raft.RaftNode#sendAppendEntries()
      */ 
     public void decrementNextIndex(UUID followerId) {
         int currentNext = nextIndex.getOrDefault(followerId, log.size());
@@ -1643,6 +1788,8 @@ protected void startLeaderServices() {
     /**
      * Updates the commit index if a majority of followers have replicated entries.
      * This is called after successful AppendEntries replies.
+     * 
+     * @see Nodes.Raft.RaftNode#applyCommittedEntries()
      */
     private void updateCommitIndex() {
         // Sort matched indices to find the median (majority)
@@ -1703,6 +1850,11 @@ protected void startLeaderServices() {
 
     /**
      * Processes and commits messages when the node is the leader.
+     * 
+     * @see Nodes.Raft.RaftNode#appendLogEntry()
+     * @see Nodes.Raft.RaftNode#replicateLogMULTICAST()
+     * @see Nodes.Raft.RaftNode#processMessage()
+     * @see Nodes.Raft.RaftNode#getLeaderQueue()
      */
     @Override
     public void processAndCommit() {
@@ -1774,6 +1926,13 @@ protected void startLeaderServices() {
                                                                        
  */
 
+    /**
+    * Starts the full sync process to create an updated DB in a new node.
+    * Using RAFT Protocol schema (using logs).
+    *
+    * @return The message containing the full sync content.
+    * @see shared.Message 
+    */
     @Override
     public Message startFullSyncProcess() {
         String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + 
@@ -1796,6 +1955,12 @@ protected void startLeaderServices() {
         return new Message(OPERATION.FULL_SYNC_ANS, payloadBuilder.toString());
     }
 
+    /**
+    * Adds a new node to the nextIndex and matchIndex maps.
+    *
+    * @param newNodeID The UUID of the new node.
+    * @param index The initial index value for the new node.
+    */
     public void addNewNodeToMaps(UUID newNodeID, int index ){
         System.out.println("[DEBUG]:addNewNodeToMaps: " +newNodeID+":"+index);
         nextIndex.putIfAbsent(newNodeID,index );
@@ -1815,7 +1980,12 @@ protected void startLeaderServices() {
 
  */
 
-
+    /**
+    * Handles the failure of the leader node.
+    * If the current node is a follower, it clears the leader state and starts a new election.
+    *
+    * @see Nodes.Raft.RaftNode#startElectionAfterFailure
+    */
     public void handleLeaderFailure() {
         // Only handle if we're a follower
         if (state.get() == NodeState.FOLLOWER) {
@@ -1824,14 +1994,15 @@ protected void startLeaderServices() {
             // Clear leader state
             leaderId = null;
             
-            // Reset election timeout with a shorter duration to speed up recovery
-            //resetElectionTimeout();
-            
             // Start election process
             startElectionAfterFailure();
         }
     }
-    //Method to simulate sudden failure.
+
+    /**
+    * Simulates a sudden crash of the current node if it is the leader.
+    * Stops all node services and threads.
+    */
     public synchronized void simulateCrash() {
         if(getNodeState() != NodeState.LEADER) { return;}
         System.out.println("[DEBUG] Simulating sudden crash of node: " + getNodeName());
@@ -1880,7 +2051,14 @@ protected void startLeaderServices() {
 
     }
 
-    // Enhance election monitor to be more aggressive after suspected failure
+   /**
+    * Starts an expedited election process after failure detection.
+    * Resets the election timeout with a shorter duration, updates the election state,
+    * and immediately broadcasts vote requests.
+    *
+    * @see Nodes.Raft.RaftNode#resetElectionTimeout(boolean)
+    * @see Nodes.Raft.RaftNode#sendVoteRequest()
+    */
     private void startElectionAfterFailure() {
 
         System.out.println("[DEBUG] Starting expedited election after failure detection");
@@ -1899,11 +2077,12 @@ protected void startLeaderServices() {
         
     }
 
-
-
-
-
-
+   /**
+    * Simulates putting the node to sleep.
+    * Sets the isSleeping flag to true and suspends the heartbeat service and message processing.
+    *
+    * @see Services.HeartbeatService#HBsuspend()
+    */
     public void simulateSleep() {
         System.out.println("[DEBUG] Putting node " + getNodeName() + " to sleep");
         this.isSleeping = true;
@@ -1913,7 +2092,15 @@ protected void startLeaderServices() {
             getGossipNode().getHeartbeatService().HBsuspend();
         }
     }
-    
+
+    /**
+    * Simulates waking up the node.
+    * Sets the isSleeping flag to false, resumes the heartbeat service and message processing,
+    * and resets the election timeout.
+    *
+    * @see Nodes.Raft.RaftNode#resetElectionTimeout()
+    * @see Services.HeartbeatService#HBresume()
+    */
     public void simulateWakeup() {
         System.out.println("[DEBUG] Waking up node " + getNodeName());
         this.isSleeping = false;
@@ -1926,9 +2113,7 @@ protected void startLeaderServices() {
         // Reset election timeout
         resetElectionTimeout();
     }
-    public int getLogSize() {
-        return log.size();
-    }
+    
 
 
 
