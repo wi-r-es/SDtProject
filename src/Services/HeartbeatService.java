@@ -529,7 +529,13 @@ public class HeartbeatService extends Thread {
                                     //gossipNode.getRaftNode(). handleQueueTransfer(message);
                                 }
                                 break;
-
+                            case APPEND_ENTRIES:
+                                if(!this.gossipNode.isLeader()) {
+                                    System.out.println("[DEBUG]->FIXING LOG REPLIICATION MISSING -> APPEND ENTRIES RECIEVED");
+                                    AppendEntriesArgs args = (AppendEntriesArgs) obj;
+                                    gossipNode.getRaftNode().handleAppendEntries(args, message.getUdpPort());
+                                }
+                                break;
                             default:
                                 System.err.println("This operation is not supported in this part of the code, BIG BUG3: " + op);
                         }

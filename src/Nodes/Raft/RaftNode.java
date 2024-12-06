@@ -1237,6 +1237,83 @@ protected void startLeaderServices() {
             destination_port
         );
     }
+
+
+    public synchronized void handleAppendEntriesReply(AppendEntriesReply reply) {
+        addNewLog("APPEND_ENTRIES_REPLY");
+        addNewLog("APPEND_ENTRIES_REPLY_CONTENT", reply);
+        if (state.get() != NodeState.LEADER) {
+            return;
+        }
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> reply content: " + reply.toString());
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> reply LASTLOGCONDITION: " + reply.getlastLogIndex()!=  null);
+
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - nextIndex: " + nextIndex.toString());
+        System.out.println("[DEBUG]->handleAppendEntriesReply-> Before update - matchIndex: " + matchIndex.toString());
+    
+        if (reply.isSuccess()) {
+            updateFollowerIndices(reply.getnodeID());
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - nextIndex: " + nextIndex);
+            System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - matchIndex: " + matchIndex);
+            checkAndSendCommit();
+        } else {
+            if(!reply.isSuccess() && reply.getlastLogIndex()!= null){
+                System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null");
+                handleFailedAppendEntries(reply);
+            }
+            else{
+                 // If append failed, decrement nextIndex and retry
+                System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull");
+                System.out.println("[DEBUG]->handleAppendEntriesReply->  - nextIndex: "  + nextIndex.get(reply.getnodeID()));
+                System.out.println("[DEBUG]->handleAppendEntriesReply->  - matchIndex: " + matchIndex.get(reply.getnodeID()));
+                decrementNextIndex(reply.getnodeID());
+            }
+        }
+    }
+    
+    private void handleFailedAppendEntries(AppendEntriesReply reply) {
+        int lastLogIndex = reply.getlastLogIndex();
+        UUID followerId = reply.getnodeID();
+        
+        if (lastLogIndex == -1) {
+            // Follower has empty log - send all entries
+            System.out.println("[DEBUG] Follower has empty log, sending all entries");
+            sendAppendEntries(followerId, -1, new ArrayList<>(log)); // Already checked in the beginning of sendAppendEntries whether the parameter is >= 0 and different approaches for both occasions
+        } else {
+            // Follower has some entries - send all entries after lastLogIndex
+            System.out.println("[DEBUG] Follower last log index: " + lastLogIndex);
+            List<LogEntry> entriesToSend = log.subList(lastLogIndex + 1, log.size());
+            sendAppendEntries(followerId, lastLogIndex, entriesToSend);
+        }
+    }
+    private void checkAndSendCommit() {
+        int matchCount = 1; // Count self
+        int currentIndex = log.size() - 1;
+        
+        for (Integer matchIdx : matchIndex.values()) {
+            if (matchIdx >= currentIndex) {
+                matchCount++;
+            }
+        }
+        
+        if (matchCount > getKnownNodes().size() / 2) {
+            System.out.println("[DEBUG]->handleAppendEntriesReply gonna send commit");
+            System.out.println("[DEBUG] Achieved majority for index " + currentIndex + 
+                ". Sending commit message.");
+            commitIndex = currentIndex;
+            Message commitMsg = new Message(
+                OPERATION.COMMIT_INDEX,
+                commitIndex,
+                getNodeName(),
+                getNodeId(),
+                getGossipNode().getHeartbeatService().getUDPport()
+            );
+            System.out.println("Commit index for index: " + commitIndex);
+            this.getGossipNode().getHeartbeatService().broadcast(commitMsg, true);
+        }
+    }
+    /*
+    @Deprecated
     public synchronized void handleAppendEntriesReply(AppendEntriesReply reply) {
         addNewLog("APPEND_ENTRIES_REPLY");
         addNewLog("APPEND_ENTRIES_REPLY_CONTENT", reply);
@@ -1300,6 +1377,7 @@ protected void startLeaderServices() {
 
         }
     }
+    */
 
 
 
