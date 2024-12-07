@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 /**
  * Represents the arguments for the AppendEntries RPC in the Raft consensus algorithm.
+ * @see Nodes.Raft.LogEntry
  */
 public class AppendEntriesArgs  implements Serializable {
     private final int term;                   // Leader's term

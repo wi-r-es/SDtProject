@@ -34,6 +34,8 @@ import remote.LeaderAwareMessageQueueServer;
  * @see ScheduledExecutorService
  * @see ScheduledFuture
  * @see AtomicLong
+ * @see Nodes.Raft.LogEntry
+ * @see Nodes.Raft.NodeState
  */
 public class RaftNode extends Node {
     //FOR LOGS
