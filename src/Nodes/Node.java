@@ -36,21 +36,26 @@ import java.rmi.server.UnicastRemoteObject;
 /**
  * The Node class represents a node in a distributed system.
  * It extends the Thread class to run as a separate thread.
+ * 
+ * @see Nodes.GossipNode
+ * @see remote.MessageQueueServer
+ * @see ConcurrentHashMap
+ * @see DocumentsDB
+ * @see ArrayList
  */
 public class Node extends Thread {
     private final String nodeId;
     private final UUID UID;
     private final GossipNode gossipNode;  
     private ConcurrentHashMap<UUID, Integer> knownNodes = new ConcurrentHashMap<>();  // Known node IDs with their UDP ports
-    private ConcurrentHashMap<UUID, String> knownNodesNames = new ConcurrentHashMap<>();  // Known node IDs with their name
-    //private ArrayList<Document> documentsList = new ArrayList<>(); 
+    private ConcurrentHashMap<UUID, String> knownNodesNames = new ConcurrentHashMap<>();  // Known node IDs with their name 
     private DocumentsDB documents = new DocumentsDB();
-    //private ArrayList<Document> temp = null;
-    private ArrayList<String> operationsBatch = new ArrayList<>(); // Operations processed from message Queue
     private boolean isLeader;
     protected messageQueueServer messageQueue; 
     protected boolean MQSrunning;
     private AckServiceServer ackS = null; // not used
+    //Before RAFT IMPLEMENTATION THIS WAS NEEDED
+    private ArrayList<String> operationsBatch = new ArrayList<>(); // Operations processed from message Queue
     private ConcurrentHashMap<UUID, String> documentChangesACKS = new ConcurrentHashMap<>();  // to save acks for operations of syncing before commmit
     private ConcurrentHashMap<String, String> distributedOperations = new ConcurrentHashMap<>();  // to save BIG SCALE operationsID WITH ITS STATUS
     private ConcurrentHashMap<String, ArrayList<String>> distributedOperationsDescription = new ConcurrentHashMap<>();  // List of the Operation ID action
@@ -82,6 +87,13 @@ public class Node extends Thread {
      *    - Breaks the loop.
      * 4. If any other exception occurs:
      *    - Prints the stack trace of the exception.
+     * 
+     * @see Nodes.Node#startLeaderServices()
+     * @see Nodes.Node#checkQueue()
+     * @see Nodes.Node#checkQueue()
+     * @see Nodes.Node#processAndCommit()
+     * @see Nodes.Node#printKnownNodes()
+     * @see Nodes.Raft.RaftNode#simulateCrash()
      */
     @Override
     public void run() {
@@ -121,20 +133,11 @@ public class Node extends Thread {
                                 }
                                 
                             }
-                        }
-                        // if (this.getClass() == RaftNode.class ){
-                        //     if (  ((RaftNode) (this)).getCurrentTerm()==100   ){
-                        //         this.stopRunning();
-                        //     }
-                        // }
-                        
-                           
-                      
+                        }                   
                     }
                     System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
                     System.out.println("\tGET NODES LIST: \n" );
                     printKnownNodes();
-                    
                     
                     System.out.println("\n\n\n"+this.getGossipNode().getHeartbeatService().toString());
                     System.out.println("COUNNT TO KILL LEADER: " + count.get());
@@ -142,8 +145,6 @@ public class Node extends Thread {
                     System.out.println("\n\n\nIS IT EMPTY: \n" + getDocuments().getDocumentsMap().isEmpty());
                     Thread.sleep(1000);
 
-                    
-                
                 } catch (InterruptedException e) {
                         Thread.currentThread().interrupt(); // Preserve interrupt status
                         System.out.println("Worker thread interrupted.");
@@ -156,12 +157,15 @@ public class Node extends Thread {
         }
         
     }
+
     /**
      * Constructor for the Node class.
      *
      * @param nodeId The ID of the node.
      * @throws RemoteException If a remote exception occurs.
      * @return Node
+     * @see Runtime#addShutdownHook()
+     * @see Nodes.GossipNode#start()
      */
     public Node(String nodeId) throws RemoteException {
         this.nodeId = nodeId;
@@ -176,6 +180,7 @@ public class Node extends Thread {
         //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
+
     /**
      * Constructor for the Node class with a leader flag.
      *
@@ -183,6 +188,8 @@ public class Node extends Thread {
      * @param L      Indicates if the node is a leader.
      * @throws RemoteException If a remote exception occurs.
      * @return Node
+     * @see Runtime#addShutdownHook()
+     * @see Nodes.GossipNode#start()
      */
     public Node(String nodeId, boolean L) throws RemoteException  {
         this.nodeId = nodeId;
@@ -197,6 +204,17 @@ public class Node extends Thread {
         //messageQueue = new messageQueueServer(nodeId, 2323);
         gossipNode.start();
     }
+    /**
+     * Constructor for the Node class for RAFT protocol.
+     *
+     * @param nodeId The ID of the node.
+     * @param L      Indicates if the node is a leader.
+     * @param L      Indicates if the node is a raft node.
+     * @throws RemoteException If a remote exception occurs.
+     * @return Node
+     * @see Runtime#addShutdownHook()
+     * @see Nodes.GossipNode#start()
+     */
     public Node(String nodeId, boolean L, boolean r) throws RemoteException  {
         this.nodeId = nodeId;
         this.UID =  UUID.randomUUID();;
@@ -217,24 +235,24 @@ public class Node extends Thread {
      *
      * @return True if there are messages, false otherwise.
      * @throws RemoteException If a remote exception occurs.
+     * @see remote.messageQueueServer#checkQueue()
      */
     protected synchronized  boolean checkQueue() throws RemoteException{
         if (messageQueue != null){return  messageQueue.checkQueue();}
         else return false;
     }
-
+    // Function to inform that the node is being shutdown
     private void cleanupOnShutdown() {
         System.out.println("Node " + this.nodeId + " shutting down.");
     }
 
-    //Getters
+    //Getters and Setters
     public UUID getNodeId() {
         return UID;
     }
     public String getNodeName(){
         return nodeId;
     }
-
     public GossipNode getGossipNode() {
         return gossipNode;
     }
@@ -247,18 +265,17 @@ public class Node extends Thread {
     public void setRunning( boolean value){
         this.running = value;
     }
-
     public int getPeerPort(UUID peerId) {
         System.out.println("getting peer port " +peerId + "for node: " + this.UID );
         System.out.println(knownNodes.toString());
         System.out.println("done getting peer port-> " + knownNodes.get(peerId));
         Integer port = knownNodes.get(peerId);
-    if (port == null) {
-        System.err.println("No port found for peer: " + peerId);
-        // Either return a default port or throw a proper exception
-        throw new IllegalStateException("No port found for peer: " + peerId);
-    }
-    return port; 
+        if (port == null) {
+            System.err.println("No port found for peer: " + peerId);
+            // Either return a default port or throw a proper exception
+            throw new IllegalStateException("No port found for peer: " + peerId);
+        }
+        return port; 
     }
     /**
      * Returns a list of known nodes.
@@ -304,6 +321,7 @@ public class Node extends Thread {
     }
     /** 
      * Start Leader Services.
+     * @see Nodes.Node#startRMIService()
      */
     protected void startLeaderServices() throws RemoteException {
         startRMIService();       
@@ -311,6 +329,7 @@ public class Node extends Thread {
     }
     /** 
      * Start RMI Service.
+     * @see remote.messageQueueServer
      */
     public void startRMIService() throws RemoteException {
         try {
@@ -347,7 +366,8 @@ public class Node extends Thread {
     protected void becomeLeader(){
         this.isLeader=true;
     }
-
+    
+    //NOT USED
     /** 
      * Start ACK Service.
      */
@@ -367,7 +387,7 @@ public class Node extends Thread {
 
         
     
-    // Provides a list of known nodes for gossiping
+    // Provides a list of known nodes for gossiping -- NOT IMPLEMENTED
     public List<Map.Entry<UUID, Integer>> getRandomNodes() {
         List<Map.Entry<UUID, Integer>> nodesList = new ArrayList<>(knownNodes.entrySet());
         Collections.shuffle(nodesList);
@@ -437,6 +457,10 @@ public class Node extends Thread {
     /** 
      * Helper function to process Message from Message Queue. 
      * @param msg The Message to be processed.
+     * @see Nodes.Node#processOP()
+     * @see shared.Message#getOperation()
+     * @see shared.Message#getPayload()
+     * @see Resources.Document
      * */
     public synchronized void processMessage(Message msg){
         System.out.println("PROCESSING MESSAGE");
@@ -458,6 +482,9 @@ public class Node extends Thread {
      * Helper function to process operation from Message Queue. 
      * @param op Operation regarding the document.
      * @param document Document related to the operation to be processed.
+     * @see Nodes.DocumentsDB#updateOrAddDocument()
+     * @see Nodes.DocumentsDB#removeDocument()
+     * @see Nodes.Node#addOperation()
      */
     protected synchronized void processOP(OPERATION op, Document document){
         try{
@@ -499,8 +526,10 @@ public class Node extends Thread {
     /** 
      * Overloading method for different class type for the first parameter.
      * Helper function to process operation from Message Queue .
-     * @param op Operation regarding the document.
+     * @param op Operation regarding the document in String Format.
      * @param document Document related to the operation to be processed.
+     * @see Nodes.DocumentsDB#updateOrAddDocument()
+     * @see Nodes.DocumentsDB#removeDocument()
      */
     protected synchronized void processOP(String op, Document document){
         try{
@@ -575,6 +604,7 @@ public class Node extends Thread {
     /**
      * Cancels distributed operation .
      * @param op The Operartion ID regarding the batch operation distributed across the cluster.
+     * @see Services.HeartbeatService#broadcast(Message, boolean)
      */
     private synchronized void cancelDistributedOperation(String op){
         distributedOperations.replace(op, "CANCELED");
@@ -621,6 +651,15 @@ public class Node extends Thread {
     *    - Reverts the changes to the documents.
     * 7. Unlocks the documents.
     * 8. If a RemoteException occurs, prints the stack trace.
+    *
+    * @see Nodes.Node#processMessage()
+    * @see Nodes.Node#startSyncProcess()
+    * @see Nodes.Node#debugState()
+    * @see Nodes.DocumentsDB#lock()
+    * @see Nodes.DocumentsDB#createTempMap()
+    * @see Nodes.DocumentsDB#revertChanges()
+    * @see Nodes.DocumentsDB#unlock()
+    * @see remote.messageQueueServer
     */
     protected void processAndCommit() {
         documents.lock();
@@ -669,6 +708,13 @@ public class Node extends Thread {
      * 13. Returns the operation ID.
      *
      * @return The operation ID of the sync process.
+     * @see Nodes.Node#addDistributedOperation()
+     * @see Nodes.Node#commitSyncProcess()
+     * @see Nodes.Node#retrySyncProcess()
+     * @see Nodes.Node#waitForQuorum()
+     * @see CompletableFuture
+     * @see CompletableFuture#thenAccept(java.util.function.Consumer)
+     * @see utils.UniqueIdGenerator#generateOperationId(String)
      */
     private String startSyncProcess(){
         updateQuorum();
@@ -772,6 +818,7 @@ public class Node extends Thread {
      *
      * @param operationId The operation ID.
      * @return A CompletableFuture that completes with a boolean indicating if the quorum was achieved.
+     * @see CompletableFuture
      */                                                     
     @SuppressWarnings("unused")
     private CompletableFuture<Boolean> waitForQuorum(String operationId) {
@@ -852,6 +899,11 @@ public class Node extends Thread {
      *    - Reverts the changes to the documents.
      *
      * @param operationId The operation ID.
+     * @see Nodes.Node#waitForQuorumSync()
+     * @see Nodes.Node#commitSyncProcess()
+     * @see Nodes.Node#clearOperationsBatch()
+     * @see Nodes.Node#cancelDistributedOperation()
+     * @see Nodes.DocumentsDB#revertChanges()
      */
     private void retrySyncProcess(String operationId) {
         int maxRetries = 5;
@@ -872,20 +924,6 @@ public class Node extends Thread {
                 }
 
                 Thread.sleep(retryDelay);
-                // waitForQuorum(operationId).thenAccept(success -> {
-                //     if (success) {
-                //         commitSyncProcess(operationId);
-                //     } else if ( retryCount.incrementAndGet() == maxRetries) {
-                //         System.err.println("Max retries reached for operation ID: " + operationId);
-                //         System.err.println("Reverting changes....");
-                //         revertChanges(temp);  
-                //         System.err.println("Changes reverted....");
-                //     } 
-                // }).exceptionally(e -> {
-                //     e.printStackTrace();
-                //     return null;
-                // });
-                //retryCount.incrementAndGet();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -911,6 +949,9 @@ public class Node extends Thread {
     * Sends a commit message, clears the operations batch, and marks the distributed operation as committed.
     *
     * @param operationId The operation ID.
+    * @see Nodes.Node#sendCommitMessage()
+    * @see Nodes.Node#clearOperationsBatch()
+    * @see Nodes.Node#commitDistributedOperation()
     */   
     public synchronized void commitSyncProcess(String operationId){
         try{
@@ -927,6 +968,7 @@ public class Node extends Thread {
     * Creates a commit message and broadcasts it to all nodes without requiring acknowledgment.
     *
     * @param operationID The operation ID.
+    * @see Services.HeartbeatService#broadcast(Message, boolean)
     */
     private void sendCommitMessage(String operationID){
         Message syncMessage = new Message(
@@ -960,6 +1002,8 @@ public class Node extends Thread {
      * and returns a message containing the full sync content.
      *
      * @return The message containing the full sync content.
+     * @see utils.UniqueIdGenerator#generateOperationId(String)
+     * @see Nodes.DocumentsDB#getDocumentsMap()
      */
     public Message startFullSyncProcess(){
         String operationID = UniqueIdGenerator.generateOperationId(OPERATION.FULL_SYNC_ANS.hashCode() + Long.toString(System.currentTimeMillis()));; 
