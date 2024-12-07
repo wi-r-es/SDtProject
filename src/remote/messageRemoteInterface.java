@@ -14,9 +14,6 @@ public interface messageRemoteInterface extends Remote {
     // Generic method to perform an operation
     public Message performOperation(OPERATION operation, Object data) throws RemoteException;
 
-    
-    
-
     public Message dequeue() throws RemoteException;
     
 }

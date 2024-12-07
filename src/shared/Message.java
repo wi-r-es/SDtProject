@@ -49,12 +49,6 @@ public class Message implements Serializable{
     public Message(OPERATION op, Object pl) {
         this(op, pl, null, null, 0);
     }
-    // public Message(OPERATION op, Object pl){
-    //     this.payload = pl;
-    //     this.header =op;
-    //     this.timestamp = System.currentTimeMillis(); 
-    // }
-
 
     /**
      * Returns the name of the node sending the message.
@@ -113,10 +107,6 @@ public class Message implements Serializable{
     public long getTimestamp(){
         return this.timestamp;
     }
-    // @Override
-    // public String toString() {
-    //     return "Message{header='" + header + "', payload=" + payload + "}";
-    // }
 
     /**
      * Returns a string representation of the Message object.

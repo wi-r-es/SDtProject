@@ -14,6 +14,7 @@ public class network {
      * @param object The object to serialize.
      * @return The serialized byte array.
      * @throws IOException If an I/O error occurs during serialization.
+     * @see ByteArrayOutputStream
      */
     public static byte[] serialize(Object object) throws IOException {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();

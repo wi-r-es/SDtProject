@@ -9,17 +9,25 @@ import java.rmi.server.UnicastRemoteObject;
 
 import shared.MessageQueue;
 
-
+/**
+ * The messageQueueServer class represents a server that hosts a message queue and exposes it via RMI.
+ * It extends the Thread class to run as a separate thread.
+ * @see remote.messageRemoteInterface
+ */
 public class messageQueueServer extends Thread {       
 
     public Registry registry;
     private MessageQueue mq;
     private int registryPort;
-    //private String regName;
     private messageRemoteInterface stub;
 
-    //private volatile boolean running;
-    
+    /**
+     * Constructs a new messageQueueServer instance.
+     *
+     * @param NodeID The ID of the node hosting the message queue server.
+     * @param port The port number on which to expose the message queue via RMI.
+     * @throws RemoteException If there is an error exporting the message queue stub.
+     */
     public messageQueueServer(String NodeID, int port) throws RemoteException{
         //regName = NodeID;
         registryPort = port;
@@ -28,6 +36,10 @@ public class messageQueueServer extends Thread {
         stub = (messageRemoteInterface) UnicastRemoteObject.exportObject(mq, port);
     }
 
+    /**
+     * The run method is executed when the thread starts.
+     * It sets up an RMI registry, binds the message queue stub to the registry, and keeps the server running until interrupted.
+     */
     @Override
     public void run() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::unreg));
@@ -55,6 +67,10 @@ public class messageQueueServer extends Thread {
             e.printStackTrace();
         }
     }
+    /**
+     * Unregisters the message queue from the RMI registry and unexports the remote objects.
+     * This method is called when the server is shutting down.
+     */
     public void unreg() {
         try {
             if (registry != null) {
@@ -84,8 +100,12 @@ public class messageQueueServer extends Thread {
         }
     }
 
-   
-
+    /**
+     * Transfers ownership of the message queue to a new owner.
+     *
+     * @param newOwner The ID of the new owner node.
+     * @throws RuntimeException If there is an error transferring ownership.
+     */
     public void transferOwnership(String newOwner) {
         try {
             System.out.println("Transferring MessageQueue ownership to " + newOwner);
@@ -97,12 +117,21 @@ public class messageQueueServer extends Thread {
         }
     }
 
-    
-
+    /**
+     * Checks if the message queue is empty.
+     *
+     * @return true if the message queue is empty, false otherwise.
+     * @throws RemoteException If there is an error checking the queue status.
+     */
     public boolean checkQueue() throws RemoteException{
         return !mq.isEmpty();
     }
 
+    /**
+     * Returns the message queue instance.
+     *
+     * @return The MessageQueue instance.
+     */
     public MessageQueue getQueue (){
         return mq;
     }

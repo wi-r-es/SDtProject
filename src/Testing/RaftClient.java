@@ -15,9 +15,6 @@ import remote.LeaderAwareMessageQueueServer;
 import shared.OPERATION;
 
 public class RaftClient {
-
-
-    
     public static void main(String[] args) throws InterruptedException {
         try {
            // printOptions();
@@ -71,8 +68,6 @@ public class RaftClient {
                 client.enqueue(OPERATION.CREATE, doc6);
                 client.enqueue(OPERATION.DELETE, doc2);
 
-                
-            
                 System.out.println("Message enqueued successfully");
                 
                 // Dequeue message
@@ -80,8 +75,6 @@ public class RaftClient {
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-         
-
         } catch (Exception e) {
             e.printStackTrace();
         }

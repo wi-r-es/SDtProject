@@ -18,6 +18,8 @@ public class CompressionUtils {
      * @param data The byte array to compress.
      * @return The compressed byte array.
      * @throws IOException If an I/O error occurs during compression.
+     * @see ByteArrayOutputStream
+     * @see GZIPOutputStream
      */
     public static byte[] compress(byte[] data) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -33,6 +35,9 @@ public class CompressionUtils {
      * @param compressedData The compressed byte array to decompress.
      * @return The decompressed byte array.
      * @throws IOException If an I/O error occurs during decompression.
+     * @see ByteArrayInputStream
+     * @see ByteArrayOutputStream
+     * @see GZIPInputStream
      */
     public static byte[] decompress(byte[] compressedData) throws IOException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);

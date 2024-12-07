@@ -16,13 +16,9 @@ public class Client {
         try {
             printOptions();
             
-
-
-
             System.out.println(Naming.list("rmi://localhost:2323").toString());
             messageRemoteInterface rq = (messageRemoteInterface) Naming.lookup("rmi://localhost:2323/MessageQueue");
             System.out.println("Connected to MessageQueue");
-
 
             Document doc1 = new Document("This is a new document1");
             Document doc2 = new Document("This is a new document2");
@@ -30,8 +26,6 @@ public class Client {
 
             // Perform remote operations
             //rq.enqueue(msg);
-
-
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc1));
             rq.enqueue(rq.performOperation(OPERATION.UPDATE, doc1));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc2));
@@ -43,7 +37,6 @@ public class Client {
             node.start();
             node.getGossipNode().getHeartbeatService().syncNewElement();
 
-
             Document doc4 = new Document("This is a new document4");
             Document doc5 = new Document("This is a new document5");
             Document doc6 = new Document("This is a new document6");
@@ -54,13 +47,9 @@ public class Client {
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc5));
             rq.enqueue(rq.performOperation(OPERATION.CREATE, doc6));
             rq.enqueue(rq.performOperation(OPERATION.DELETE, doc2));
-         
-
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
             e.printStackTrace();
-        }
-        
-        
+        } 
     }
 
     public static void printOptions(){

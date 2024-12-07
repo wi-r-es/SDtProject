@@ -24,8 +24,6 @@ public class MessageQueue implements messageRemoteInterface{
     
     }
 
-    
-
     /**
      * Enqueues a message into the queue.
      *

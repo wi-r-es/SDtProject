@@ -7,9 +7,7 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-import Nodes.Raft.LogEntry;
 import Nodes.Raft.RaftNode;
 import Resources.Document;
 import remote.LeaderAwareMessageQueueServer;
@@ -46,23 +44,6 @@ public class RaftLogGapTest {
         Document doc5 = new Document("This is a new document5");
         Document doc6 = new Document("This is a new document6");
         try {
-            // Wait for initial leader election
-            //Thread.sleep(10000);
-            
-            // // Find leader and a follower
-            // RaftNode leader = nodes.stream()
-            //     .filter(RaftNode::isLeader)
-            //     .findFirst()
-            //     .orElseThrow();
-                
-            // RaftNode followerToSleep = nodes.stream()
-            //     .filter(n -> !n.isLeader())
-            //     .findFirst()
-            //     .orElseThrow();
-            
-            // System.out.println("Leader is: " + leader.getNodeName());
-            // System.out.println("Selected follower to sleep: " + followerToSleep.getNodeName());
-            // Wait for leader election with retry
             RaftNode leader = null;
             RaftNode followerToSleep = null;
             int maxAttempts = 10;
