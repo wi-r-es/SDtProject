@@ -488,33 +488,26 @@ public class Node extends Thread {
      */
     protected synchronized void processOP(OPERATION op, Document document){
         try{
-
             switch (op) {
                 case CREATE:
                     if (documents.updateOrAddDocument(document)) {
                         addOperation("CREATE" + ";" + document.toString());
                         System.out.println("Document created: " + document);
-             
                     } 
                     break;
-    
                 case UPDATE:
                     if (documents.updateOrAddDocument(document)) {
                        addOperation("UPDATE;" + document.toString()); // uses the same function has above, but logs the orinal operation from the message queue accordingly.
-           
                     }
                     break;
-    
                 case DELETE:
                     if (documents.removeDocument(document)) {
                         addOperation("DELETE" + ";" + document.toString());
                         System.out.println("Document deleted: " + document);
-             
                     } else {
                         System.out.println("Document not found for deletion: " + document);
                     }
                     break;
-    
                 default:
                     System.err.println("Unsupported operation: " + op);
             }

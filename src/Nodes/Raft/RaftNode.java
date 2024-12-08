@@ -32,6 +32,7 @@ import remote.LeaderAwareMessageQueueServer;
  * @see AtomicInteger
  * @see AtomicReference
  * @see ScheduledExecutorService
+ * @see ExecutorService
  * @see ScheduledFuture
  * @see AtomicLong
  * @see Nodes.Raft.LogEntry
@@ -46,6 +47,7 @@ public class RaftNode extends Node {
     private static final int ELECTION_TIMEOUT_MAX = 1500;//3000;//1000;//300;  
     private static final int HEARTBEAT_INTERVAL = 1000;   
     private static final long REPLICATION_TIMEOUT = 5000;  
+    private static final int CONSISTENCY_CHECK_INTERVAL = 10000; // 10 seconds
     //fields for log replication
     private List<LogEntry> log;
     private Map<UUID, Integer> nextIndex = Collections.synchronizedMap(new HashMap<>());  // Index of next log entry to send to each node
@@ -63,7 +65,8 @@ public class RaftNode extends Node {
     private final Random random;
     private final Object timerLock = new Object();
     private volatile ScheduledFuture<?> heartbeatTimer;
-    private ScheduledExecutorService scheduler; //for thread scheduling
+    private ScheduledExecutorService criticalScheduler; //for critical tasks
+    private final ExecutorService virtualThreadScheduler; //for non critical tasks
 
     // For log replication fail for testing purposes
     private volatile boolean isSleeping = false;
@@ -110,7 +113,8 @@ public class RaftNode extends Node {
         this.leaderId = null;
         this.votedFor = new AtomicReference<>(null);
         this.votesReceived = ConcurrentHashMap.newKeySet();
-        this.scheduler = Executors.newScheduledThreadPool(2); // VS newVirtualThreadPerTaskExecutor
+        this.criticalScheduler = Executors.newScheduledThreadPool(2); // 2 cores for critical tasks
+        this.virtualThreadScheduler = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
         this.random = new Random();
         this.electionTimeout = new AtomicLong(0);
 
@@ -175,8 +179,8 @@ public class RaftNode extends Node {
         if (electionMonitor != null) {
             electionMonitor.cancel(false);
         }
-        if (!scheduler.isShutdown()) {
-            scheduler.shutdown();
+        if (!criticalScheduler.isShutdown()) {
+            criticalScheduler.shutdown();
         }
     }
 
@@ -287,7 +291,7 @@ public class RaftNode extends Node {
             if (heartbeatTimer != null) {
                 heartbeatTimer.cancel(false);
             }
-            scheduler.shutdownNow();
+            criticalScheduler.shutdownNow();
         }
     }
 
@@ -379,7 +383,7 @@ public class RaftNode extends Node {
         }
         int initialDelay = random.nextInt(ELECTION_TIMEOUT_MAX);
         // Start a single timer that checks election timeout continuously
-        electionMonitor = scheduler.scheduleAtFixedRate(() -> {
+        electionMonitor = criticalScheduler.scheduleAtFixedRate(() -> {
             try{
                 if (System.currentTimeMillis() >= electionTimeout.get() && 
                     state.get() != NodeState.LEADER) {
@@ -752,19 +756,21 @@ public class RaftNode extends Node {
             }
 
             // Start sending heartbeats
-            heartbeatTimer = scheduler.scheduleAtFixedRate(
+            heartbeatTimer = criticalScheduler.scheduleAtFixedRate(
                 this::broadcastHeartbeat,
                 0,
                 HEARTBEAT_INTERVAL,
                 TimeUnit.MILLISECONDS
             );
         }
+        startConsistencyChecker();
         System.out.println("[DEBUG] Starting leader services");
         super.becomeLeader();
         startLeaderServices();
         System.out.println("[DEBUG] Leader transition complete");
         
     }
+
     /**
      * Steps down as the leader.
      *
@@ -796,8 +802,8 @@ public class RaftNode extends Node {
                 heartbeatTimer = null;
             }
             
-            if (scheduler.isShutdown()) {
-                scheduler = Executors.newScheduledThreadPool(2);
+            if (criticalScheduler.isShutdown()) {
+                criticalScheduler = Executors.newScheduledThreadPool(2);
             }
             
             startElectionMonitor();
@@ -1864,9 +1870,6 @@ public class RaftNode extends Node {
         if (!isLeader()) {
             return;
         }
-        // if (state.get() == NodeState.LEADER) { //already checked before the call of the method
-        //     super.processAndCommit();
-        // }
         try {
             MessageQueue queue = getLeaderQueue();
             System.out.println("[DEBUG] Got leader queue: " + (queue != null));
@@ -1894,12 +1897,6 @@ public class RaftNode extends Node {
                     appendLogEntry(entry);
                     System.out.println("[DEBUG]->After adding entry - log size: " + log.size());
                     
-                    // for (UUID peerId : nextIndex.keySet()) {
-                    //     if (!peerId.equals(getNodeId())) {
-                    //         nextIndex.put(peerId, 0);
-                    //     }
-                    // }
-
                     // Actively replicate to followers
                     //replicateLogUNICAST();
                     replicateLogMULTICAST();
@@ -2028,8 +2025,8 @@ public class RaftNode extends Node {
             // }
 
             // Stop scheduler threads
-            if (scheduler != null) {
-                scheduler.shutdownNow();
+            if (criticalScheduler != null) {
+                criticalScheduler.shutdownNow();
 
             }
 
@@ -2116,10 +2113,82 @@ public class RaftNode extends Node {
         resetElectionTimeout();
     }
     
+/*
+ ██████  ██████  ███    ██ ███████ ██ ███████ ████████ ███████ ███    ██  ██████ ██    ██ 
+██      ██    ██ ████   ██ ██      ██ ██         ██    ██      ████   ██ ██       ██  ██  
+██      ██    ██ ██ ██  ██ ███████ ██ ███████    ██    █████   ██ ██  ██ ██        ████   
+██      ██    ██ ██  ██ ██      ██ ██      ██    ██    ██      ██  ██ ██ ██         ██    
+ ██████  ██████  ██   ████ ███████ ██ ███████    ██    ███████ ██   ████  ██████    ██    
+                                                                                         
+ */
 
+    private void startConsistencyChecker() {
+        virtualThreadScheduler.execute(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    if (state.get() == NodeState.LEADER) {
+                        checkConsistency();
+                    }
+                    Thread.sleep(CONSISTENCY_CHECK_INTERVAL);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
+    }
 
+    private void checkConsistency() {
+        String logHash = generateLogHash();
+        String docHash = generateDocHash();
+        System.out.println("[DEBUG]: Checking consistencty from leader to followers.");
+        Message consistencyMsg = new Message(
+            OPERATION.CONSISTENCY_CHECK,
+            logHash + ":" + docHash,
+            getNodeName(),
+            getNodeId(),
+            getGossipNode().getHeartbeatService().getUDPport()
+        );
+        
+        this.getGossipNode().getHeartbeatService().broadcast(consistencyMsg, true);
+    }
 
+    private String generateLogHash() {
+        StringBuilder logContent = new StringBuilder();
+        for (LogEntry entry : log) {
+            logContent.append(entry.toString());
+        }
+        return Integer.toString(logContent.toString().hashCode());
+    }
 
+    private String generateDocHash() {
+        StringBuilder docContent = new StringBuilder();
+        for (Document doc : getDocuments().getDocuments().values()) {
+            docContent.append(doc.toString());
+        }
+        return Integer.toString(docContent.toString().hashCode());
+    }
+
+    public void handleConsistencyCheck(Message message) {
+        if (state.get() == NodeState.LEADER) return;
+        System.out.println("[DEBUG]: Checking consistencty check from leader.");
+        String[] hashes = ((String)message.getPayload()).split(":");
+        String leaderLogHash = hashes[0];
+        String leaderDocHash = hashes[1];
+        
+        String myLogHash = generateLogHash();
+        String myDocHash = generateDocHash();
+        
+        if (!leaderLogHash.equals(myLogHash) || !leaderDocHash.equals(myDocHash)) {
+            System.out.println("[DEBUG]: Checking consistencty--> consistency check not successful.");
+            getDocuments().clearDocuments();
+            log.clear();
+            // Request full sync
+            System.out.println("[DEBUG] Consistency check failed, requesting sync");
+            getGossipNode().getHeartbeatService().initializeRaftState(message.getNodeId(), message.getUdpPort(),9999);
+        }
+        System.out.println("[DEBUG]: Checking consistencty--> consistency check was successful.");
+    }
     
 }
 

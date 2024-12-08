@@ -160,4 +160,9 @@ public class DocumentsDB {
             return locked;
         }
     }
+
+
+    public void clearDocuments(){
+        documentMap.clear();
+    }
 }

@@ -24,5 +24,6 @@ public enum OPERATION {
     APPEND_ENTRIES,   // Append entries to the log (log replication)
     APPEND_ENTRIES_REPLY, // Reply to an append entries request
     COMMIT_INDEX,     // Commit an index in the log (commit the log replication from APPEND_ENTRIES)
-    QUEUE_TRANSFER    // Transfer ownership of the message queue
+    QUEUE_TRANSFER,   // Transfer ownership of the message queue
+    CONSISTENCY_CHECK // Check consistency between leader and followers
 }

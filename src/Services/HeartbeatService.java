@@ -398,6 +398,10 @@ public class HeartbeatService extends Thread {
                             if(this.gossipNode.isLeader()){ break;}
                             gossipNode.getRaftNode().handleCommitIndex(message);
                             break;
+                        case CONSISTENCY_CHECK:
+                            if(this.gossipNode.isLeader()){ break;}
+                            gossipNode.getRaftNode().handleConsistencyCheck(message);
+                            break;
                         default:
                             System.err.println("This operation is not supported in this part of the code [COMP], BIG BUG1: " + op);
                     }
@@ -1150,6 +1154,15 @@ public class HeartbeatService extends Thread {
         
         fullSyncInnit(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing );
     }
+
+
+/*
+██████   █████  ███████ ████████     ███    ███ ███████ ████████ ██   ██  ██████  ██████  ███████ 
+██   ██ ██   ██ ██         ██        ████  ████ ██         ██    ██   ██ ██    ██ ██   ██ ██      
+██████  ███████ █████      ██        ██ ████ ██ █████      ██    ███████ ██    ██ ██   ██ ███████ 
+██   ██ ██   ██ ██         ██        ██  ██  ██ ██         ██    ██   ██ ██    ██ ██   ██      ██ 
+██   ██ ██   ██ ██         ██        ██      ██ ███████    ██    ██   ██  ██████  ██████  ███████
+ */
     /**
      * Initiates a full sync process for a new node joining the cluster. - For RAFT Protocol
      * @see shared.Message#discoveryMessage()
@@ -1185,7 +1198,7 @@ public class HeartbeatService extends Thread {
      * @see Nodes.Raft.RaftNode#handleSyncRequest()
      * @see Nodes.Raft.RaftNode#stepDown()
      */
-    private void initializeRaftState(UUID leaderID, int leader_port, int sync_port) {
+    public void initializeRaftState(UUID leaderID, int leader_port, int sync_port) {
         try (DatagramSocket syncSocket = new DatagramSocket(sync_port)) {
             syncSocket.setSoTimeout(50000);
             
@@ -1229,6 +1242,15 @@ public class HeartbeatService extends Thread {
      * @see Nodes.Raft.RaftNode#handleLeaderFailure()
      */
     private void detectFailures() {
+        if (isSuspended) {
+            try {
+                Thread.sleep(1000);
+                return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
         long currentTime = System.currentTimeMillis();
         System.out.println(getName());
         //System.out.println("detecting failures");

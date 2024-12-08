@@ -14,3 +14,5 @@ ignoring AppendEntries
 
 [DEBUG] Putting node
 [DEBUG] Waking up node
+
+Current Raft[Node-0]State
