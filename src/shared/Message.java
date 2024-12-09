@@ -2,7 +2,6 @@ package shared;
 
 import java.io.Serializable;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The Message class represents a message that can be sent between nodes in a distributed system.
@@ -13,7 +12,6 @@ public class Message implements Serializable{
     private static final long serialVersionUID = 1L;
     private final OPERATION header;
     private Object payload;
-    private final AtomicInteger message_id = new AtomicInteger(0);
     private final long timestamp;
 
     private String nodeName;
@@ -91,14 +89,7 @@ public class Message implements Serializable{
     public Object getPayload(){
         return payload;
     }
-     /**
-     * Returns the unique message ID.
-     *
-     * @return The unique message ID.
-     */
-    public int getMessageId(){
-        return message_id.get();
-    }
+
     /**
      * Returns the timestamp of the message.
      *

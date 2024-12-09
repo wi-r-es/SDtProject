@@ -10,8 +10,7 @@ public class AppendEntriesReply  implements Serializable {
     private final int term;        // Current term of the responding node
     private final boolean success; // Whether the entries were appended successfully
     private final UUID nodeID; // follower node ID
-
-    private final Integer lastLogIndex;
+    private final Integer lastLogIndex; // for when log replication failed 
 
     /**
      * Constructs an instance of AppendEntriesReply.

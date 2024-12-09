@@ -394,7 +394,7 @@ public class RaftNode extends Node {
                 e.printStackTrace();
             }
           
-        }, initialDelay, 10, TimeUnit.MILLISECONDS);  // Start with random delay
+        }, initialDelay, 500, TimeUnit.MILLISECONDS);  // Start with random delay
     }
     /**
      * Resets the election timeout.
@@ -480,7 +480,9 @@ public class RaftNode extends Node {
 
         addNewLog("ELECTION");
 
-        
+        // simply multicast
+        sendVoteRequest();
+
         
         
 
@@ -512,16 +514,13 @@ public class RaftNode extends Node {
                                 voteLatch.countDown(); // Count down for self
                             }
                         }
+                            // try {
+                        //     voteLatch.await(ELECTION_TIMEOUT_MIN, TimeUnit.MILLISECONDS);
+                        // } catch (InterruptedException e) {
+                        //     Thread.currentThread().interrupt();
+                        //     return;
+                        // }
         */
-        //or simply multicast
-        sendVoteRequest();
-
-        // try {
-        //     voteLatch.await(ELECTION_TIMEOUT_MIN, TimeUnit.MILLISECONDS);
-        // } catch (InterruptedException e) {
-        //     Thread.currentThread().interrupt();
-        //     return;
-        // }
     }
     /**
      * Retries the election.
@@ -573,8 +572,8 @@ public class RaftNode extends Node {
         System.out.println(voteRequest);
         System.out.println("[DEBUG] Sending vote request to peers." );
         this.getGossipNode().getHeartbeatService().broadcast(voteRequest, false);
-        
     }
+    
     /**
      * Returns the term of the last log entry.
      *
@@ -748,7 +747,6 @@ public class RaftNode extends Node {
         matchIndex.clear();
         initializeIndices();
 
-        
         synchronized (timerLock) {
             // Stop checking election timeout since we're now leader
             if (electionMonitor != null) {
@@ -1143,6 +1141,7 @@ public class RaftNode extends Node {
      * @param destination_port The destination port of the node sending the reply.
      * 
      * @see Nodes.Raft.RaftNode#sendAppendEntriesReply(UUID, boolean, int, int)
+     * @see Nodes.Raft.RaftNode#sendAppendEntriesReply(UUID, boolean, int, int, int)
      * @see Nodes.Raft.RaftNode#resetElectionTimeout()
      * @see Nodes.Raft.RaftNode#appendLogEntry(LogEntry)
      * @see Nodes.Raft.RaftNode#processLogEntry(LogEntry)     
@@ -1555,7 +1554,7 @@ public class RaftNode extends Node {
             int prevLogIndex = log.size() - 2;
             int prevLogTerm = prevLogIndex >= 0 ? log.get(prevLogIndex).getTerm() : 0;
             /*
-             If log is empty (size 0): prevLogIndex = -1, prevLogTerm = 0
+             If log is empty (size 0): prevLogIndex = -2, prevLogTerm = 0
              If log has one entry (size 1): prevLogIndex = -1, prevLogTerm = 0
              If log has multiple entries: prevLogIndex = second-to-last index, prevLogTerm = term of that entry
              */
@@ -1621,13 +1620,6 @@ public class RaftNode extends Node {
         System.out.println("[DEBUGGING] handleSyncRequest");
         System.out.println("[DEBUGGING] handleSyncRequest->paylaod->" +payload);
         String[] parts = payload.split(";");
-        
-        //int senderTerm = Integer.parseInt(parts[2]);
-        // Step down if we see a higher term
-        // if (senderTerm > currentTerm.get()) {
-        //     //stepDown(senderTerm);
-        //     return;
-        // }
 
         // Process logs
         String logsSection = parts[3].substring(5); // Skip "LOGS:" prefix
@@ -1641,8 +1633,6 @@ public class RaftNode extends Node {
         System.out.println("[DEBUGGING] handleSyncRequest docsSection-> "+docsSection);
         processDocumentsFromSync(docsSection);
         System.out.println("[DEBUGGING] handleSyncRequest back from processDocumentsFromSync logsSize()-> "+ log.size());
-        // Send acknowledgment
-        //this.getGossipNode().getHeartbeatService().sendSyncAck(senderId, senderPort);
         return log.size();
     }
 
@@ -1711,7 +1701,7 @@ public class RaftNode extends Node {
             // Count nodes that have replicated this index
             for (Map.Entry<UUID, Integer> entry : matchIndex.entrySet()) {
                 if (entry.getValue() >= index) {
-                    System.out.println("Votes/ACKs received for node: " + entry.getValue()+" with index: "+index );
+                    System.out.println("ACKs received for node: " + entry.getValue()+" with index: "+index );
 
                     replicationCount++;
                 }

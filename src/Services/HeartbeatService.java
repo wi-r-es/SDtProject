@@ -606,7 +606,6 @@ public class HeartbeatService extends Thread {
                                         int index = Integer.parseInt(parts[1]);
                                         System.out.println("ADDING NEW NODE TO MAPS");
                                         rn.addNewNodeToMaps(message.getNodeId(), index);
-                                        
                                     }
                                     else {
                                         System.out.println("\n\n\t FULL-SYNC-ACK RECEIVED FOR OPERATION: " + message);
@@ -1217,7 +1216,8 @@ public class HeartbeatService extends Thread {
                 int leaderTerm = Integer.parseInt(sections[2]);
                 
                 // Send acknowledgment
-                Message ackMsg = Message.replyFullSyncMessage("[index]:" + index, this.gossipNode.getNodeName(), this.gossipNode.getNodeId(), this.getUDPport());
+                Message ackMsg = Message.replyFullSyncMessage("[index]:" + index, this.gossipNode.getNodeName(), 
+                                            this.gossipNode.getNodeId(), this.getUDPport());
                 
                 sendUncompMessage(ackMsg, leaderID, leader_port);
                 
