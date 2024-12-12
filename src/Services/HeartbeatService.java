@@ -517,12 +517,13 @@ public class HeartbeatService extends Thread {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         
         try{
-            socket.setSoTimeout(5000);
+            //socket.setSoTimeout(5000);
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     socket.receive(packet); 
-                    // System.out.println("Message received in receiveMessage on port: " + packet.getPort());
-                    // System.out.println("Packet content: " + new String(packet.getData(), 0, packet.getLength()));
+
+                    System.out.println("Message received in receiveMessage on port: " + packet.getPort());
+                    //System.out.println("Packet content: " + new String(packet.getData(), 0, packet.getLength()));
                     // Extract the header (first 4 bytes) and payload
                     String header = new String(packet.getData(), 0, 4);
                     byte[] payload = Arrays.copyOfRange(packet.getData(), 4, packet.getLength());
@@ -533,10 +534,11 @@ public class HeartbeatService extends Thread {
                         // Decompress and deserialize
                         byte[] decompressedData = CompressionUtils.decompress(payload);
                         Message message = (Message) network.deserialize(decompressedData);
-
-                        
                         OPERATION op = message.getOperation();
                         Object obj = message.getPayload();
+
+                        System.out.println("PROCESSING COMP UNICAST MESSAGE : " + message);
+                        System.out.println("PROCESSING COMP UNICAST OP : " + op);
                         //Document doc = (Document) obj;
                             
                         switch (op) {
@@ -577,6 +579,8 @@ public class HeartbeatService extends Thread {
                         
                         Message message = (Message) network.deserialize(payload);
                         OPERATION op = message.getOperation();
+                        System.out.println("PROCESSING UNCO UNICAST MESSAGE : " + message);
+                        System.out.println("PROCESSING UNCO UNICAST OP : " + op);
                         switch (op) {
                             case HEARTBEAT_ACK: // reply to hearbeats 
                                 addKnownNode(message);
@@ -635,6 +639,7 @@ public class HeartbeatService extends Thread {
                                 rn.handleVoteRequest(rvargrs, message.getUdpPort());
                                 break;
                             case APPEND_ENTRIES_REPLY:
+                                System.out.println("PROCESSING APPEND ENTRIES REPLYS : " + gossipNode.isLeader());
                                 if(gossipNode.isLeader()) {
                                     AppendEntriesReply reply = (AppendEntriesReply) message.getPayload();
                                     gossipNode.getRaftNode().handleAppendEntriesReply(reply);

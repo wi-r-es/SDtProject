@@ -52,7 +52,7 @@ public class AppendEntriesReply  implements Serializable {
                 "term=" + term +
                 ", success=" + success +
                 ", nodeID=" + nodeID +
-                ", lastLogIndex=" + lastLogIndex!=null ? Integer.toString(lastLogIndex) : "not defined" +
+                ", lastLogIndex=" + (lastLogIndex!=null ? Integer.toString(lastLogIndex) : "not defined") +
                 '}';
     }
 }

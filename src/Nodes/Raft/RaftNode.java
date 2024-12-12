@@ -52,8 +52,8 @@ public class RaftNode extends Node {
     private List<LogEntry> log;
     private Map<UUID, Integer> nextIndex = Collections.synchronizedMap(new HashMap<>());  // Index of next log entry to send to each node
     private Map<UUID, Integer> matchIndex = Collections.synchronizedMap(new HashMap<>()); // Index of highest log entry known to be replicated
-    private volatile int commitIndex = 0;  // Index of highest log entry known to be committed
-    private volatile int lastApplied = 0;  // Index of highest log entry applied to state machine
+    private volatile int commitIndex = -1;  // Index of highest log entry known to be committed
+    private volatile int lastApplied = -1;  // Index of highest log entry applied to state machine
     //For Raft Node Control
     private AtomicInteger currentTerm;
     private final AtomicReference<UUID> votedFor;
@@ -107,8 +107,8 @@ public class RaftNode extends Node {
         this.log = new ArrayList<>();
         this.nextIndex = new ConcurrentHashMap<>();     // for log replication
         this.matchIndex = new ConcurrentHashMap<>();    // for log replication
-        this.commitIndex = 0;                           // log replication
-        this.lastApplied = 0;                           // for log replication
+        this.commitIndex = -1;                           // log replication
+        this.lastApplied = -1;                           // for log replication
         this.state = new AtomicReference<>(NodeState.FOLLOWER);
         this.leaderId = null;
         this.votedFor = new AtomicReference<>(null);
@@ -352,7 +352,7 @@ public class RaftNode extends Node {
     private void initializeIndices() {
         for (Map.Entry<UUID, Integer> peer : getKnownNodes()) {
             nextIndex.put(peer.getKey(), log.size());
-            matchIndex.put(peer.getKey(), 0);
+            matchIndex.put(peer.getKey(), commitIndex);
         }
     }
 /*
@@ -1145,7 +1145,7 @@ public class RaftNode extends Node {
      * @see Nodes.Raft.RaftNode#resetElectionTimeout()
      * @see Nodes.Raft.RaftNode#appendLogEntry(LogEntry)
      * @see Nodes.Raft.RaftNode#processLogEntry(LogEntry)     
-     * @see Nodes.Raft.RaftNode#applyCommittedEntries()
+    
      * @see Nodes.Raft.AppendEntriesArgs
     */
     public synchronized void handleAppendEntries(AppendEntriesArgs args, int destination_port) {
@@ -1227,17 +1227,14 @@ public class RaftNode extends Node {
             }
 
             // Process the command in the log entry
-            System.out.println("[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY");
-            processLogEntry(newEntry);
+            // System.out.println("[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY");
+            // processLogEntry(newEntry);
         }
 
-        // Update commit index
-        if (args.getLeaderCommit() > commitIndex) {
-            commitIndex = Math.min(args.getLeaderCommit(), log.size() - 1);
-            applyCommittedEntries();
-        }
+
 
         // Send successful reply
+        System.out.println("[DEBUGGING] handleAppendEntries:    Sending SUCCESSFULL APPEND");
         sendAppendEntriesReply(args.getLeaderId(), true, currentTerm.get(), destination_port);
     }
 
@@ -1262,7 +1259,14 @@ public class RaftNode extends Node {
             getGossipNode().getHeartbeatService().getUDPport()
         );
         System.out.println("[DEBUG]: SENDING ENTRIES REPLY");
-        System.out.println("Contenent-> " + replyMsg.toString());
+        // System.out.println("Contenent-> " + replyMsg.toString());
+
+        try{
+            System.out.println("Contenent-> " + replyMsg.toString());
+        } catch(Exception e){
+            System.out.println("WTFING ERROR IS THIS: " + e);
+            e.printStackTrace();
+        }
         
         System.out.println("Sending AppendEntriesReply: " + reply);
         getGossipNode().getHeartbeatService().sendUncompMessage(
@@ -1331,7 +1335,7 @@ public class RaftNode extends Node {
             updateFollowerIndices(reply.getnodeID());
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - nextIndex: " + nextIndex);
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - matchIndex: " + matchIndex);
-            checkAndSendCommit();
+            //checkAndSendCommit();
         } else { // The log replication wasn't succesfull, and the follower doesn't have the logs up-to-date
             if(!reply.isSuccess() && reply.getlastLogIndex()!= null){
                 System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null");
@@ -1546,7 +1550,7 @@ public class RaftNode extends Node {
     * @see Services.HeartbeatService#broadcast(Message, boolean)
     */
     private void replicateLogMULTICAST() {
-        System.out.println("[DEBUG]->REPLICATING LOG");
+        System.out.println("[DEBUG]->REPLICATING LOG MULTICAST");
         // Instead of unicasting to each peer, broadcast the latest entry
         if (!log.isEmpty()) {
             LogEntry latestEntry = log.get(log.size() - 1);
@@ -1574,7 +1578,7 @@ public class RaftNode extends Node {
                 getNodeId(),
                 getGossipNode().getHeartbeatService().getUDPport()
             );
-    
+            System.out.println("[DEBUG]->REPLICATING LOG MULTICAST Message: " + appendMsg.toString());
             this.getGossipNode().getHeartbeatService().broadcast(appendMsg, true);
         }
     }
@@ -1709,7 +1713,7 @@ public class RaftNode extends Node {
             
             // Check if we have majority
             if (replicationCount >= requiredReplicas) {
-                commitIndex = index;
+                //commitIndex = index;
                 applyCommittedEntries();
                 return true;
             }
@@ -1758,7 +1762,7 @@ public class RaftNode extends Node {
         System.out.println("[DEBUG]->updateFollowerIndices-> matchIndex: " + matchIndex.get(followerId));
         
         // Check if we can advance the commit index
-        updateCommitIndex();
+       // updateCommitIndex();
     }
 
     /**
@@ -1789,28 +1793,28 @@ public class RaftNode extends Node {
      * 
      * @see Nodes.Raft.RaftNode#applyCommittedEntries()
      */
-    private void updateCommitIndex() {
-        // Sort matched indices to find the median (majority)
-        List<Integer> matchedIndices = new ArrayList<>(matchIndex.values());
-        Collections.sort(matchedIndices);
-        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list: " + matchedIndices.toString()  );
-        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size: " + matchedIndices.size()  );
-        System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
-        //System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
-        // Get the index that has been replicated to a majority of nodes
-        int majorityIndex = matchedIndices.get(matchedIndices.size() / 2);
-        System.out.println("[DEBUG]updateCommitIndex-> majorityIndex: " + majorityIndex+ "; commitIndex: " + commitIndex +
-                              "; majorityIndexes term:  " +log.get(majorityIndex).getTerm() + "; current term: " + currentTerm.get() );
-        // Only update commit index:
-        // 1. If the majority index is greater than our current commit index
-        // 2. If the entry at majority index is from our current term
-        if (majorityIndex > commitIndex && 
-            log.get(majorityIndex).getTerm() == currentTerm.get()) {
+    // private void updateCommitIndex() {
+    //     // Sort matched indices to find the median (majority)
+    //     List<Integer> matchedIndices = new ArrayList<>(matchIndex.values());
+    //     Collections.sort(matchedIndices);
+    //     System.out.println("[DEBUG]updateCommitIndex-> matchIndex list: " + matchedIndices.toString()  );
+    //     System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size: " + matchedIndices.size()  );
+    //     System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
+    //     //System.out.println("[DEBUG]updateCommitIndex-> matchIndex list size/2: " + matchedIndices.size()/2  );
+    //     // Get the index that has been replicated to a majority of nodes
+    //     int majorityIndex = matchedIndices.get(matchedIndices.size() / 2);
+    //     System.out.println("[DEBUG]updateCommitIndex-> majorityIndex: " + majorityIndex+ "; commitIndex: " + commitIndex +
+    //                           "; majorityIndexes term:  " +log.get(majorityIndex).getTerm() + "; current term: " + currentTerm.get() );
+    //     // Only update commit index:
+    //     // 1. If the majority index is greater than our current commit index
+    //     // 2. If the entry at majority index is from our current term
+    //     if (majorityIndex > commitIndex && 
+    //         log.get(majorityIndex).getTerm() == currentTerm.get()) {
             
-            commitIndex = majorityIndex;
-            applyCommittedEntries();
-        }
-    }
+    //         commitIndex = majorityIndex;
+    //         applyCommittedEntries();
+    //     }
+    // }
 
     /*
                                 ██████  ██    ██ ███████ ██████  ██████  ██ ██████  ██ ███    ██  ██████  
@@ -1893,7 +1897,8 @@ public class RaftNode extends Node {
                     // Replicate and process
                     if (waitForLogReplication(log.size() - 1)) {
                         System.out.println("[DEBUG] Waiting for replication of index: " + (log.size() - 1));
-                        processMessage(message);
+                        //processMessage(message);
+                        checkAndSendCommit();
                         System.out.println("[DEBUG] Finished processing message");
                     } else {
                         System.out.println("[DEBUG] Failed to replicate message");
