@@ -47,6 +47,10 @@ public class HeartbeatService extends Thread {
     private DatagramSocket socket;
     private int udpPort;
 
+    private Set<Integer> usedPorts = new HashSet<>();
+    private final int MIN_PORT = 49152;  
+    private final int MAX_PORT = 65535;  
+
     // For log replication fail for testing purposes
     private volatile boolean isSuspended = false;
     public void HBsuspend() {
@@ -1188,6 +1192,20 @@ public class HeartbeatService extends Thread {
         initializeRaftState(UUID.fromString(leaderID), Integer.parseInt(leader_port), port_for_syncing);
     }
 
+    private int getAvailablePort() {
+        for (int port = MIN_PORT; port <= MAX_PORT; port++) {
+            if (!usedPorts.contains(port)) {
+                try (DatagramSocket testSocket = new DatagramSocket(port)) {
+                    usedPorts.add(port);
+                    return port;
+                } catch (IOException e) {
+                    // Port is not available, continue to next
+                }
+            }
+        }
+        throw new RuntimeException("No available ports found");
+    }
+
     /**
      * Initializes the Raft state of the node by requesting a full state sync from the leader.
      *
@@ -1203,11 +1221,12 @@ public class HeartbeatService extends Thread {
      * @see Nodes.Raft.RaftNode#stepDown()
      */
     public void initializeRaftState(UUID leaderID, int leader_port, int sync_port) {
-        try (DatagramSocket syncSocket = new DatagramSocket(sync_port)) {
+        int actualSyncPort = getAvailablePort();
+        try (DatagramSocket syncSocket = new DatagramSocket(actualSyncPort)) {
             syncSocket.setSoTimeout(50000);
             
             // Request full state from leader
-            fullSyncRequest(leaderID, leader_port, sync_port);
+            fullSyncRequest(leaderID, leader_port, actualSyncPort);
             Message response = waitFullSync(syncSocket);
             
             if (response != null) {
@@ -1234,6 +1253,8 @@ public class HeartbeatService extends Thread {
             e.printStackTrace();
         }
     }
+
+    
 
 
 
