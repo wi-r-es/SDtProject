@@ -1381,16 +1381,8 @@ public class RaftNode extends Node {
     * @see Services.HeartbeatService#broadcast(Message, boolean)
     */
     private void checkAndSendCommit() {
-        int matchCount = 1; // Count self
         int currentIndex = log.size() - 1;
-        
-        for (Integer matchIdx : matchIndex.values()) {
-            if (matchIdx >= currentIndex) {
-                matchCount++;
-            }
-        }
-        
-        if (matchCount > getKnownNodes().size() / 2) {
+
             System.out.println("[DEBUG]->handleAppendEntriesReply gonna send commit");
             System.out.println("[DEBUG] Achieved majority for index " + currentIndex + 
                 ". Sending commit message.");
@@ -1404,7 +1396,7 @@ public class RaftNode extends Node {
             );
             System.out.println("Commit index for index: " + commitIndex);
             this.getGossipNode().getHeartbeatService().broadcast(commitMsg, true);
-        }
+
     }
     /*
     @Deprecated
@@ -1501,6 +1493,10 @@ public class RaftNode extends Node {
             addNewLog("REPLICATION", entry);
             String[] parts = entry.getCommand().split(":", 2);
             if (parts.length != 2) return;
+
+            System.out.println("[DEBUG] OP: "+ parts[0]);
+            System.out.println("[DEBUG] DOC: "+ parts[1]);
+
             OPERATION op = OPERATION.valueOf(parts[0]);
             Document doc = Document.fromString(parts[1]);
             System.out.println("[DEBUG] Applying log entry: Operation=" + op + 
@@ -1611,7 +1607,7 @@ public class RaftNode extends Node {
     // }
 
    /**
-    * Handles a sync request from another node.
+    * Handles a sync request from another node. (FULL SYNC REQUEST)
     * Updates the logs and documents based on the received sync payload.
     *
     * @param payload The sync request payload.
@@ -1661,7 +1657,7 @@ public class RaftNode extends Node {
             System.out.println("[DEBUGGING] updateLogsFromSync-> entry " + entry );
 
             if (entry.getIndex() >= log.size()) {
-                System.out.println("[DEBUGGING] updateLogsFromSync");
+                System.out.println("[DEBUGGING] updateLogsFromSync going to append->"+entry);
                 appendLogEntry(entry);
             }
         }
@@ -1679,9 +1675,15 @@ public class RaftNode extends Node {
         String[] docs = docsSection.split("\\$");
         for (String doc : docs) {
             if (!doc.isEmpty()) {
-                System.out.println("[DEBUGGING]  processDocumentsFromSync. doc: " + doc);
-                Document document = Document.fromString(doc);
-                getDocuments().updateOrAddDocument(document);
+                try{
+                    System.out.println("[DEBUGGING]  processDocumentsFromSync. doc: " + doc);
+                    Document document = Document.fromString(doc);
+                    getDocuments().updateOrAddDocument(document);
+                }catch(Exception e){
+                    System.out.println("error processing documetns from sync: " + e);
+                }
+                
+                
             }
         }
     }
@@ -1895,7 +1897,7 @@ public class RaftNode extends Node {
                     //replicateLogUNICAST();
                     replicateLogMULTICAST();
                     // Replicate and process
-                    if (waitForLogReplication(log.size() - 1)) {
+                    if (waitForLogReplication(log.size() - 1)) {// in parallel receives messages unicast in HBService
                         System.out.println("[DEBUG] Waiting for replication of index: " + (log.size() - 1));
                         //processMessage(message);
                         checkAndSendCommit();
@@ -1940,7 +1942,7 @@ public class RaftNode extends Node {
 
         // Add log entries
         payloadBuilder.append("LOGS:").append(getLogsAsString()).append(";");
-
+        payloadBuilder.append("DOCS:");
         // Add documents
         this.getDocuments().getDocuments().values().forEach(doc -> {
             payloadBuilder.append(doc.toString()).append("$");

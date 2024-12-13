@@ -17,7 +17,6 @@ import shared.OPERATION;
 public class RaftClient {
     public static void main(String[] args) throws InterruptedException {
         try {
-           // printOptions();
 
             try {
                 File logFile = new File("raftClientTest.txt");
@@ -82,16 +81,7 @@ public class RaftClient {
         
     }
 
-    public static void printOptions(){
-        try{ 
-        String [] opts = Naming.list("rmi://localhost:2323/Node-0");
-        for(int i=0; i<opts.length; i++){
-             System.out.println(opts[i]);
-        }
-    } catch( Exception e){
-        e.printStackTrace();
-    }
-     }
+
 }
 
 
