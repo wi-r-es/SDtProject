@@ -4,7 +4,6 @@ package Testing;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.rmi.Naming;
 
 import java.rmi.RemoteException;
 
