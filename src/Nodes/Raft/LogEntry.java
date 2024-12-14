@@ -1,8 +1,11 @@
 package Nodes.Raft;
 
 import java.io.Serializable;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import Resources.Document;
 
 /**
  * Represents a log entry in the Raft consensus algorithm.
@@ -36,12 +39,34 @@ public class LogEntry implements Serializable{
             Matcher matcher = pattern.matcher(str);
             
             if (matcher.find()) {
+
+                // Print the entire match
+                System.out.println("Full match: " + matcher.group(0));
+                
+                // Print each captured group by index
+                for (int i = 1; i <= matcher.groupCount(); i++) {
+                    System.out.println("Group " + i + ": " + matcher.group(i));
+                }
+
                 int term = Integer.parseInt(matcher.group(1));
                 int index = Integer.parseInt(matcher.group(2));
                 String command = matcher.group(3);
                 return new LogEntry(term, index, command);
             }
-            throw new IllegalArgumentException("Invalid log entry format: " + str);
+            else{
+                Pattern pattern2 = Pattern.compile("LogEntry\\{term=(\\d+), index=(\\d+), command='(.*?)");
+                Matcher matcher2 = pattern2.matcher(str);
+                if(matcher2.find()){
+                    System.out.println("Full match2: " + matcher.group(0));
+                    int term = Integer.parseInt(matcher.group(1));
+                    int index = Integer.parseInt(matcher.group(2));
+                    String command = matcher.group(3);
+                    return new LogEntry(term, index, command);
+                }
+                System.out.println("No match found.");
+                throw new IllegalArgumentException("Invalid log entry format: " + str );
+            }
+
         } catch (Exception e) {
             throw new IllegalArgumentException("Error parsing log entry: " + str, e);
         }

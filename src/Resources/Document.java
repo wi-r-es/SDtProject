@@ -50,12 +50,31 @@ public class Document implements Serializable {
         Matcher matcher = pattern.matcher(str);
         
         if (matcher.find()) {
+            // Print the entire match
+            System.out.println("Full match: " + matcher.group(0));
+            
+            // Print each captured group by index
+            for (int i = 1; i <= matcher.groupCount(); i++) {
+                System.out.println("Group " + i + ": " + matcher.group(i));
+            }
             String id = matcher.group(1);
             String content = matcher.group(2);
             int version = Integer.parseInt(matcher.group(3));
             return new Document(content, UUID.fromString(id), version);
+        }else {
+            Pattern pattern2 = Pattern.compile("\\{?id='(.*?)', content='(.*?)', version='(\\d+)");
+            Matcher matcher2 = pattern2.matcher(str);
+            if(matcher2.find()){
+                System.out.println("Full match2: " + matcher.group(0));
+                String id = matcher.group(1);
+                String content = matcher.group(2);
+                int version = Integer.parseInt(matcher.group(3));
+                return new Document(content, UUID.fromString(id), version);
+            }
+            System.out.println("No match found.");
+            throw new IllegalArgumentException("Invalid document string format: " + str);
         }
-        throw new IllegalArgumentException("Invalid document string format: " + str);
+        
     }
     
 

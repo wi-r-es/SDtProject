@@ -1225,10 +1225,6 @@ public class RaftNode extends Node {
                 // Append new entry
                 appendLogEntry(newEntry);
             }
-
-            // Process the command in the log entry
-            // System.out.println("[DEBUGGING] handleAppendEntries:    GOING TO PROCESS LOGENTRY");
-            // processLogEntry(newEntry);
         }
 
 
@@ -1335,7 +1331,6 @@ public class RaftNode extends Node {
             updateFollowerIndices(reply.getnodeID());
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - nextIndex: " + nextIndex);
             System.out.println("[DEBUG]->handleAppendEntriesReply-> After update - matchIndex: " + matchIndex);
-            //checkAndSendCommit();
         } else { // The log replication wasn't succesfull, and the follower doesn't have the logs up-to-date
             if(!reply.isSuccess() && reply.getlastLogIndex()!= null){
                 System.out.println("[DEBUG]->handleAppendEntriesReply-> unsucessfull and getlastLogIndex isnt null");
@@ -1505,7 +1500,7 @@ public class RaftNode extends Node {
             System.out.println("[DEBUG]: GOING TO PROCESS DOCUMENT OP WITH SUPER;");
             super.processOP(op, doc); // Process the document operation
         } catch (IllegalArgumentException e) {
-            System.err.println("Invalid operation in log entry: " + entry.getCommand());
+            System.out.println("Invalid operation in log entry: " + entry.getCommand());
             e.printStackTrace();
         }
     }
@@ -1533,6 +1528,8 @@ public class RaftNode extends Node {
             
         } catch (Exception e) {
             LOGGER.severe("Error handling commit index: " + e.getMessage());
+            System.out.println("ERROR HADNLING COMMIT INDEX; MESSAGE: " + message);
+            System.out.println("ERROR HADNLING COMMIT INDEX; EXCEPTION: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1551,6 +1548,12 @@ public class RaftNode extends Node {
         if (!log.isEmpty()) {
             LogEntry latestEntry = log.get(log.size() - 1);
             // The entry before our latest entry
+            /*
+             * int prevLogIndex; = (log.size()>1) ? (log.size() - 1 ) : 0 ;
+            if( log.size() == 0 ) { prevLogIndex = -2;}
+            else if( log.size() == 1 ) { prevLogIndex = -1;}
+            else {prevLogIndex = log.size() - 2 ;}
+             */
             int prevLogIndex = log.size() - 2;
             int prevLogTerm = prevLogIndex >= 0 ? log.get(prevLogIndex).getTerm() : 0;
             /*

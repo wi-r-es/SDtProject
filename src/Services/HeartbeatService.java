@@ -47,7 +47,7 @@ public class HeartbeatService extends Thread {
     private DatagramSocket socket;
     private int udpPort;
 
-    private Set<Integer> usedPorts = new HashSet<>();
+    private static Set<Integer> usedPorts = new HashSet<>();
     private final int MIN_PORT = 49152;  
     private final int MAX_PORT = 65535;  
 
