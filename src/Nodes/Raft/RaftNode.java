@@ -482,46 +482,9 @@ public class RaftNode extends Node {
 
         // simply multicast
         sendVoteRequest();
-
-        
-        
-
-        // Request votes from all peers
-        /*
-                        Set<Map.Entry<UUID, Integer>> peers = getKnownNodes();
-                        CountDownLatch voteLatch = new CountDownLatch(peers.size());
-                        
-                        //AtomicInteger voteCount = new AtomicInteger(1); 
-                        // Create vote request args
-                        RequestVoteArgs voteArgs = new RequestVoteArgs(currentTerm.get(), getNodeId(), log.size() - 1, getLastLogTerm());
-                        // Request votes from all peers
-                        for (Map.Entry<UUID, Integer> peer : peers) {
-                            if (!peer.getKey().equals(getNodeId())) {
-                                scheduler.execute(() -> {
-                                    Message voteRequest = new Message(
-                                        OPERATION.VOTE_REQ,
-                                        voteArgs
-                                    );
-                                    
-                                    this.getGossipNode().getHeartbeatService().sendUncompMessage(
-                                        voteRequest,
-                                        peer.getKey(),
-                                        getPeerPort(peer.getKey())
-                                    );
-                                    voteLatch.countDown();
-                                });
-                            } else {
-                                voteLatch.countDown(); // Count down for self
-                            }
-                        }
-                            // try {
-                        //     voteLatch.await(ELECTION_TIMEOUT_MIN, TimeUnit.MILLISECONDS);
-                        // } catch (InterruptedException e) {
-                        //     Thread.currentThread().interrupt();
-                        //     return;
-                        // }
-        */
     }
+
+    
     /**
      * Retries the election.
      * 

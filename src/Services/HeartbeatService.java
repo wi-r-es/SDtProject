@@ -1085,7 +1085,7 @@ public class HeartbeatService extends Thread {
                 attempts--;
             }
         }catch(Exception e){
-            System.out.println("Error: " + e);
+            System.out.println("Error in waitFullSYnc: " + e);
         }
 
         return null;
